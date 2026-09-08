@@ -129,8 +129,10 @@ while true; do
     1)
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 1/6" \
-        --window-icon="system-software-install" \
-        --width=750 --height=580 \
+        --window-icon="$LOGO_ICON" \
+        --image="$LOGO_BANNER" \
+        --image-on-top \
+        --width=750 --height=660 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>❄️ ChomiamOS</span> <span size='large' foreground='#a6adc8'>— Étape 1/$TOTAL_STEPS : Compte &amp; Système</span>\n<span foreground='#b4befe'>Créez votre compte utilisateur personnel et définissez l'identité de votre ordinateur.</span>\n" \
         --separator="|" \
@@ -172,7 +174,7 @@ while true; do
     2)
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 2/6" \
-        --window-icon="system-software-install" \
+        --window-icon="$LOGO_ICON" \
         --width=760 --height=540 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🖥️ Matériel &amp; Graphisme</span> <span size='large' foreground='#a6adc8'>— Étape 2/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Le bon pilote GPU et le noyau Linux optimisé (Zen pour AMD, XanMod pour NVIDIA/Intel) seront appliqués.</span>\n" \
@@ -198,7 +200,7 @@ while true; do
     3)
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 3/6" \
-        --window-icon="system-software-install" \
+        --window-icon="$LOGO_ICON" \
         --width=760 --height=540 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🎨 Bureau &amp; Navigation</span> <span size='large' foreground='#a6adc8'>— Étape 3/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Choisissez votre environnement visuel et votre navigateur Internet favori.</span>\n" \
@@ -224,7 +226,7 @@ while true; do
     4)
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 4/6" \
-        --window-icon="system-software-install" \
+        --window-icon="$LOGO_ICON" \
         --width=760 --height=620 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Jeux Vidéo</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez vos lanceurs de jeux et optimisations de performances sous Linux.</span>\n" \
@@ -256,7 +258,7 @@ while true; do
     5)
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 5/6" \
-        --window-icon="system-software-install" \
+        --window-icon="$LOGO_ICON" \
         --width=780 --height=610 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🛠️ Virtualisation &amp; Applications</span> <span size='large' foreground='#a6adc8'>— Étape 5/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Activez les outils professionnels, la virtualisation Windows et les logiciels de création.</span>\n" \
@@ -314,7 +316,7 @@ while true; do
 
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 6/6" \
-        --window-icon="system-software-install" \
+        --window-icon="$LOGO_ICON" \
         --width=780 --height=620 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Disque &amp; Confirmation Finale</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez le disque de destination pour l'installation de ChomiamOS (Ext4).</span>\n" \

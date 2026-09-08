@@ -10,15 +10,16 @@ let
       cp chomiamos-installer.sh $out/bin/chomiamos-installer
       chmod +x $out/bin/chomiamos-installer
       sed -i "s|CSS_FILE=.*|CSS_FILE=$out/share/chomiamos-installer/theme/catppuccin-mocha.css|g" $out/bin/chomiamos-installer
+      sed -i "s|THEME_DIR=.*|THEME_DIR=$out/share/chomiamos-installer/theme|g" $out/bin/chomiamos-installer
     '';
   };
 
   installerDesktop = pkgs.makeDesktopItem {
     name = "chomiamos-installer";
-    desktopName = "Installer ChomiamOS";
-    comment = "Assistant d'installation graphique de ChomiamOS Gaming Edition";
+    desktopName = "Installer chomiamos";
+    comment = "Assistant d'installation graphique de chomiamos";
     exec = "sudo ${installerPkg}/bin/chomiamos-installer";
-    icon = "system-software-install";
+    icon = "${installerPkg}/share/chomiamos-installer/theme/logo-icon.png";
     terminal = false;
     type = "Application";
     categories = [ "System" "Settings" ];
@@ -119,6 +120,11 @@ in
   programs.dconf.profiles.user.databases = [
     {
       settings = {
+        "org/gnome/desktop/background" = {
+          picture-uri = "file://${installerPkg}/share/chomiamos-installer/theme/chomiamos-wallpaper.png";
+          picture-uri-dark = "file://${installerPkg}/share/chomiamos-installer/theme/chomiamos-wallpaper.png";
+          picture-options = "zoom";
+        };
         "org/gnome/desktop/interface" = {
           color-scheme = "prefer-dark";
           gtk-theme = "Adwaita-dark";
