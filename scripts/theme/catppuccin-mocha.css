@@ -110,13 +110,13 @@ button:hover {
 }
 
 /* Bouton primaire (Suivant / Valider) */
-button:default, button.suggested-action {
+button.default, button.suggested-action {
     background: linear-gradient(135deg, #cba6f7, #b4befe);
     color: #11111b;
     border: none;
 }
 
-button:default:hover, button.suggested-action:hover {
+button.default:hover, button.suggested-action:hover {
     background: linear-gradient(135deg, #b4befe, #89b4fa);
     box-shadow: 0 4px 12px rgba(203, 166, 247, 0.35);
 }
