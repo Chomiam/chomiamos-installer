@@ -152,7 +152,7 @@ in
           dock-position = "LEFT";
           dock-fixed = true;
           extend-height = true;
-          dash-max-icon-size = 48;
+          dash-max-icon-size = lib.gvariant.mkInt32 48;
         };
       };
     }
