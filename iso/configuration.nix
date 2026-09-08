@@ -1,0 +1,96 @@
+{ pkgs, lib, ... }:
+
+let
+  installerScript = pkgs.writeShellScriptBin "chomiamos-installer" (builtins.readFile ../scripts/chomiamos-installer.sh);
+
+  installerDesktop = pkgs.makeDesktopItem {
+    name = "chomiamos-installer";
+    desktopName = "Installer ChomiamOS";
+    comment = "Assistant d'installation graphique de ChomiamOS Gaming Edition";
+    exec = "sudo ${installerScript}/bin/chomiamos-installer";
+    icon = "system-software-install";
+    terminal = false;
+    type = "Application";
+    categories = [ "System" "Settings" ];
+  };
+in
+{
+  # =========================================================================
+  # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS
+  # =========================================================================
+
+  # Support de tous les microcodes et firmwares pour compatibilité maximale
+  hardware.enableAllFirmware = true;
+  nixpkgs.config.allowUnfree = true;
+
+  # Fonctionnalités Flakes activées par défaut dans l'environnement Live
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  # Environnement graphique GNOME pour le Live-CD
+  services.xserver.enable = true;
+  services.xserver.xkb.layout = "fr";
+  services.displayManager.gdm.enable = true;
+  services.desktopManager.gnome.enable = true;
+
+  # Autologin sur l'utilisateur Live par défaut 'nixos'
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "nixos";
+  };
+
+  # Fuseau horaire et localisation par défaut pour le Live
+  time.timeZone = "Europe/Paris";
+  i18n.defaultLocale = "fr_FR.UTF-8";
+  console.keyMap = "fr";
+
+  boot.zfs.forceImportRoot = false;
+
+  # Paquets d'outils requis pour le partitionnement et l'installation
+  environment.systemPackages = with pkgs; [
+    # Assistant Yad et script d'installation
+    yad
+    installerScript
+    installerDesktop
+
+    # Outils de disque & partitionnement
+    parted
+    gparted
+    e2fsprogs
+    dosfstools
+    btrfs-progs
+    util-linux
+
+    # Détection matérielle & réseau
+    pciutils
+    usbutils
+    git
+    curl
+    wget
+  ];
+
+  # Raccourci sur le bureau et lancement automatique
+  systemd.tmpfiles.rules = [
+    "d /home/nixos/Desktop 0755 nixos users -"
+    "L+ /home/nixos/Desktop/chomiamos-installer.desktop - - - - ${installerDesktop}/share/applications/chomiamos-installer.desktop"
+    "z /home/nixos/Desktop/chomiamos-installer.desktop 0755 nixos users -"
+  ];
+
+  # Favoris du dock GNOME pour le Live-CD
+  programs.dconf.profiles.user.databases = [
+    {
+      settings = {
+        "org/gnome/shell" = {
+          favorite-apps = [
+            "chomiamos-installer.desktop"
+            "org.gnome.Nautilus.desktop"
+            "kitty.desktop"
+            "google-chrome.desktop"
+          ];
+        };
+      };
+    }
+  ];
+
+  # Droits sudo sans mot de passe pour l'utilisateur Live
+  security.sudo.wheelNeedsPassword = false;
+}
