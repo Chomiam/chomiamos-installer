@@ -454,26 +454,39 @@ if [ "$DRY_RUN" = true ]; then
     echo "85"; echo "# [Simulation] Injection du fichier vars.nix personnalisé..." ; sleep 1
     echo "95"; echo "# [Simulation] Compilation NixOS et installation du bootloader EFI..." ; sleep 1
     echo "100"; echo "# [Simulation] Déploiement terminé avec succès !" ; sleep 0.5
+    echo "-> Exécution de la simulation en cours..."
   ) | yad --css="$CSS_FILE" --progress \
           --title="[Simulation] Déroulement de l'installation..." \
           --text="Initialisation de la simulation..." \
           --percentage=0 \
+          --enable-log="Console & Journal d'installation" \
+          --log-expanded \
+          --log-height=180 \
           --auto-close \
-          --width=600 \
+          --width=750 \
           --center
 
   echo "$GENERATED_VARS" | yad --css="$CSS_FILE" --text-info \
     --title="[Simulation] Prévisualisation du vars.nix généré" \
     --width=700 --height=550 \
     --center \
-    --button="Terminer la simulation!gtk-ok:0" || true
+    --button="Valider le fichier vars.nix ➔:0" || true
 
-  yad --css="$CSS_FILE" --info \
-    --title="Simulation Réussie !" \
-    --width=480 \
-    --center \
-    --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nToutes les étapes ont été simulées avec succès avec le système de fichiers <b>$CHOSEN_FS</b>.\n\nAucune modification n'a été apportée à vos disques réels." \
-    --button="Fermer:0" || true
+  yad --css="$CSS_FILE" --question \
+      --title="[Simulation] Installation Terminée !" \
+      --width=520 \
+      --center \
+      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été simulé avec succès ($CHOSEN_FS).\n\n<i>En conditions réelles sur le Live-CD, ce message vous propose de redémarrer immédiatement pour accéder à votre nouveau bureau ChomiamOS.</i>\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
+      --button="Non, plus tard:1" \
+      --button="Oui, Redémarrer (Simulation):0"
+  if [ $? -eq 0 ]; then
+    yad --css="$CSS_FILE" --info \
+      --title="[Simulation] Redémarrage" \
+      --width=460 \
+      --center \
+      --text="<span foreground='#89b4fa' size='large'><b>🔄 Redémarrage simulé</b></span>\n\nDans l'installation réelle sur Live-CD, l'ordinateur redémarre instantanément." \
+      --button="Terminer:0"
+  fi
   exit 0
 fi
 
@@ -556,7 +569,7 @@ EOC
   echo "$GENERATED_VARS" > /mnt/etc/nixos/vars.nix
 
   echo "85"; echo "# Compilation et déploiement du système (nixos-install)..."
-  nixos-install --flake /mnt/etc/nixos#chomiamos --no-root-password
+  nixos-install --flake /mnt/etc/nixos#chomiamos --no-root-password 2>&1
 
   echo "95"; echo "# Configuration du mot de passe utilisateur..."
   echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt chpasswd
@@ -566,8 +579,11 @@ EOC
         --title="Installation de ChomiamOS en cours..." \
         --text="Préparation de l'installation..." \
         --percentage=0 \
+        --enable-log="Console & Journal d'installation" \
+        --log-expanded \
+        --log-height=220 \
         --auto-close \
-        --width=600 \
+        --width=780 \
         --center
 
 if [ $? -eq 0 ]; then

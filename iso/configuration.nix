@@ -85,6 +85,10 @@ in
     "z /home/nixos/Desktop/chomiamos-installer.desktop 0755 nixos users -"
   ];
 
+  # Lancement automatique de l'installateur à l'ouverture de la session Live
+  environment.etc."xdg/autostart/chomiamos-installer.desktop".source =
+    "${installerDesktop}/share/applications/chomiamos-installer.desktop";
+
   # Favoris du dock GNOME pour le Live-CD
   programs.dconf.profiles.user.databases = [
     {
