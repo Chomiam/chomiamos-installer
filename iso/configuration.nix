@@ -97,6 +97,11 @@ in
     git
     curl
     wget
+
+    # Extension Dash to Dock & Thème Catppuccin
+    gnomeExtensions.dash-to-dock
+    (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
+    catppuccin-cursors.mochaLavender
   ];
 
   # Raccourci sur le bureau et lancement automatique
@@ -110,22 +115,34 @@ in
   environment.etc."xdg/autostart/chomiamos-installer.desktop".source =
     "${installerDesktop}/share/applications/chomiamos-installer.desktop";
 
-  # Favoris du dock GNOME pour le Live-CD
+  # Configuration GNOME pour le Live-CD (Thème Catppuccin & Dash to Dock)
   programs.dconf.profiles.user.databases = [
     {
       settings = {
         "org/gnome/desktop/interface" = {
           color-scheme = "prefer-dark";
           gtk-theme = "Adwaita-dark";
+          icon-theme = "Papirus-Dark";
+          cursor-theme = "catppuccin-mocha-lavender-cursors";
+          accent-color = "purple";
           enable-animations = false;
         };
         "org/gnome/shell" = {
+          enabled-extensions = [
+            "dash-to-dock@micxgx.gmail.com"
+          ];
           favorite-apps = [
             "chomiamos-installer.desktop"
             "org.gnome.Nautilus.desktop"
             "kitty.desktop"
             "google-chrome.desktop"
           ];
+        };
+        "org/gnome/shell/extensions/dash-to-dock" = {
+          dock-position = "LEFT";
+          dock-fixed = true;
+          extend-height = true;
+          dash-max-icon-size = 48;
         };
       };
     }
