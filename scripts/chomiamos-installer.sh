@@ -112,7 +112,6 @@ VAL_DAVINCI="^none (Non installé)!free (DaVinci Resolve - Version Gratuite)!stu
 VAL_AI_SUITE="FALSE"
 
 VAL_TARGET_DISK="$DISKS_CHOICES"
-VAL_FS="^btrfs (BTRFS : Recommandé - Compression zstd automatique des jeux et snapshots)!ext4 (Ext4 : Classique, éprouvé et très stable)"
 
 # =============================================================================
 # 3. 🧙 ASSISTANT MULTI-PAGES EN 6 ÉTAPES (CATPPUCCIN MOCHA WIZARD)
@@ -318,11 +317,9 @@ while true; do
         --window-icon="system-software-install" \
         --width=780 --height=620 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Disque &amp; Confirmation Finale</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez le disque de destination et le système de fichiers souhaité.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Disque &amp; Confirmation Finale</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez le disque de destination pour l'installation de ChomiamOS (Ext4).</span>\n" \
         --separator="|" \
         --field="$RECAP_TEXT:LBL" "" \
-        --field="🗄️ Système de fichiers de la partition système :CB" "$VAL_FS" \
-        --field="<i>BTRFS gère la compression automatique de vos jeux et les snapshots. Ext4 est le système éprouvé classique.</i>:LBL" "" \
         --field="<span foreground='#f38ba8' weight='bold'>💾 Disque d'installation de destination :</span>:CB" "$VAL_TARGET_DISK" \
         --field="<span foreground='#f38ba8'><i>⚠️ ATTENTION : Le disque choisi sera entièrement effacé (Partition ESP 1 Go + partition racine).</i></span>:LBL" "" \
         --button="⬅ Précédent:2" \
@@ -332,20 +329,17 @@ while true; do
       if [ $RET -eq 2 ]; then STEP=5; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r _ VAL_FS _ RAW_TARGET_DISK _ <<< "$OUTPUT"
+IFS="|" read -r _ RAW_TARGET_DISK _ <<< "$OUTPUT"
       TARGET_DISK=$(echo "$RAW_TARGET_DISK" | awk '{print $1}')
       # Nettoyage de tout éventuel double préfixe /dev//dev/
       TARGET_DISK="${TARGET_DISK/#\/dev\/\/dev\//\/dev\/}"
-      CHOSEN_FS=$(echo "$VAL_FS" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+      CHOSEN_FS="ext4"
 
       if [ -z "$TARGET_DISK" ] || [[ ! "$TARGET_DISK" =~ ^/dev/ ]]; then
         yad --css="$CSS_FILE" --error --center --text="❌ Aucun disque cible sélectionné. Veuillez choisir un disque valide."
         continue
       fi
 
-      if [ -z "$CHOSEN_FS" ]; then
-        CHOSEN_FS="btrfs"
-      fi
 
       break
       ;;
@@ -362,14 +356,14 @@ if [ "$DRY_RUN" = true ]; then
     --title="[SIMULATION] Prêt à simuler" \
     --width=540 \
     --center \
-    --text="<span foreground='#89b4fa' size='x-large'><b>ℹ️ SIMULATION DU DÉPLOIEMENT</b></span>\n\n<b>Disque Cible :</b> $TARGET_DISK\n<b>Système de fichiers :</b> $CHOSEN_FS\n<b>Utilisateur :</b> $VAL_USERNAME\n\n<i>Cliquez sur Valider pour lancer la simulation des étapes et prévisualiser votre vars.nix Catppuccin !</i>" \
+    --text="<span foreground='#89b4fa' size='x-large'><b>ℹ️ SIMULATION DU DÉPLOIEMENT</b></span>\n\n<b>Disque Cible :</b> $TARGET_DISK\n<b>Système de fichiers :</b> Ext4 (Standard NixOS)\n<b>Utilisateur :</b> $VAL_USERNAME\n\n<i>Cliquez sur Valider pour lancer la simulation des étapes et prévisualiser votre vars.nix Catppuccin !</i>" \
     --button="Valider et Lancer la Simulation ➔:0"
 else
   yad --css="$CSS_FILE" --warning \
     --title="Confirmation Définitive de Formatage" \
     --width=540 \
     --center \
-    --text="<span foreground='#f38ba8' size='x-large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et formaté en <b>$CHOSEN_FS</b>.\n\nÊtes-vous absolument sûr de vouloir formater et installer ChomiamOS ?" \
+    --text="<span foreground='#f38ba8' size='x-large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et formaté en <b>Ext4</b>.\n\nÊtes-vous absolument sûr de vouloir formater et installer ChomiamOS ?" \
     --button="Non, Annuler:1" \
     --button="Oui, Formater et Installer:0"
 
@@ -464,11 +458,7 @@ if [ "$DRY_RUN" = true ]; then
   (
     echo "10"; echo "# [Simulation] Démontage des anciens montages..." ; sleep 1
     echo "25"; echo "# [Simulation] Création de la table de partitionnement GPT sur $TARGET_DISK..." ; sleep 1
-    if [ "$CHOSEN_FS" = "btrfs" ]; then
-      echo "40"; echo "# [Simulation] Formatage ESP (FAT32) et ROOT (BTRFS avec sous-volumes @, @home, @nix)..." ; sleep 1
-    else
-      echo "40"; echo "# [Simulation] Formatage ESP (FAT32) et ROOT (Ext4)..." ; sleep 1
-    fi
+    echo "40"; echo "# [Simulation] Formatage ESP (FAT32) et ROOT (Ext4 standard)..." ; sleep 1
     echo "55"; echo "# [Simulation] Détection matérielle de la machine (nixos-generate-config)..." ; sleep 1
     echo "70"; echo "# [Simulation] Téléchargement du framework officiel ChomiamOS..." ; sleep 1
     echo "85"; echo "# [Simulation] Injection du fichier vars.nix personnalisé..." ; sleep 1
@@ -496,7 +486,7 @@ if [ "$DRY_RUN" = true ]; then
       --title="[Simulation] Installation Terminée !" \
       --width=520 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été simulé avec succès ($CHOSEN_FS).\n\n<i>En conditions réelles sur le Live-CD, ce message vous propose de redémarrer immédiatement pour accéder à votre nouveau bureau ChomiamOS.</i>\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
+      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été simulé avec succès (Ext4).\n\n<i>En conditions réelles sur le Live-CD, ce message vous propose de redémarrer immédiatement pour accéder à votre nouveau bureau ChomiamOS.</i>\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
       --button="Non, plus tard:1" \
       --button="Oui, Redémarrer (Simulation):0"
   if [ $? -eq 0 ]; then
@@ -563,37 +553,15 @@ rm -f "$LOG_FILE"
     ROOT_PART="$P2"
   fi
 
-  if [ "$CHOSEN_FS" = "btrfs" ]; then
-    echo "25"; echo "# Formatage BTRFS et création des sous-volumes (@, @home, @nix)..."
-    [ -n "$BOOT_PART" ] && mkfs.fat -F 32 -n BOOT "$BOOT_PART"
-    mkfs.btrfs -f -L nixos "$ROOT_PART"
+  echo "25"; echo "# Formatage de la partition système en Ext4..."
+  [ -n "$BOOT_PART" ] && mkfs.fat -F 32 -n BOOT "$BOOT_PART"
+  mkfs.ext4 -F -L nixos "$ROOT_PART"
 
-    echo "35"; echo "# Montage et organisation des sous-volumes BTRFS..."
-    mount "$ROOT_PART" /mnt
-    btrfs subvolume create /mnt/@
-    btrfs subvolume create /mnt/@home
-    btrfs subvolume create /mnt/@nix
-    umount /mnt
-
-    mount -o subvol=@,compress=zstd,noatime "$ROOT_PART" /mnt
-    mkdir -p /mnt/home /mnt/nix
-    mount -o subvol=@home,compress=zstd,noatime "$ROOT_PART" /mnt/home
-    mount -o subvol=@nix,compress=zstd,noatime "$ROOT_PART" /mnt/nix
-    if [ -n "$BOOT_PART" ]; then
-      mkdir -p /mnt/boot
-      mount "$BOOT_PART" /mnt/boot
-    fi
-  else
-    echo "25"; echo "# Formatage Ext4 standard..."
-    [ -n "$BOOT_PART" ] && mkfs.fat -F 32 -n BOOT "$BOOT_PART"
-    mkfs.ext4 -F -L nixos "$ROOT_PART"
-
-    echo "35"; echo "# Montage des partitions..."
-    mount "$ROOT_PART" /mnt
-    if [ -n "$BOOT_PART" ]; then
-      mkdir -p /mnt/boot
-      mount "$BOOT_PART" /mnt/boot
-    fi
+  echo "35"; echo "# Montage des partitions système..."
+  mount "$ROOT_PART" /mnt
+  if [ -n "$BOOT_PART" ]; then
+    mkdir -p /mnt/boot
+    mount "$BOOT_PART" /mnt/boot
   fi
 
   echo "45"; echo "# Téléchargement du framework ChomiamOS..."
@@ -636,8 +604,31 @@ EOC
   # Flake git staging : indispensable pour que Nix voie les nouveaux fichiers
   git -C /mnt/etc/nixos add -A
 
-  echo "75"; echo "# Compilation et déploiement du système (nixos-install)..."
-  nixos-install --flake /mnt/etc/nixos#default --no-root-password
+  echo "70"; echo "# Lancement du déploiement NixOS (nixos-install)..."
+  set -o pipefail
+  REGEX_COPY="copying path '/nix/store/[^-]+-([^']+)'"
+  REGEX_BUILD="building '/nix/store/[^-]+-([^']+)'"
+  PKG_COUNT=0
+  PCT=70
+
+  nixos-install --flake /mnt/etc/nixos#default --no-root-password --show-trace --option print-build-logs true 2>&1 | while IFS= read -r line; do
+    # Affiche la ligne brute dans la console détaillée de Yad
+    echo "$line"
+
+    # Détection en temps réel des paquets téléchargés et compilés
+    if [[ "$line" =~ $REGEX_COPY ]]; then
+      PKG_NAME="${BASH_REMATCH[1]}"
+      PKG_COUNT=$((PKG_COUNT + 1))
+      if [ $((PKG_COUNT % 10)) -eq 0 ] && [ $PCT -lt 94 ]; then
+        PCT=$((PCT + 1))
+        echo "$PCT"
+      fi
+      echo "# ⬇️ Téléchargement ($PKG_COUNT) : $PKG_NAME"
+    elif [[ "$line" =~ $REGEX_BUILD ]]; then
+      PKG_NAME="${BASH_REMATCH[1]}"
+      echo "# ⚙️ Compilation : $PKG_NAME"
+    fi
+  done
 
   echo "95"; echo "# Configuration du mot de passe utilisateur..."
   echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt chpasswd
@@ -661,7 +652,7 @@ if [ $INSTALL_STATUS -eq 0 ]; then
       --title="Installation Terminée !" \
       --width=480 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été installé avec succès sur votre machine ($CHOSEN_FS).\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
+      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été installé avec succès sur votre machine (Ext4).\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
       --button="Non, plus tard:1" \
       --button="Oui, Redémarrer:0"
   if [ $? -eq 0 ]; then
