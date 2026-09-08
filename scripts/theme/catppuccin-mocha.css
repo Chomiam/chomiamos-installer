@@ -1,0 +1,156 @@
+/* ==========================================================================
+   🐱 CATPPUCCIN MOCHA THEME FOR CHOMIAMOS INSTALLER (GTK3 / YAD)
+   ========================================================================== */
+
+* {
+    font-family: 'Inter', 'Ubuntu', 'Cantarell', sans-serif;
+    outline: none;
+}
+
+/* Fenêtre principale */
+window, dialog {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+}
+
+/* En-tête et barre de titre */
+headerbar {
+    background-color: #181825;
+    color: #cdd6f4;
+    border-bottom: 2px solid #313244;
+}
+
+/* Labels de texte */
+label {
+    color: #cdd6f4;
+    font-size: 11pt;
+}
+
+/* Champs de saisie texte (Entrées & mots de passe) */
+entry {
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11pt;
+    transition: all 200ms ease;
+}
+
+entry:focus {
+    border-color: #cba6f7;
+    background-color: #45475a;
+    box-shadow: 0 0 0 2px rgba(203, 166, 247, 0.25);
+}
+
+/* Listes déroulantes (Combo Box) */
+combobox, combobox button {
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11pt;
+}
+
+combobox:focus {
+    border-color: #cba6f7;
+}
+
+combobox window menu {
+    background-color: #181825;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    color: #cdd6f4;
+    padding: 4px;
+}
+
+combobox window menu menuitem:hover {
+    background-color: #cba6f7;
+    color: #11111b;
+    border-radius: 6px;
+}
+
+/* Cases à cocher (Checkbuttons) */
+checkbutton {
+    font-size: 11pt;
+}
+
+checkbutton check {
+    background-color: #313244;
+    border: 2px solid #585b70;
+    border-radius: 6px;
+    min-width: 20px;
+    min-height: 20px;
+    margin-right: 8px;
+}
+
+checkbutton check:checked {
+    background-color: #cba6f7;
+    border-color: #cba6f7;
+    color: #11111b;
+}
+
+/* Boutons d'action */
+button {
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 11pt;
+    font-weight: 600;
+    transition: all 150ms ease;
+}
+
+button:hover {
+    background-color: #45475a;
+    border-color: #cba6f7;
+    color: #ffffff;
+}
+
+/* Bouton primaire (Suivant / Valider) */
+button:default, button.suggested-action {
+    background: linear-gradient(135deg, #cba6f7, #b4befe);
+    color: #11111b;
+    border: none;
+}
+
+button:default:hover, button.suggested-action:hover {
+    background: linear-gradient(135deg, #b4befe, #89b4fa);
+    box-shadow: 0 4px 12px rgba(203, 166, 247, 0.35);
+}
+
+/* Bouton d'annulation / Quitter */
+button.destructive-action {
+    background-color: #313244;
+    color: #f38ba8;
+    border: 1px solid #f38ba8;
+}
+
+button.destructive-action:hover {
+    background-color: #f38ba8;
+    color: #11111b;
+}
+
+/* Barre de progression */
+progressbar trough {
+    background-color: #313244;
+    border-radius: 8px;
+    min-height: 14px;
+    border: 1px solid #45475a;
+}
+
+progressbar progress {
+    background: linear-gradient(90deg, #cba6f7, #89b4fa);
+    border-radius: 8px;
+}
+
+/* Zone d'affichage de texte / Code */
+textview text {
+    background-color: #181825;
+    color: #cdd6f4;
+    font-family: 'JetBrainsMono Nerd Font', 'Fira Code', monospace;
+    font-size: 10pt;
+    padding: 12px;
+}

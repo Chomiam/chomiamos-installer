@@ -1,13 +1,23 @@
 { pkgs, lib, ... }:
 
 let
-  installerScript = pkgs.writeShellScriptBin "chomiamos-installer" (builtins.readFile ../scripts/chomiamos-installer.sh);
+  installerPkg = pkgs.stdenv.mkDerivation {
+    name = "chomiamos-installer";
+    src = ../scripts;
+    installPhase = ''
+      mkdir -p $out/bin $out/share/chomiamos-installer/theme
+      cp -r theme/* $out/share/chomiamos-installer/theme/
+      cp chomiamos-installer.sh $out/bin/chomiamos-installer
+      chmod +x $out/bin/chomiamos-installer
+      sed -i "s|CSS_FILE=.*|CSS_FILE=$out/share/chomiamos-installer/theme/catppuccin-mocha.css|g" $out/bin/chomiamos-installer
+    '';
+  };
 
   installerDesktop = pkgs.makeDesktopItem {
     name = "chomiamos-installer";
     desktopName = "Installer ChomiamOS";
     comment = "Assistant d'installation graphique de ChomiamOS Gaming Edition";
-    exec = "sudo ${installerScript}/bin/chomiamos-installer";
+    exec = "sudo ${installerPkg}/bin/chomiamos-installer";
     icon = "system-software-install";
     terminal = false;
     type = "Application";
@@ -47,9 +57,9 @@ in
 
   # Paquets d'outils requis pour le partitionnement et l'installation
   environment.systemPackages = with pkgs; [
-    # Assistant Yad et script d'installation
+    # Assistant Yad thémé Catppuccin et script d'installation
     yad
-    installerScript
+    installerPkg
     installerDesktop
 
     # Outils de disque & partitionnement
