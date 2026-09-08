@@ -21,7 +21,7 @@ if [ "$DRY_RUN" = false ] && [ "$EUID" -ne 0 ]; then
 fi
 
 # =============================================================================
-# 1. 🔍 AUTO-DÉTECTION DU MATÉRIEL
+# 1. 🔍 AUTO-DÉTECTION DU MATÉRIEL (GPU & DISQUES)
 # =============================================================================
 
 DETECTED_GPU="amd"
@@ -34,11 +34,11 @@ elif lspci 2>/dev/null | grep -i "vga\|3d" | grep -qi "amd\|ati"; then
 fi
 
 if [ "$DETECTED_GPU" = "nvidia" ]; then
-  GPU_CHOICES="^nvidia (Cartes récentes GTX 1650 / RTX, Pilotes stables, Kernel XanMod)!amd (Radeon RADV Vulkan, ROCm OpenCL, Kernel Zen)!intel (Arc / iGPU, Media Driver, Kernel XanMod)!nvidia-legacy (Cartes < GTX 1650 : 10xx, 9xx, Pilotes legacy 470)"
+  GPU_CHOICES="^nvidia (NVIDIA Récentes : RTX 20xx, 30xx, 40xx, 50xx, GTX 16xx) [Détectée]!amd (AMD Radeon : RX 5000, 6000, 7000, 9000, Steam Deck)!intel (Intel Arc et processeurs avec puce graphique Intel)!nvidia-legacy (Anciennes cartes NVIDIA : séries GTX 10xx, 9xx, 7xx)"
 elif [ "$DETECTED_GPU" = "intel" ]; then
-  GPU_CHOICES="^intel (Arc / iGPU, Media Driver, Kernel XanMod)!amd (Radeon RADV Vulkan, ROCm OpenCL, Kernel Zen)!nvidia (Cartes récentes GTX 1650 / RTX, Pilotes stables, Kernel XanMod)!nvidia-legacy (Cartes < GTX 1650 : 10xx, 9xx, Pilotes legacy 470)"
+  GPU_CHOICES="^intel (Intel Arc et processeurs avec puce graphique Intel) [Détectée]!amd (AMD Radeon : RX 5000, 6000, 7000, 9000, Steam Deck)!nvidia (NVIDIA Récentes : RTX 20xx, 30xx, 40xx, 50xx, GTX 16xx)!nvidia-legacy (Anciennes cartes NVIDIA : séries GTX 10xx, 9xx, 7xx)"
 else
-  GPU_CHOICES="^amd (Radeon RADV Vulkan, ROCm OpenCL, Kernel Zen)!nvidia (Cartes récentes GTX 1650 / RTX, Pilotes stables, Kernel XanMod)!intel (Arc / iGPU, Media Driver, Kernel XanMod)!nvidia-legacy (Cartes < GTX 1650 : 10xx, 9xx, Pilotes legacy 470)"
+  GPU_CHOICES="^amd (AMD Radeon : RX 5000, 6000, 7000, 9000, Steam Deck) [Détectée]!nvidia (NVIDIA Récentes : RTX 20xx, 30xx, 40xx, 50xx, GTX 16xx)!intel (Intel Arc et processeurs avec puce graphique Intel)!nvidia-legacy (Anciennes cartes NVIDIA : séries GTX 10xx, 9xx, 7xx)"
 fi
 
 # Détection des disques
@@ -70,7 +70,7 @@ fi
 DISKS_CHOICES=$(IFS="!"; echo "${DISKS[*]}")
 
 # =============================================================================
-# 2. 🎛️ VALEURS PAR DÉFAUT DU FORMULAIRE
+# 2. 🎛️ VALEURS INITIALES DU FORMULAIRE
 # =============================================================================
 
 VAL_USERNAME="chomiam"
@@ -78,13 +78,13 @@ VAL_FULLNAME="Axel Valens"
 VAL_PASSWORD=""
 VAL_PASSWORD_CONFIRM=""
 VAL_HOSTNAME="chomiamos"
-VAL_SHELL="^fish (Recommandé)!zsh!bash"
+VAL_SHELL="^fish (Moderne, avec autocomplétion intelligente)!zsh (Très personnalisable)!bash (Le shell Linux classique)"
 
 VAL_GPU="$GPU_CHOICES"
 VAL_STEERING="TRUE"
 
-VAL_DESKTOP="^gnome (GNOME 48+ avec extensions &amp; modèles bureautiques)!cosmic (COSMIC Desktop Wayland en Rust)!both (Installer les deux environnements)"
-VAL_BROWSER="^chrome (Google Chrome - Paquet Nix)!firefox (Mozilla Firefox - Paquet Nix)!zen (Zen Browser - Flatpak)!librewolf (LibreWolf - Paquet Nix)!opera-gx (Opera GX - Flatpak)!opera (Opera - Flatpak)"
+VAL_DESKTOP="^gnome (GNOME : Interface moderne et complète, avec modèles Office créables en 1 clic)!cosmic (COSMIC Desktop : Bureau ultra-rapide nouvelle génération écrit en Rust)!both (Installer les deux pour pouvoir choisir sur l'écran de connexion)"
+VAL_BROWSER="^chrome (Google Chrome)!firefox (Mozilla Firefox)!zen (Zen Browser - Moderne et orienté confidentialité)!librewolf (LibreWolf - Firefox durci axé sur la vie privée)!opera-gx (Opera GX - Navigateur orienté gaming)!opera (Opera Standard)"
 
 VAL_GAMING_ENABLE="TRUE"
 VAL_DECKY_ENABLE="TRUE"
@@ -94,13 +94,14 @@ VAL_VIRT_ENABLE="TRUE"
 VAL_SAMBA_ENABLE="TRUE"
 VAL_BLENDER_ENABLE="TRUE"
 VAL_GODOT_ENABLE="TRUE"
-VAL_DAVINCI="^none (Désactivé)!free (DaVinci Resolve Gratuit)!studio (DaVinci Resolve Studio)"
+VAL_DAVINCI="^none (Non installé)!free (DaVinci Resolve - Version Gratuite)!studio (DaVinci Resolve Studio - Version Payante)"
 VAL_AI_SUITE="FALSE"
 
 VAL_TARGET_DISK="$DISKS_CHOICES"
+VAL_FS="^btrfs (BTRFS : Recommandé - Compression zstd automatique des jeux et snapshots)!ext4 (Ext4 : Classique, éprouvé et très stable)"
 
 # =============================================================================
-# 3. 🧙 ASSISTANT MULTI-PAGES (CATPPUCCIN MOCHA WIZARD)
+# 3. 🧙 ASSISTANT MULTI-PAGES EN 6 ÉTAPES (CATPPUCCIN MOCHA WIZARD)
 # =============================================================================
 
 STEP=1
@@ -116,16 +117,16 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 1/6" \
         --window-icon="system-software-install" \
-        --width=720 --height=550 \
+        --width=750 --height=580 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>❄️ ChomiamOS</span> <span size='large' foreground='#a6adc8'>— Étape 1/$TOTAL_STEPS : Compte &amp; Système</span>\n<span foreground='#b4befe'>Configurez votre utilisateur principal et l'identité réseau de votre machine.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>❄️ ChomiamOS</span> <span size='large' foreground='#a6adc8'>— Étape 1/$TOTAL_STEPS : Compte &amp; Système</span>\n<span foreground='#b4befe'>Créez votre compte utilisateur personnel et définissez l'identité de votre ordinateur.</span>\n" \
         --separator="|" \
-        --field="<b>Nom d'utilisateur</b> :" "$VAL_USERNAME" \
-        --field="<b>Nom complet</b> :" "$VAL_FULLNAME" \
-        --field="<b>Mot de passe</b> :H" "$VAL_PASSWORD" \
-        --field="<b>Confirmation du mot de passe</b> :H" "$VAL_PASSWORD_CONFIRM" \
-        --field="<b>Nom d'hôte (Hostname)</b> :" "$VAL_HOSTNAME" \
-        --field="<b>Shell interactif par défaut</b> :CB" "$VAL_SHELL" \
+        --field="👤 Nom de compte (en minuscules sans espace) :" "$VAL_USERNAME" \
+        --field="📝 Votre Nom d'usage ou Prénom :" "$VAL_FULLNAME" \
+        --field="🔑 Mot de passe de votre session :H" "$VAL_PASSWORD" \
+        --field="🔒 Confirmer le mot de passe :H" "$VAL_PASSWORD_CONFIRM" \
+        --field="🏷️ Nom de votre ordinateur sur le réseau (Hostname) :" "$VAL_HOSTNAME" \
+        --field="🐚 Terminal de commande par défaut :" "$VAL_SHELL" \
         --button="Quitter!application-exit:1" \
         --button="Suivant ➔:0")
 
@@ -159,14 +160,14 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 2/6" \
         --window-icon="system-software-install" \
-        --width=740 --height=520 \
+        --width=760 --height=540 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🖥️ Matériel &amp; Graphisme</span> <span size='large' foreground='#a6adc8'>— Étape 2/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Optimisations matérielles, sélection du pilote GPU et périphériques.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🖥️ Matériel &amp; Graphisme</span> <span size='large' foreground='#a6adc8'>— Étape 2/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Le bon pilote GPU et le noyau Linux optimisé (Zen pour AMD, XanMod pour NVIDIA/Intel) seront appliqués.</span>\n" \
         --separator="|" \
-        --field="<b>Carte Graphique principale</b> :CB" "$VAL_GPU" \
-        --field="<i>Le pilote adapté et le noyau Linux optimisé (Zen / XanMod) seront configurés automatiquement.</i>:LBL" "" \
-        --field="<b>Support SimRacing &amp; Volants FFB</b> :CHK" "$VAL_STEERING" \
-        --field="<i>Active les drivers noyau (Logitech, Fanatec, Thrustmaster) et l'outil GUI Oversteer.</i>:LBL" "" \
+        --field="🎮 Modèle de votre Carte Graphique (GPU) :CB" "$VAL_GPU" \
+        --field="<i>La détection matérielle a pré-sélectionné la carte détectée sur votre ordinateur.</i>:LBL" "" \
+        --field="🏎️ Volants de course et Simulation (SimRacing) :CHK" "$VAL_STEERING" \
+        --field="<i>Active la gestion du retour de force (Logitech G29/G920, Thrustmaster, Fanatec) et l'utilitaire Oversteer.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
         --button="Suivant ➔:0")
 
@@ -185,14 +186,14 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 3/6" \
         --window-icon="system-software-install" \
-        --width=740 --height=520 \
+        --width=760 --height=540 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🎨 Bureau &amp; Navigation</span> <span size='large' foreground='#a6adc8'>— Étape 3/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Personnalisation de votre environnement de travail quotidien.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🎨 Bureau &amp; Navigation</span> <span size='large' foreground='#a6adc8'>— Étape 3/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Choisissez votre environnement visuel et votre navigateur Internet favori.</span>\n" \
         --separator="|" \
-        --field="<b>Environnement de bureau</b> :CB" "$VAL_DESKTOP" \
-        --field="<i>GNOME Shell propose le thème Catppuccin et les modèles bureautiques (.docx, .xlsx, .pptx). COSMIC Desktop est le nouveau bureau moderne en Rust.</i>:LBL" "" \
-        --field="<b>Navigateur web par défaut</b> :CB" "$VAL_BROWSER" \
-        --field="<i>Configuré automatiquement dans le dock et comme navigateur par défaut du système.</i>:LBL" "" \
+        --field="🖥️ Environnement de bureau principal :CB" "$VAL_DESKTOP" \
+        --field="<i>GNOME inclut le thème Catppuccin et les modèles Word/Excel en 1 clic. COSMIC Desktop est le tout nouveau bureau écrit en Rust.</i>:LBL" "" \
+        --field="🌐 Navigateur Internet par défaut :CB" "$VAL_BROWSER" \
+        --field="<i>Il sera directement placé dans votre barre de raccourcis principale.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
         --button="Suivant ➔:0")
 
@@ -211,16 +212,16 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 4/6" \
         --window-icon="system-software-install" \
-        --width=750 --height=550 \
+        --width=760 --height=560 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Divertissement</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>L'arsenal ultime pour le jeu vidéo sous Linux.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Jeux Vidéo</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>L'ensemble des optimisations de performances et lanceurs de jeux sous Linux.</span>\n" \
         --separator="|" \
-        --field="<b>Activer la suite Gaming complète</b> :CHK" "$VAL_GAMING_ENABLE" \
-        --field="<i>Inclut Steam FHS, GameMode, GameScope (Wayland HDR/FSR), Sunshine (Streaming), Lutris, Heroic et ProtonPlus.</i>:LBL" "" \
-        --field="<b>Activer Decky Loader (Jovian-NixOS)</b> :CHK" "$VAL_DECKY_ENABLE" \
-        --field="<i>Gestionnaire officiel de plugins Steam (thèmes, audio, animations) avec débogage distant CEF activé.</i>:LBL" "" \
-        --field="<b>Accès rapide NVIDIA GeForce NOW</b> :CHK" "$VAL_GEFORCE_NOW" \
-        --field="<i>Client de cloud gaming intégré avec gestion automatique de la fenêtre sous Wayland.</i>:LBL" "" \
+        --field="🚀 Pack Gaming Complet (Steam, FPS boost, Heroic, Lutris) :CHK" "$VAL_GAMING_ENABLE" \
+        --field="<i>Active Steam, GameMode (hausse des FPS processeur), GameScope (plein écran fluide), Sunshine et les lanceurs de jeux Windows.</i>:LBL" "" \
+        --field="🔌 Decky Loader pour Steam (Jovian-NixOS) :CHK" "$VAL_DECKY_ENABLE" \
+        --field="<i>Permet d'installer des extensions et des thèmes visuels directement dans Steam (comme sur Steam Deck).</i>:LBL" "" \
+        --field="☁️ Raccourci NVIDIA GeForce NOW (Cloud Gaming) :CHK" "$VAL_GEFORCE_NOW" \
+        --field="<i>Permet de jouer en streaming dans le cloud à vos jeux depuis votre dock.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
         --button="Suivant ➔:0")
 
@@ -239,19 +240,19 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 5/6" \
         --window-icon="system-software-install" \
-        --width=780 --height=600 \
+        --width=780 --height=610 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🛠️ Services, Virtualisation &amp; Création</span> <span size='large' foreground='#a6adc8'>— Étape 5/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Outils de virtualisation Windows et applications professionnelles.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🛠️ Virtualisation &amp; Applications</span> <span size='large' foreground='#a6adc8'>— Étape 5/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Activez les outils professionnels, la virtualisation Windows et les logiciels de création.</span>\n" \
         --separator="|" \
-        --field="<b>Virtualisation KVM / Virt-Manager</b> :CHK" "$VAL_VIRT_ENABLE" \
-        --field="<i>Intègre libvirtd, VirtioFS, et les pilotes VirtIO certifiés Windows 10/11 et Windows 7 dans /etc.</i>:LBL" "" \
-        --field="<b>Partage de fichiers Samba &amp; WSDD</b> :CHK" "$VAL_SAMBA_ENABLE" \
-        --field="<i>Partage déclaratif de votre dossier personnel sur le réseau local avec découverte Windows sans config.</i>:LBL" "" \
-        --field="<b>Logiciels de création 3D &amp; Moteur</b> :LBL" "" \
-        --field="Installer Blender 3D (nixpkgs-unstable) :CHK" "$VAL_BLENDER_ENABLE" \
-        --field="Installer Godot Engine 4 (nixpkgs-unstable) :CHK" "$VAL_GODOT_ENABLE" \
-        --field="<b>Montage vidéo DaVinci Resolve</b> :CB" "$VAL_DAVINCI" \
-        --field="<b>Suite IA Locale Privée (Ollama + WebUI + SearXNG)</b> :CHK" "$VAL_AI_SUITE" \
+        --field="🪟 Machines Virtuelles Windows (Virt-Manager &amp; KVM) :CHK" "$VAL_VIRT_ENABLE" \
+        --field="<i>Permet d'exécuter Windows 10, 11 ou Windows 7 avec accélération matérielle et pilotes VirtIO pré-installés.</i>:LBL" "" \
+        --field="📁 Partage de fichiers sur le réseau local (Samba &amp; WSDD) :CHK" "$VAL_SAMBA_ENABLE" \
+        --field="<i>Permet d'accéder facilement à vos dossiers depuis un autre PC Windows ou un Mac sur votre réseau.</i>:LBL" "" \
+        --field="🎨 Logiciel de modélisation 3D Blender :CHK" "$VAL_BLENDER_ENABLE" \
+        --field="🎮 Moteur de création de jeux vidéo Godot Engine 4 :CHK" "$VAL_GODOT_ENABLE" \
+        --field="🎬 Montage Vidéo Professionnel DaVinci Resolve :CB" "$VAL_DAVINCI" \
+        --field="🤖 Intelligence Artificielle Locale Privée (Ollama &amp; WebUI) :CHK" "$VAL_AI_SUITE" \
+        --field="<i>Permet d'exécuter des modèles IA directement sur votre carte graphique en toute confidentialité.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
         --button="Suivant ➔:0")
 
@@ -259,38 +260,40 @@ while true; do
       if [ $RET -eq 2 ]; then STEP=4; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_VIRT_ENABLE _ VAL_SAMBA_ENABLE _ _ VAL_BLENDER_ENABLE VAL_GODOT_ENABLE VAL_DAVINCI VAL_AI_SUITE _ <<< "$OUTPUT"
+      IFS="|" read -r VAL_VIRT_ENABLE _ VAL_SAMBA_ENABLE _ VAL_BLENDER_ENABLE VAL_GODOT_ENABLE VAL_DAVINCI VAL_AI_SUITE _ <<< "$OUTPUT"
       STEP=6
       ;;
 
     # -------------------------------------------------------------------------
-    # ÉTAPE 6 : DISQUE CIBLE & CONFIRMATION
+    # ÉTAPE 6 : DISQUE CIBLE, SYSTÈME DE FICHIERS & RÉCAPITULATIF
     # -------------------------------------------------------------------------
     6)
       RAW_GPU=$(echo "$VAL_GPU" | awk '{print $1}')
       RAW_DESKTOP=$(echo "$VAL_DESKTOP" | awk '{print $1}')
       RAW_BROWSER=$(echo "$VAL_BROWSER" | awk '{print $1}')
       RAW_DAVINCI=$(echo "$VAL_DAVINCI" | awk '{print $1}')
+      RAW_FS=$(echo "$VAL_FS" | awk '{print $1}')
 
-      RECAP_TEXT="<span size='large' weight='bold' foreground='#cba6f7'>📋 RÉCAPITULATIF DE VOTRE CONFIGURATION :</span>\n\n"
-      RECAP_TEXT+="• <b>Utilisateur :</b> <span foreground='#a6e3a1'>$VAL_USERNAME</span> ($VAL_FULLNAME)\n"
-      RECAP_TEXT+="• <b>Machine :</b> $VAL_HOSTNAME | Shell : $(echo "$VAL_SHELL" | awk '{print $1}')\n"
-      RECAP_TEXT+="• <b>Carte Graphique :</b> <span foreground='#89b4fa'>$RAW_GPU</span>\n"
+      RECAP_TEXT="<span size='large' weight='bold' foreground='#cba6f7'>📋 RÉCAPITULATIF DE VOS SÉLECTIONS :</span>\n\n"
+      RECAP_TEXT+="• <b>Compte :</b> <span foreground='#a6e3a1'>$VAL_USERNAME</span> ($VAL_FULLNAME) | Hôte : $VAL_HOSTNAME\n"
+      RECAP_TEXT+="• <b>Carte Graphique :</b> <span foreground='#89b4fa'>$RAW_GPU</span> (Pilotes &amp; Noyau optimisés)\n"
       RECAP_TEXT+="• <b>Bureau :</b> <span foreground='#f5c2e7'>$RAW_DESKTOP</span> | Navigateur : $RAW_BROWSER\n"
-      RECAP_TEXT+="• <b>Gaming :</b> Steam/Tweaks ($VAL_GAMING_ENABLE), Decky Loader ($VAL_DECKY_ENABLE), SimRacing ($VAL_STEERING)\n"
-      RECAP_TEXT+="• <b>Virtualisation :</b> Virt-Manager ($VAL_VIRT_ENABLE) | Samba ($VAL_SAMBA_ENABLE)\n"
+      RECAP_TEXT+="• <b>Jeux Vidéo :</b> Pack Gaming ($VAL_GAMING_ENABLE), Decky Loader ($VAL_DECKY_ENABLE), Volants ($VAL_STEERING)\n"
+      RECAP_TEXT+="• <b>Services :</b> Virt-Manager ($VAL_VIRT_ENABLE), Samba ($VAL_SAMBA_ENABLE)\n"
       RECAP_TEXT+="• <b>Création :</b> Blender ($VAL_BLENDER_ENABLE), Godot ($VAL_GODOT_ENABLE), DaVinci ($RAW_DAVINCI)\n"
 
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 6/6" \
         --window-icon="system-software-install" \
-        --width=760 --height=580 \
+        --width=780 --height=620 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Disque Cible &amp; Validation</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez le disque de destination pour installer ChomiamOS.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Disque &amp; Confirmation Finale</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez le disque de destination et le système de fichiers souhaité.</span>\n" \
         --separator="|" \
         --field="$RECAP_TEXT:LBL" "" \
-        --field="<span foreground='#f38ba8' weight='bold'>Sélectionnez le disque d'installation :</span>:CB" "$VAL_TARGET_DISK" \
-        --field="<span foreground='#f38ba8'><i>⚠️ ATTENTION : Le disque choisi sera entièrement reformaté (table GPT + ESP 1 Go + partition racine).</i></span>:LBL" "" \
+        --field="🗄️ Système de fichiers de la partition système :CB" "$VAL_FS" \
+        --field="<i>BTRFS gère la compression automatique de vos jeux et les snapshots. Ext4 est le système éprouvé classique.</i>:LBL" "" \
+        --field="<span foreground='#f38ba8' weight='bold'>💾 Disque d'installation de destination :</span>:CB" "$VAL_TARGET_DISK" \
+        --field="<span foreground='#f38ba8'><i>⚠️ ATTENTION : Le disque choisi sera entièrement effacé (Partition ESP 1 Go + partition racine).</i></span>:LBL" "" \
         --button="⬅ Précédent:2" \
         --button="🚀 Lancer l'installation !:0")
 
@@ -298,10 +301,10 @@ while true; do
       if [ $RET -eq 2 ]; then STEP=5; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r _ RAW_TARGET_DISK _ <<< "$OUTPUT"
+      IFS="|" read -r _ VAL_FS _ RAW_TARGET_DISK _ <<< "$OUTPUT"
       TARGET_DISK=$(echo "$RAW_TARGET_DISK" | awk '{print $1}')
+      CHOSEN_FS=$(echo "$VAL_FS" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
 
-      # Sortie de la boucle pour démarrer l'installation
       break
       ;;
 
@@ -315,16 +318,16 @@ done
 if [ "$DRY_RUN" = true ]; then
   yad --css="$CSS_FILE" --info \
     --title="[SIMULATION] Prêt à simuler" \
-    --width=520 \
+    --width=540 \
     --center \
-    --text="<span foreground='#89b4fa' size='x-large'><b>ℹ️ SIMULATION DU DÉPLOIEMENT</b></span>\n\nTous vos paramètres ont été enregistrés avec succès.\n\n<i>Cliquez sur Valider pour exécuter la simulation des étapes et prévisualiser votre vars.nix Catppuccin !</i>" \
+    --text="<span foreground='#89b4fa' size='x-large'><b>ℹ️ SIMULATION DU DÉPLOIEMENT</b></span>\n\n<b>Disque Cible :</b> $TARGET_DISK\n<b>Système de fichiers :</b> $CHOSEN_FS\n<b>Utilisateur :</b> $VAL_USERNAME\n\n<i>Cliquez sur Valider pour lancer la simulation des étapes et prévisualiser votre vars.nix Catppuccin !</i>" \
     --button="Valider et Lancer la Simulation ➔:0"
 else
   yad --css="$CSS_FILE" --warning \
     --title="Confirmation Définitive de Formatage" \
     --width=540 \
     --center \
-    --text="<span foreground='#f38ba8' size='x-large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé.\n\nÊtes-vous absolument sûr de vouloir formater et installer ChomiamOS ?" \
+    --text="<span foreground='#f38ba8' size='x-large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et formaté en <b>$CHOSEN_FS</b>.\n\nÊtes-vous absolument sûr de vouloir formater et installer ChomiamOS ?" \
     --button="Non, Annuler:1" \
     --button="Oui, Formater et Installer:0"
 
@@ -413,7 +416,11 @@ if [ "$DRY_RUN" = true ]; then
   (
     echo "10"; echo "# [Simulation] Démontage des anciens montages..." ; sleep 1
     echo "25"; echo "# [Simulation] Création de la table de partitionnement GPT sur $TARGET_DISK..." ; sleep 1
-    echo "40"; echo "# [Simulation] Formatage de la partition EFI (FAT32) et Système (Ext4)..." ; sleep 1
+    if [ "$CHOSEN_FS" = "btrfs" ]; then
+      echo "40"; echo "# [Simulation] Formatage ESP (FAT32) et ROOT (BTRFS avec sous-volumes @, @home, @nix)..." ; sleep 1
+    else
+      echo "40"; echo "# [Simulation] Formatage ESP (FAT32) et ROOT (Ext4)..." ; sleep 1
+    fi
     echo "55"; echo "# [Simulation] Détection matérielle de la machine (nixos-generate-config)..." ; sleep 1
     echo "70"; echo "# [Simulation] Téléchargement du framework officiel ChomiamOS..." ; sleep 1
     echo "85"; echo "# [Simulation] Injection du fichier vars.nix personnalisé..." ; sleep 1
@@ -437,7 +444,7 @@ if [ "$DRY_RUN" = true ]; then
     --title="Simulation Réussie !" \
     --width=480 \
     --center \
-    --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nToutes les étapes ont été simulées avec succès dans le thème <b>Catppuccin Mocha</b>.\n\nAucune modification n'a été apportée à vos disques réels." \
+    --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nToutes les étapes ont été simulées avec succès avec le système de fichiers <b>$CHOSEN_FS</b>.\n\nAucune modification n'a été apportée à vos disques réels." \
     --button="Fermer:0"
   exit 0
 fi
@@ -468,14 +475,33 @@ fi
     ROOT_PART="${TARGET_DISK}2"
   fi
 
-  echo "35"; echo "# Formatage du système de fichiers..."
-  mkfs.fat -F 32 -n BOOT "$BOOT_PART"
-  mkfs.ext4 -F -L nixos "$ROOT_PART"
+  if [ "$CHOSEN_FS" = "btrfs" ]; then
+    echo "35"; echo "# Formatage BTRFS et création des sous-volumes (@, @home, @nix)..."
+    mkfs.fat -F 32 -n BOOT "$BOOT_PART"
+    mkfs.btrfs -f -L nixos "$ROOT_PART"
 
-  echo "45"; echo "# Montage des partitions..."
-  mount "$ROOT_PART" /mnt
-  mkdir -p /mnt/boot
-  mount "$BOOT_PART" /mnt/boot
+    echo "45"; echo "# Montage et organisation des sous-volumes BTRFS..."
+    mount "$ROOT_PART" /mnt
+    btrfs subvolume create /mnt/@
+    btrfs subvolume create /mnt/@home
+    btrfs subvolume create /mnt/@nix
+    umount /mnt
+
+    mount -o subvol=@,compress=zstd,noatime "$ROOT_PART" /mnt
+    mkdir -p /mnt/home /mnt/nix /mnt/boot
+    mount -o subvol=@home,compress=zstd,noatime "$ROOT_PART" /mnt/home
+    mount -o subvol=@nix,compress=zstd,noatime "$ROOT_PART" /mnt/nix
+    mount "$BOOT_PART" /mnt/boot
+  else
+    echo "35"; echo "# Formatage Ext4 standard..."
+    mkfs.fat -F 32 -n BOOT "$BOOT_PART"
+    mkfs.ext4 -F -L nixos "$ROOT_PART"
+
+    echo "45"; echo "# Montage des partitions..."
+    mount "$ROOT_PART" /mnt
+    mkdir -p /mnt/boot
+    mount "$BOOT_PART" /mnt/boot
+  fi
 
   echo "55"; echo "# Détection du matériel réel (nixos-generate-config)..."
   nixos-generate-config --root /mnt
@@ -521,7 +547,7 @@ if [ $? -eq 0 ]; then
       --title="Installation Terminée !" \
       --width=480 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été installé avec succès sur votre machine.\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
+      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été installé avec succès sur votre machine ($CHOSEN_FS).\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
       --button="Non, plus tard:1" \
       --button="Oui, Redémarrer:0"
   if [ $? -eq 0 ]; then
