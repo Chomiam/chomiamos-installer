@@ -67,6 +67,9 @@ if [ ${#DISKS[@]} -eq 0 ]; then
   exit 1
 fi
 
+if [ ${#DISKS[@]} -gt 0 ]; then
+  DISKS[0]="^${DISKS[0]}"
+fi
 DISKS_CHOICES=$(IFS="!"; echo "${DISKS[*]}")
 
 # =============================================================================
@@ -327,6 +330,15 @@ while true; do
       TARGET_DISK=$(echo "$RAW_TARGET_DISK" | awk '{print $1}')
       CHOSEN_FS=$(echo "$VAL_FS" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
 
+      if [ -z "$TARGET_DISK" ] || [[ ! "$TARGET_DISK" =~ ^/dev/ ]]; then
+        yad --css="$CSS_FILE" --error --center --text="❌ Aucun disque cible sélectionné. Veuillez choisir un disque valide."
+        continue
+      fi
+
+      if [ -z "$CHOSEN_FS" ]; then
+        CHOSEN_FS="btrfs"
+      fi
+
       break
       ;;
 
@@ -495,11 +507,14 @@ fi
 # =============================================================================
 
 (
-  echo "10"; echo "# Démontage des volumes existants..."
+  set -e
+  set -o pipefail
+
+  echo "5"; echo "# Démontage des volumes existants..."
   umount -R /mnt 2>/dev/null || true
   swapoff -a 2>/dev/null || true
 
-  echo "20"; echo "# Partitionnement GPT de $TARGET_DISK..."
+  echo "15"; echo "# Partitionnement GPT de $TARGET_DISK..."
   parted -s "$TARGET_DISK" mklabel gpt
   parted -s "$TARGET_DISK" mkpart ESP fat32 1MiB 1024MiB
   parted -s "$TARGET_DISK" set 1 esp on
@@ -517,11 +532,11 @@ fi
   fi
 
   if [ "$CHOSEN_FS" = "btrfs" ]; then
-    echo "35"; echo "# Formatage BTRFS et création des sous-volumes (@, @home, @nix)..."
+    echo "25"; echo "# Formatage BTRFS et création des sous-volumes (@, @home, @nix)..."
     mkfs.fat -F 32 -n BOOT "$BOOT_PART"
     mkfs.btrfs -f -L nixos "$ROOT_PART"
 
-    echo "45"; echo "# Montage et organisation des sous-volumes BTRFS..."
+    echo "35"; echo "# Montage et organisation des sous-volumes BTRFS..."
     mount "$ROOT_PART" /mnt
     btrfs subvolume create /mnt/@
     btrfs subvolume create /mnt/@home
@@ -534,25 +549,25 @@ fi
     mount -o subvol=@nix,compress=zstd,noatime "$ROOT_PART" /mnt/nix
     mount "$BOOT_PART" /mnt/boot
   else
-    echo "35"; echo "# Formatage Ext4 standard..."
+    echo "25"; echo "# Formatage Ext4 standard..."
     mkfs.fat -F 32 -n BOOT "$BOOT_PART"
     mkfs.ext4 -F -L nixos "$ROOT_PART"
 
-    echo "45"; echo "# Montage des partitions..."
+    echo "35"; echo "# Montage des partitions..."
     mount "$ROOT_PART" /mnt
     mkdir -p /mnt/boot
     mount "$BOOT_PART" /mnt/boot
   fi
 
-  echo "55"; echo "# Détection du matériel réel (nixos-generate-config)..."
-  nixos-generate-config --root /mnt
-
-  echo "65"; echo "# Téléchargement du framework ChomiamOS..."
+  echo "45"; echo "# Téléchargement du framework ChomiamOS..."
   mkdir -p /mnt/etc
   if [ -d "/mnt/etc/nixos" ]; then
     rm -rf /mnt/etc/nixos
   fi
   git clone https://github.com/Chomiam/nix_config_gaming.git /mnt/etc/nixos
+
+  echo "55"; echo "# Détection du matériel réel (nixos-generate-config)..."
+  nixos-generate-config --root /mnt
 
   if [ -f "/mnt/etc/nixos/hardware-configuration.nix" ]; then
     cp -f /mnt/etc/nixos/hardware-configuration.nix /mnt/etc/nixos/hosts/desktop/hardware-configuration.nix
@@ -565,10 +580,13 @@ fi
 }
 EOC
 
-  echo "75"; echo "# Génération personnalisée de vars.nix..."
+  echo "65"; echo "# Injection du fichier vars.nix personnalisé..."
   echo "$GENERATED_VARS" > /mnt/etc/nixos/vars.nix
 
-  echo "85"; echo "# Compilation et déploiement du système (nixos-install)..."
+  # Ajout de tous les fichiers à Git pour évaluation pure du Flake
+  git -C /mnt/etc/nixos add -A
+
+  echo "75"; echo "# Compilation et déploiement du système (nixos-install)..."
   nixos-install --flake /mnt/etc/nixos#chomiamos --no-root-password 2>&1
 
   echo "95"; echo "# Configuration du mot de passe utilisateur..."
@@ -586,7 +604,9 @@ EOC
         --width=780 \
         --center
 
-if [ $? -eq 0 ]; then
+INSTALL_STATUS=${PIPESTATUS[0]}
+
+if [ $INSTALL_STATUS -eq 0 ]; then
   yad --css="$CSS_FILE" --question \
       --title="Installation Terminée !" \
       --width=480 \
@@ -597,4 +617,11 @@ if [ $? -eq 0 ]; then
   if [ $? -eq 0 ]; then
     reboot
   fi
+else
+  yad --css="$CSS_FILE" --error \
+      --title="Erreur d'installation" \
+      --width=520 \
+      --center \
+      --text="<span size='large' weight='bold' foreground='#f38ba8'>❌ L'installation a rencontré une erreur !</span>\n\nLe processus s'est interrompu. Veuillez vérifier votre connexion Internet et consulter le journal ci-dessus." \
+      --button="Fermer:0"
 fi

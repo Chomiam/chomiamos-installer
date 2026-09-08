@@ -29,6 +29,10 @@ in
   # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS
   # =========================================================================
 
+  # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager)
+  services.qemuGuest.enable = true;
+  services.spice-vdagentd.enable = true;
+
   # Support de tous les microcodes et firmwares pour compatibilité maximale
   hardware.enableAllFirmware = true;
   nixpkgs.config.allowUnfree = true;
