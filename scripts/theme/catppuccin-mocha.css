@@ -1,13 +1,12 @@
 /* ==========================================================================
    🐱 CATPPUCCIN MOCHA THEME FOR CHOMIAMOS INSTALLER (GTK3 / YAD)
-   Optimisé pour une réactivité maximale (zéro lag GPU/CPU en VM)
+   Version épurée & ultra-fluide pour VM et machines physiques
    ========================================================================== */
 
 /* Fenêtre principale & Dialogue */
 window, dialog {
     background-color: #1e1e2e;
     color: #cdd6f4;
-    font-family: 'Inter', 'Ubuntu', 'Cantarell', sans-serif;
 }
 
 /* En-tête */
@@ -28,8 +27,8 @@ entry {
     background-color: #313244;
     color: #cdd6f4;
     border: 1px solid #45475a;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: 6px;
+    padding: 6px 10px;
     font-size: 11pt;
 }
 
@@ -43,47 +42,16 @@ combobox, combobox button {
     background-color: #313244;
     color: #cdd6f4;
     border: 1px solid #45475a;
-    border-radius: 8px;
-    padding: 6px 12px;
+    border-radius: 6px;
+    padding: 4px 8px;
     font-size: 11pt;
 }
 
-combobox:focus {
-    border-color: #cba6f7;
-}
-
-combobox window menu {
-    background-color: #181825;
-    border: 1px solid #45475a;
-    border-radius: 8px;
-    color: #cdd6f4;
-    padding: 4px;
-}
-
-combobox window menu menuitem:hover {
-    background-color: #cba6f7;
-    color: #11111b;
-    border-radius: 6px;
-}
-
-/* Cases à cocher */
+/* Cases à cocher — Style léger sans surcharge géométrique */
 checkbutton {
+    color: #cdd6f4;
     font-size: 11pt;
-}
-
-checkbutton check {
-    background-color: #313244;
-    border: 2px solid #585b70;
-    border-radius: 6px;
-    min-width: 20px;
-    min-height: 20px;
-    margin-right: 8px;
-}
-
-checkbutton check:checked {
-    background-color: #cba6f7;
-    border-color: #cba6f7;
-    color: #11111b;
+    padding: 4px 0;
 }
 
 /* Boutons d'action */
@@ -91,8 +59,8 @@ button {
     background-color: #313244;
     color: #cdd6f4;
     border: 1px solid #45475a;
-    border-radius: 8px;
-    padding: 9px 18px;
+    border-radius: 6px;
+    padding: 8px 16px;
     font-size: 11pt;
     font-weight: 600;
 }
@@ -107,7 +75,7 @@ button:hover {
 button.default, button.suggested-action {
     background-color: #cba6f7;
     color: #11111b;
-    border: none;
+    border: 1px solid #cba6f7;
 }
 
 button.default:hover, button.suggested-action:hover {
@@ -130,14 +98,14 @@ button.destructive-action:hover {
 /* Barre de progression */
 progressbar trough {
     background-color: #313244;
-    border-radius: 8px;
-    min-height: 14px;
+    border-radius: 6px;
+    min-height: 12px;
     border: 1px solid #45475a;
 }
 
 progressbar progress {
     background-color: #cba6f7;
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 /* Zone d'affichage de texte / Code */
@@ -146,5 +114,5 @@ textview text {
     color: #cdd6f4;
     font-family: monospace;
     font-size: 10pt;
-    padding: 12px;
+    padding: 10px;
 }

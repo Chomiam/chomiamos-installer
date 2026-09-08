@@ -49,7 +49,10 @@ if [ "$DRY_RUN" = true ]; then
 else
   INSTALLER_DEV=$(findmnt -n -o SOURCE / 2>/dev/null | sed -E 's/[0-9]+$//' | sed -E 's/p[0-9]+$//' || true)
   while read -r name size model; do
-    dev="/dev/$name"
+    dev="$name"
+    if [[ ! "$dev" =~ ^/dev/ ]]; then
+      dev="/dev/$name"
+    fi
     if [ -n "$INSTALLER_DEV" ] && [ "$dev" = "$INSTALLER_DEV" ]; then
       continue
     fi
@@ -328,6 +331,8 @@ while true; do
 
       IFS="|" read -r _ VAL_FS _ RAW_TARGET_DISK _ <<< "$OUTPUT"
       TARGET_DISK=$(echo "$RAW_TARGET_DISK" | awk '{print $1}')
+      # Nettoyage de tout éventuel double préfixe /dev//dev/
+      TARGET_DISK="${TARGET_DISK/#\/dev\/\/dev\//\/dev\/}"
       CHOSEN_FS=$(echo "$VAL_FS" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
 
       if [ -z "$TARGET_DISK" ] || [[ ! "$TARGET_DISK" =~ ^/dev/ ]]; then
