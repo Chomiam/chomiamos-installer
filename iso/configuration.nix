@@ -33,6 +33,18 @@ in
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
 
+  # Accélération graphique matérielle OpenGL/Vulkan (Mesa, VirtIO-GPU, VirGL)
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
+  # Modules de virtualisation et d'accélération d'affichage invité
+  boot.initrd.kernelModules = [ "virtio_gpu" "virtio_pci" "virtio_balloon" "virtio_console" "qxl" ];
+  boot.kernelModules = [ "virtio_gpu" "qxl" ];
+
+
+
   # Support de tous les microcodes et firmwares pour compatibilité maximale
   hardware.enableAllFirmware = true;
   nixpkgs.config.allowUnfree = true;
@@ -97,6 +109,9 @@ in
   programs.dconf.profiles.user.databases = [
     {
       settings = {
+        "org/gnome/desktop/interface" = {
+          enable-animations = false;
+        };
         "org/gnome/shell" = {
           favorite-apps = [
             "chomiamos-installer.desktop"
