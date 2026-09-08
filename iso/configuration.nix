@@ -96,8 +96,9 @@ in
     curl
     wget
 
-    # Extension Dash to Dock & Thème Catppuccin
+    # Extensions GNOME (Dash to Dock, Vitals) & Thème Catppuccin
     gnomeExtensions.dash-to-dock
+    gnomeExtensions.vitals
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
     catppuccin-cursors.mochaLavender
   ];
@@ -137,6 +138,7 @@ in
         "org/gnome/shell" = {
           enabled-extensions = [
             "dash-to-dock@micxgx.gmail.com"
+            "Vitals@CoreCoding.com"
           ];
           favorite-apps = [
             "chomiamos-installer.desktop"
