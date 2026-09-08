@@ -506,34 +506,58 @@ fi
 # 7. ⚡ EXÉCUTION RÉELLE DE L'INSTALLATION NIXOS
 # =============================================================================
 
+LOG_FILE="/tmp/chomiamos-install.log"
+rm -f "$LOG_FILE"
+
 (
   set -e
   set -o pipefail
+
+  IS_EFI=false
+  if [ -d /sys/firmware/efi ]; then
+    IS_EFI=true
+  fi
 
   echo "5"; echo "# Démontage des volumes existants..."
   umount -R /mnt 2>/dev/null || true
   swapoff -a 2>/dev/null || true
 
-  echo "15"; echo "# Partitionnement GPT de $TARGET_DISK..."
-  parted -s "$TARGET_DISK" mklabel gpt
-  parted -s "$TARGET_DISK" mkpart ESP fat32 1MiB 1024MiB
-  parted -s "$TARGET_DISK" set 1 esp on
-  parted -s "$TARGET_DISK" mkpart primary 1024MiB 100%
+  if [ "$IS_EFI" = true ]; then
+    echo "15"; echo "# Partitionnement GPT (Mode UEFI) de $TARGET_DISK..."
+    parted -s "$TARGET_DISK" mklabel gpt
+    parted -s "$TARGET_DISK" mkpart ESP fat32 1MiB 1024MiB
+    parted -s "$TARGET_DISK" set 1 esp on
+    parted -s "$TARGET_DISK" mkpart primary 1024MiB 100%
+  else
+    echo "15"; echo "# Partitionnement GPT (Mode BIOS hérité) de $TARGET_DISK..."
+    parted -s "$TARGET_DISK" mklabel gpt
+    parted -s "$TARGET_DISK" mkpart bios_grub 1MiB 3MiB
+    parted -s "$TARGET_DISK" set 1 bios_grub on
+    parted -s "$TARGET_DISK" mkpart primary 3MiB 100%
+  fi
 
   sleep 2
   udevadm settle
 
   if [[ "$TARGET_DISK" =~ [0-9]$ ]]; then
-    BOOT_PART="${TARGET_DISK}p1"
-    ROOT_PART="${TARGET_DISK}p2"
+    P1="${TARGET_DISK}p1"
+    P2="${TARGET_DISK}p2"
   else
-    BOOT_PART="${TARGET_DISK}1"
-    ROOT_PART="${TARGET_DISK}2"
+    P1="${TARGET_DISK}1"
+    P2="${TARGET_DISK}2"
+  fi
+
+  if [ "$IS_EFI" = true ]; then
+    BOOT_PART="$P1"
+    ROOT_PART="$P2"
+  else
+    BOOT_PART=""
+    ROOT_PART="$P2"
   fi
 
   if [ "$CHOSEN_FS" = "btrfs" ]; then
     echo "25"; echo "# Formatage BTRFS et création des sous-volumes (@, @home, @nix)..."
-    mkfs.fat -F 32 -n BOOT "$BOOT_PART"
+    [ -n "$BOOT_PART" ] && mkfs.fat -F 32 -n BOOT "$BOOT_PART"
     mkfs.btrfs -f -L nixos "$ROOT_PART"
 
     echo "35"; echo "# Montage et organisation des sous-volumes BTRFS..."
@@ -544,19 +568,24 @@ fi
     umount /mnt
 
     mount -o subvol=@,compress=zstd,noatime "$ROOT_PART" /mnt
-    mkdir -p /mnt/home /mnt/nix /mnt/boot
+    mkdir -p /mnt/home /mnt/nix
     mount -o subvol=@home,compress=zstd,noatime "$ROOT_PART" /mnt/home
     mount -o subvol=@nix,compress=zstd,noatime "$ROOT_PART" /mnt/nix
-    mount "$BOOT_PART" /mnt/boot
+    if [ -n "$BOOT_PART" ]; then
+      mkdir -p /mnt/boot
+      mount "$BOOT_PART" /mnt/boot
+    fi
   else
     echo "25"; echo "# Formatage Ext4 standard..."
-    mkfs.fat -F 32 -n BOOT "$BOOT_PART"
+    [ -n "$BOOT_PART" ] && mkfs.fat -F 32 -n BOOT "$BOOT_PART"
     mkfs.ext4 -F -L nixos "$ROOT_PART"
 
     echo "35"; echo "# Montage des partitions..."
     mount "$ROOT_PART" /mnt
-    mkdir -p /mnt/boot
-    mount "$BOOT_PART" /mnt/boot
+    if [ -n "$BOOT_PART" ]; then
+      mkdir -p /mnt/boot
+      mount "$BOOT_PART" /mnt/boot
+    fi
   fi
 
   echo "45"; echo "# Téléchargement du framework ChomiamOS..."
@@ -567,41 +596,54 @@ fi
   git clone https://github.com/Chomiam/nix_config_gaming.git /mnt/etc/nixos
 
   echo "55"; echo "# Détection du matériel réel (nixos-generate-config)..."
-  nixos-generate-config --root /mnt
+  mkdir -p /tmp/nixos-hw
+  nixos-generate-config --root /mnt --dir /tmp/nixos-hw
 
-  if [ -f "/mnt/etc/nixos/hardware-configuration.nix" ]; then
-    cp -f /mnt/etc/nixos/hardware-configuration.nix /mnt/etc/nixos/hosts/desktop/hardware-configuration.nix
+  if [ -f "/tmp/nixos-hw/hardware-configuration.nix" ]; then
+    cp -f /tmp/nixos-hw/hardware-configuration.nix /mnt/etc/nixos/hosts/desktop/hardware-configuration.nix
   fi
 
-  cat << 'EOC' > /mnt/etc/nixos/hosts/desktop/mount.nix
+  if [ "$IS_EFI" = false ]; then
+    cat << EOC > /mnt/etc/nixos/hosts/desktop/mount.nix
+{ config, lib, ... }:
+{
+  # Machine en mode BIOS hérité (non-UEFI)
+  boot.loader.grub.efiSupport = lib.mkForce false;
+  boot.loader.grub.device = lib.mkForce "${TARGET_DISK}";
+  boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
+}
+EOC
+  else
+    cat << 'EOC' > /mnt/etc/nixos/hosts/desktop/mount.nix
 { config, ... }:
 {
   # Déclarez ici vos disques additionnels (ex: /mnt/Games)
 }
 EOC
+  fi
 
   echo "65"; echo "# Injection du fichier vars.nix personnalisé..."
   echo "$GENERATED_VARS" > /mnt/etc/nixos/vars.nix
 
-  # Ajout de tous les fichiers à Git pour évaluation pure du Flake
+  # Flake git staging : indispensable pour que Nix voie les nouveaux fichiers
   git -C /mnt/etc/nixos add -A
 
   echo "75"; echo "# Compilation et déploiement du système (nixos-install)..."
-  nixos-install --flake /mnt/etc/nixos#chomiamos --no-root-password 2>&1
+  nixos-install --flake /mnt/etc/nixos#default --no-root-password
 
   echo "95"; echo "# Configuration du mot de passe utilisateur..."
   echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt chpasswd
 
   echo "100"; echo "# Installation terminée avec succès !"
-) | yad --css="$CSS_FILE" --progress \
+) 2>&1 | tee -a "$LOG_FILE" | yad --css="$CSS_FILE" --progress \
         --title="Installation de ChomiamOS en cours..." \
         --text="Préparation de l'installation..." \
         --percentage=0 \
         --enable-log="Console & Journal d'installation" \
         --log-expanded \
-        --log-height=220 \
+        --log-height=240 \
         --auto-close \
-        --width=780 \
+        --width=800 \
         --center
 
 INSTALL_STATUS=${PIPESTATUS[0]}
@@ -618,10 +660,16 @@ if [ $INSTALL_STATUS -eq 0 ]; then
     reboot
   fi
 else
+  ERROR_SNIPPET=$(tail -n 15 "$LOG_FILE" 2>/dev/null | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
   yad --css="$CSS_FILE" --error \
       --title="Erreur d'installation" \
-      --width=520 \
+      --width=720 --height=460 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#f38ba8'>❌ L'installation a rencontré une erreur !</span>\n\nLe processus s'est interrompu. Veuillez vérifier votre connexion Internet et consulter le journal ci-dessus." \
+      --text="<span size='large' weight='bold' foreground='#f38ba8'>❌ L'installation a rencontré une erreur !</span>\n\n<span foreground='#cdd6f4'>Dernières lignes du journal d'erreur :</span>\n<tt><span foreground='#f38ba8'>$ERROR_SNIPPET</span></tt>" \
+      --button="Voir journal complet:2" \
       --button="Fermer:0"
+  RET_ERR=$?
+  if [ $RET_ERR -eq 2 ]; then
+    yad --css="$CSS_FILE" --text-info --title="Journal d'installation complet" --filename="$LOG_FILE" --width=800 --height=600 --center
+  fi
 fi

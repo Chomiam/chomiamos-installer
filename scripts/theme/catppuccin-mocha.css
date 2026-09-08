@@ -1,19 +1,16 @@
 /* ==========================================================================
    🐱 CATPPUCCIN MOCHA THEME FOR CHOMIAMOS INSTALLER (GTK3 / YAD)
+   Optimisé pour une réactivité maximale (zéro lag GPU/CPU en VM)
    ========================================================================== */
 
-* {
-    font-family: 'Inter', 'Ubuntu', 'Cantarell', sans-serif;
-    outline: none;
-}
-
-/* Fenêtre principale */
+/* Fenêtre principale & Dialogue */
 window, dialog {
     background-color: #1e1e2e;
     color: #cdd6f4;
+    font-family: 'Inter', 'Ubuntu', 'Cantarell', sans-serif;
 }
 
-/* En-tête et barre de titre */
+/* En-tête */
 headerbar {
     background-color: #181825;
     color: #cdd6f4;
@@ -26,7 +23,7 @@ label {
     font-size: 11pt;
 }
 
-/* Champs de saisie texte (Entrées & mots de passe) */
+/* Champs de saisie texte */
 entry {
     background-color: #313244;
     color: #cdd6f4;
@@ -34,16 +31,14 @@ entry {
     border-radius: 8px;
     padding: 8px 12px;
     font-size: 11pt;
-    transition: all 200ms ease;
 }
 
 entry:focus {
     border-color: #cba6f7;
     background-color: #45475a;
-    box-shadow: 0 0 0 2px rgba(203, 166, 247, 0.25);
 }
 
-/* Listes déroulantes (Combo Box) */
+/* Listes déroulantes */
 combobox, combobox button {
     background-color: #313244;
     color: #cdd6f4;
@@ -71,7 +66,7 @@ combobox window menu menuitem:hover {
     border-radius: 6px;
 }
 
-/* Cases à cocher (Checkbuttons) */
+/* Cases à cocher */
 checkbutton {
     font-size: 11pt;
 }
@@ -100,7 +95,6 @@ button {
     padding: 9px 18px;
     font-size: 11pt;
     font-weight: 600;
-    transition: all 150ms ease;
 }
 
 button:hover {
@@ -111,14 +105,14 @@ button:hover {
 
 /* Bouton primaire (Suivant / Valider) */
 button.default, button.suggested-action {
-    background: linear-gradient(135deg, #cba6f7, #b4befe);
+    background-color: #cba6f7;
     color: #11111b;
     border: none;
 }
 
 button.default:hover, button.suggested-action:hover {
-    background: linear-gradient(135deg, #b4befe, #89b4fa);
-    box-shadow: 0 4px 12px rgba(203, 166, 247, 0.35);
+    background-color: #b4befe;
+    color: #11111b;
 }
 
 /* Bouton d'annulation / Quitter */
@@ -142,7 +136,7 @@ progressbar trough {
 }
 
 progressbar progress {
-    background: linear-gradient(90deg, #cba6f7, #89b4fa);
+    background-color: #cba6f7;
     border-radius: 8px;
 }
 
@@ -150,7 +144,7 @@ progressbar progress {
 textview text {
     background-color: #181825;
     color: #cdd6f4;
-    font-family: 'JetBrainsMono Nerd Font', 'Fira Code', monospace;
+    font-family: monospace;
     font-size: 10pt;
     padding: 12px;
 }
