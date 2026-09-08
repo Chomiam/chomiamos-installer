@@ -83,7 +83,12 @@ VAL_SHELL="^fish (Moderne, avec autocomplétion intelligente)!zsh (Très personn
 VAL_GPU="$GPU_CHOICES"
 VAL_STEERING="TRUE"
 
-VAL_DESKTOP="^gnome (GNOME : Interface moderne et complète, avec modèles Office créables en 1 clic)!cosmic (COSMIC Desktop : Bureau ultra-rapide nouvelle génération écrit en Rust)!both (Installer les deux pour pouvoir choisir sur l'écran de connexion)"
+VAL_DESKTOP="^Gnome!Cosmic!Les deux"
+
+VAL_LAUNCHER_STEAM="TRUE"
+VAL_LAUNCHER_LUTRIS="TRUE"
+VAL_LAUNCHER_HEROIC="TRUE"
+VAL_LAUNCHER_FAUGUS="TRUE"
 VAL_BROWSER="^chrome (Google Chrome)!firefox (Mozilla Firefox)!zen (Zen Browser - Moderne et orienté confidentialité)!librewolf (LibreWolf - Firefox durci axé sur la vie privée)!opera-gx (Opera GX - Navigateur orienté gaming)!opera (Opera Standard)"
 
 VAL_GAMING_ENABLE="TRUE"
@@ -191,7 +196,7 @@ while true; do
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🎨 Bureau &amp; Navigation</span> <span size='large' foreground='#a6adc8'>— Étape 3/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Choisissez votre environnement visuel et votre navigateur Internet favori.</span>\n" \
         --separator="|" \
         --field="🖥️ Environnement de bureau principal :CB" "$VAL_DESKTOP" \
-        --field="<i>GNOME inclut le thème Catppuccin et les modèles Word/Excel en 1 clic. COSMIC Desktop est le tout nouveau bureau écrit en Rust.</i>:LBL" "" \
+        --field="<i>GNOME avec personnalisations Catppuccin ou COSMIC Desktop nouvelle génération.</i>:LBL" "" \
         --field="🌐 Navigateur Internet par défaut :CB" "$VAL_BROWSER" \
         --field="<i>Il sera directement placé dans votre barre de raccourcis principale.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
@@ -212,14 +217,18 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 4/6" \
         --window-icon="system-software-install" \
-        --width=760 --height=560 \
+        --width=760 --height=620 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Jeux Vidéo</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>L'ensemble des optimisations de performances et lanceurs de jeux sous Linux.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Jeux Vidéo</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez vos lanceurs de jeux et optimisations de performances sous Linux.</span>\n" \
         --separator="|" \
-        --field="🚀 Pack Gaming Complet (Steam, FPS boost, Heroic, Lutris) :CHK" "$VAL_GAMING_ENABLE" \
-        --field="<i>Active Steam, GameMode (hausse des FPS processeur), GameScope (plein écran fluide), Sunshine et les lanceurs de jeux Windows.</i>:LBL" "" \
+        --field="🚀 Optimisations Système Gaming (GameMode, GameScope, Noyau) :CHK" "$VAL_GAMING_ENABLE" \
+        --field="<i>Active GameMode (priorités CPU/GPU), GameScope, Sunshine et le noyau optimisé.</i>:LBL" "" \
+        --field="🎮 Lanceur Steam (Valve &amp; Proton) :CHK" "$VAL_LAUNCHER_STEAM" \
+        --field="⚔️ Lutris (Jeux Windows, Battle.net, EA, GOG) :CHK" "$VAL_LAUNCHER_LUTRIS" \
+        --field="🦸 Heroic Games Launcher (Epic Games &amp; GOG) :CHK" "$VAL_LAUNCHER_HEROIC" \
+        --field="⚡ Faugus Launcher (Nouveau lanceur rapide jeux Windows) :CHK" "$VAL_LAUNCHER_FAUGUS" \
         --field="🔌 Decky Loader pour Steam (Jovian-NixOS) :CHK" "$VAL_DECKY_ENABLE" \
-        --field="<i>Permet d'installer des extensions et des thèmes visuels directement dans Steam (comme sur Steam Deck).</i>:LBL" "" \
+        --field="<i>Permet d'installer des extensions et des thèmes visuels directement dans Steam.</i>:LBL" "" \
         --field="☁️ Raccourci NVIDIA GeForce NOW (Cloud Gaming) :CHK" "$VAL_GEFORCE_NOW" \
         --field="<i>Permet de jouer en streaming dans le cloud à vos jeux depuis votre dock.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
@@ -229,7 +238,7 @@ while true; do
       if [ $RET -eq 2 ]; then STEP=3; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_GAMING_ENABLE _ VAL_DECKY_ENABLE _ VAL_GEFORCE_NOW _ <<< "$OUTPUT"
+      IFS="|" read -r VAL_GAMING_ENABLE _ VAL_LAUNCHER_STEAM VAL_LAUNCHER_LUTRIS VAL_LAUNCHER_HEROIC VAL_LAUNCHER_FAUGUS VAL_DECKY_ENABLE _ VAL_GEFORCE_NOW _ <<< "$OUTPUT"
       STEP=5
       ;;
 
@@ -274,11 +283,24 @@ while true; do
       RAW_DAVINCI=$(echo "$VAL_DAVINCI" | awk '{print $1}')
       RAW_FS=$(echo "$VAL_FS" | awk '{print $1}')
 
+      case "$RAW_DESKTOP" in
+        Gnome*|gnome*) CHOSEN_DESKTOP="gnome" ;;
+        Cosmic*|cosmic*) CHOSEN_DESKTOP="cosmic" ;;
+        *) CHOSEN_DESKTOP="both" ;;
+      esac
+
+      LAUNCHERS_LIST=""
+      [ "$VAL_LAUNCHER_STEAM" = "TRUE" ] && LAUNCHERS_LIST+="Steam "
+      [ "$VAL_LAUNCHER_LUTRIS" = "TRUE" ] && LAUNCHERS_LIST+="Lutris "
+      [ "$VAL_LAUNCHER_HEROIC" = "TRUE" ] && LAUNCHERS_LIST+="Heroic "
+      [ "$VAL_LAUNCHER_FAUGUS" = "TRUE" ] && LAUNCHERS_LIST+="Faugus "
+      [ -z "$LAUNCHERS_LIST" ] && LAUNCHERS_LIST="Aucun"
+
       RECAP_TEXT="<span size='large' weight='bold' foreground='#cba6f7'>📋 RÉCAPITULATIF DE VOS SÉLECTIONS :</span>\n\n"
       RECAP_TEXT+="• <b>Compte :</b> <span foreground='#a6e3a1'>$VAL_USERNAME</span> ($VAL_FULLNAME) | Hôte : $VAL_HOSTNAME\n"
       RECAP_TEXT+="• <b>Carte Graphique :</b> <span foreground='#89b4fa'>$RAW_GPU</span> (Pilotes &amp; Noyau optimisés)\n"
-      RECAP_TEXT+="• <b>Bureau :</b> <span foreground='#f5c2e7'>$RAW_DESKTOP</span> | Navigateur : $RAW_BROWSER\n"
-      RECAP_TEXT+="• <b>Jeux Vidéo :</b> Pack Gaming ($VAL_GAMING_ENABLE), Decky Loader ($VAL_DECKY_ENABLE), Volants ($VAL_STEERING)\n"
+      RECAP_TEXT+="• <b>Bureau :</b> <span foreground='#f5c2e7'>$CHOSEN_DESKTOP</span> | Navigateur : $RAW_BROWSER\n"
+      RECAP_TEXT+="• <b>Jeux Vidéo :</b> Optimisations ($VAL_GAMING_ENABLE), Launchers: <span foreground='#a6e3a1'>$LAUNCHERS_LIST</span>\n"
       RECAP_TEXT+="• <b>Services :</b> Virt-Manager ($VAL_VIRT_ENABLE), Samba ($VAL_SAMBA_ENABLE)\n"
       RECAP_TEXT+="• <b>Création :</b> Blender ($VAL_BLENDER_ENABLE), Godot ($VAL_GODOT_ENABLE), DaVinci ($RAW_DAVINCI)\n"
 
@@ -377,12 +399,18 @@ GENERATED_VARS=$(cat << EOC
   firewall = false;
 
   # Environnement graphique & Pilote GPU
-  desktopEnv = "$RAW_DESKTOP";
+  desktopEnv = "$CHOSEN_DESKTOP";
   gpuDriver = "$RAW_GPU";
 
   # Suite Gaming & Divertissement
   gaming = {
     enable = $([ "$VAL_GAMING_ENABLE" = "TRUE" ] && echo "true" || echo "false");
+    launchers = {
+      steam = $([ "$VAL_LAUNCHER_STEAM" = "TRUE" ] && echo "true" || echo "false");
+      lutris = $([ "$VAL_LAUNCHER_LUTRIS" = "TRUE" ] && echo "true" || echo "false");
+      heroic = $([ "$VAL_LAUNCHER_HEROIC" = "TRUE" ] && echo "true" || echo "false");
+      faugus = $([ "$VAL_LAUNCHER_FAUGUS" = "TRUE" ] && echo "true" || echo "false");
+    };
     deckyLoader = $([ "$VAL_DECKY_ENABLE" = "TRUE" ] && echo "true" || echo "false");
     geforceNow = $([ "$VAL_GEFORCE_NOW" = "TRUE" ] && echo "true" || echo "false");
     mountGamesDisk = false;
