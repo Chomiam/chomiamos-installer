@@ -438,14 +438,14 @@ if [ "$DRY_RUN" = true ]; then
     --title="[Simulation] Prévisualisation du vars.nix généré" \
     --width=700 --height=550 \
     --center \
-    --button="Terminer la simulation!gtk-ok:0"
+    --button="Terminer la simulation!gtk-ok:0" || true
 
   yad --css="$CSS_FILE" --info \
     --title="Simulation Réussie !" \
     --width=480 \
     --center \
     --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nToutes les étapes ont été simulées avec succès avec le système de fichiers <b>$CHOSEN_FS</b>.\n\nAucune modification n'a été apportée à vos disques réels." \
-    --button="Fermer:0"
+    --button="Fermer:0" || true
   exit 0
 fi
 
