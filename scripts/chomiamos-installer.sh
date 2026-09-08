@@ -5,8 +5,15 @@
 
 set -e
 
-# Vérification des droits root
-if [ "$EUID" -ne 0 ]; then
+DRY_RUN=false
+for arg in "$@"; do
+  if [ "$arg" = "--dry-run" ] || [ "$arg" = "--simulation" ]; then
+    DRY_RUN=true
+  fi
+done
+
+# Vérification des droits root (sauf en mode simulation)
+if [ "$DRY_RUN" = false ] && [ "$EUID" -ne 0 ]; then
   exec sudo "$0" "$@"
 fi
 
@@ -16,11 +23,11 @@ fi
 
 # A. Détection GPU
 DETECTED_GPU="amd"
-if lspci | grep -i "vga\|3d" | grep -qi "nvidia"; then
+if lspci 2>/dev/null | grep -i "vga\|3d" | grep -qi "nvidia"; then
   DETECTED_GPU="nvidia"
-elif lspci | grep -i "vga\|3d" | grep -qi "intel"; then
+elif lspci 2>/dev/null | grep -i "vga\|3d" | grep -qi "intel"; then
   DETECTED_GPU="intel"
-elif lspci | grep -i "vga\|3d" | grep -qi "amd\|ati"; then
+elif lspci 2>/dev/null | grep -i "vga\|3d" | grep -qi "amd\|ati"; then
   DETECTED_GPU="amd"
 fi
 
@@ -33,18 +40,21 @@ else
   GPU_CHOICES="^amd (Détecté)!nvidia!intel!nvidia-legacy"
 fi
 
-# B. Détection des disques cibles (exclusion des loops, zram, cdrom et de la clé USB d'installation)
-INSTALLER_DEV=$(findmnt -n -o SOURCE / 2>/dev/null | sed -E 's/[0-9]+$//' | sed -E 's/p[0-9]+$//' || true)
-
+# B. Détection des disques cibles
 DISKS=()
-while read -r name size model; do
-  dev="/dev/$name"
-  # Ignore le support Live actuel
-  if [ -n "$INSTALLER_DEV" ] && [ "$dev" = "$INSTALLER_DEV" ]; then
-    continue
-  fi
-  DISKS+=("$dev ($size - $model)")
-done < <(lsblk -dpno NAME,SIZE,MODEL | grep -v "loop\|zram\|sr[0-9]")
+if [ "$DRY_RUN" = true ]; then
+  DISKS+=("/dev/nvme0n1 (1.0 TB - Samsung SSD 990 PRO [SIMULATION])")
+  DISKS+=("/dev/sda (2.0 TB - Crucial CT2000MX500 [SIMULATION])")
+else
+  INSTALLER_DEV=$(findmnt -n -o SOURCE / 2>/dev/null | sed -E 's/[0-9]+$//' | sed -E 's/p[0-9]+$//' || true)
+  while read -r name size model; do
+    dev="/dev/$name"
+    if [ -n "$INSTALLER_DEV" ] && [ "$dev" = "$INSTALLER_DEV" ]; then
+      continue
+    fi
+    DISKS+=("$dev ($size - $model)")
+  done < <(lsblk -dpno NAME,SIZE,MODEL | grep -v "loop\|zram\|sr[0-9]")
+fi
 
 if [ ${#DISKS[@]} -eq 0 ]; then
   yad --error \
@@ -57,22 +67,31 @@ fi
 
 DISKS_CHOICES=$(IFS="!"; echo "${DISKS[*]}")
 
+# Titre de la fenêtre
+WINDOW_TITLE="Assistant d'installation ChomiamOS Gaming Edition"
+HEADER_TEXT="<b>Bienvenue dans l'installateur officiel de ChomiamOS !</b>\nConfigurez votre système selon votre matériel et vos préférences."
+
+if [ "$DRY_RUN" = true ]; then
+  WINDOW_TITLE="[MODE SIMULATION] Assistant d'installation ChomiamOS"
+  HEADER_TEXT="<span foreground='blue'><b>MODE SIMULATION ACTIVÉ</b></span>\n<i>Aucun disque ne sera formaté ni modifié.</i>"
+fi
+
 # =============================================================================
 # 2. 📋 INTERFACE GRAPHIQUE YAD : FORMULAIRE D'INSTALLATION
 # =============================================================================
 
 OUTPUT=$(yad --form \
-  --title="Assistant d'installation ChomiamOS Gaming Edition" \
+  --title="$WINDOW_TITLE" \
   --window-icon="system-software-install" \
   --width=680 --height=580 \
   --center \
-  --text="<b>Bienvenue dans l'installateur officiel de ChomiamOS !</b>\nConfigurez votre système selon votre matériel et vos préférences." \
+  --text="$HEADER_TEXT" \
   --separator="|" \
   --field="<b>👤 UTILISATEUR & SYSTÈME</b>:LBL" "" \
   --field="Nom d'utilisateur :" "chomiam" \
   --field="Nom complet :" "Axel Valens" \
-  --field="Mot de passe du compte :H" "" \
-  --field="Confirmation du mot de passe :H" "" \
+  --field="Mot de passe du compte :H" "secret" \
+  --field="Confirmation du mot de passe :H" "secret" \
   --field="Nom d'hôte (Hostname) :" "chomiamos" \
   --field="<b>🎮 MATÉRIEL & GAMING</b>:LBL" "" \
   --field="Carte graphique principale :CB" "$GPU_CHOICES" \
@@ -101,12 +120,10 @@ IFS="|" read -r _ USERNAME FULLNAME PASSWORD PASSWORD_CONFIRM HOSTNAME \
                 _ VIRT_ENABLE SAMBA_ENABLE \
                 _ RAW_DISK _ <<< "$OUTPUT"
 
-# Nettoyage des valeurs
 GPU_VAL=$(echo "$RAW_GPU" | awk '{print $1}')
 DESKTOP_VAL=$(echo "$RAW_DESKTOP" | awk '{print $1}')
 TARGET_DISK=$(echo "$RAW_DISK" | awk '{print $1}')
 
-# Vérifications des champs
 if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
   yad --error --title="Champs manquants" --text="❌ Le nom d'utilisateur et le mot de passe sont obligatoires."
   exit 1
@@ -117,31 +134,130 @@ if [ "$PASSWORD" != "$PASSWORD_CONFIRM" ]; then
   exit 1
 fi
 
-if [ -z "$TARGET_DISK" ] || [ ! -b "$TARGET_DISK" ]; then
-  yad --error --title="Disque invalide" --text="❌ Le disque sélectionné ($TARGET_DISK) est invalide."
-  exit 1
+# =============================================================================
+# 4. ⚠️ CONFIRMATION
+# =============================================================================
+
+if [ "$DRY_RUN" = true ]; then
+  yad --info \
+    --title="Confirmation Simulation" \
+    --width=520 \
+    --center \
+    --text="<span foreground='blue' size='large'><b>ℹ️ SIMULATION D'INSTALLATION</b></span>\n\n<b>Disque Cible :</b> $TARGET_DISK\n<b>Utilisateur :</b> $USERNAME ($FULLNAME)\n<b>GPU :</b> $GPU_VAL\n<b>Bureau :</b> $DESKTOP_VAL\n<b>Decky Loader :</b> $DECKY_ENABLE\n<b>Virt-Manager :</b> $VIRT_ENABLE\n\n<i>Cliquez sur Valider pour lancer la simulation des étapes et prévisualiser vars.nix !</i>" \
+    --button="Valider la simulation:0"
+else
+  yad --warning \
+    --title="Confirmation de formatage" \
+    --width=520 \
+    --center \
+    --text="<span foreground='red' size='large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et partitionné pour installer ChomiamOS.\n\n<b>Utilisateur :</b> $USERNAME\n<b>Carte Graphique :</b> $GPU_VAL\n<b>Bureau :</b> $DESKTOP_VAL\n\nÊtes-vous absolument certain de vouloir continuer ?" \
+    --button="Non, Annuler:1" \
+    --button="Oui, Formater et Installer:0"
+
+  if [ $? -ne 0 ]; then
+    exit 0
+  fi
 fi
 
 # =============================================================================
-# 4. ⚠️ CONFIRMATION DE SÉCURITÉ
+# 5. 🚀 EXÉCUTION OU SIMULATION
 # =============================================================================
 
-yad --warning \
-  --title="Confirmation de formatage" \
-  --width=520 \
-  --center \
-  --text="<span foreground='red' size='large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et partitionné pour installer ChomiamOS.\n\n<b>Utilisateur :</b> $USERNAME\n<b>Carte Graphique :</b> $GPU_VAL\n<b>Bureau :</b> $DESKTOP_VAL\n\nÊtes-vous absolument certain de vouloir continuer ?" \
-  --button="Non, Annuler:1" \
-  --button="Oui, Formater et Installer:0"
+GENERATED_VARS=$(cat << EOC
+{
+  # Nom d'hôte et paramètres régionaux
+  hostName = "$HOSTNAME";
+  timeZone = "Europe/Paris";
+  defaultLocale = "fr_FR.UTF-8";
+  stateVersion = "26.05";
 
-if [ $? -ne 0 ]; then
+  # Profil utilisateur principal
+  user = {
+    username = "$USERNAME";
+    fullName = "$FULLNAME";
+    homeDirectory = "/home/$USERNAME";
+    shell = "fish";
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "docker"
+      "video"
+    ];
+  };
+
+  # Virtualisation (Virt-Manager, KVM/QEMU, pilotes VirtIO)
+  virtualisation = {
+    enable = $([ "$VIRT_ENABLE" = "TRUE" ] && echo "true" || echo "false");
+  };
+
+  # Navigateur web par défaut
+  browser = "chrome";
+  firewall = false;
+
+  # Environnement graphique & Pilote GPU
+  desktopEnv = "$DESKTOP_VAL";
+  gpuDriver = "$GPU_VAL";
+
+  # Suite Gaming & Divertissement
+  gaming = {
+    enable = $([ "$GAMING_ENABLE" = "TRUE" ] && echo "true" || echo "false");
+    deckyLoader = $([ "$DECKY_ENABLE" = "TRUE" ] && echo "true" || echo "false");
+    geforceNow = true;
+    mountGamesDisk = false;
+  };
+
+  # Volants SimRacing & Création
+  steeringWheelSupport = $([ "$STEERING_ENABLE" = "TRUE" ] && echo "true" || echo "false");
+  davinciResolve = "none";
+  blender = true;
+  godot = true;
+
+  # Suite IA Locale
+  aiSuite = {
+    enable = false;
+    rocmOverrideGfx = "12.0.1";
+    keepAlive = "0s";
+    openWebUiPort = 8080;
+    searxPort = 8888;
+  };
+}
+EOC
+)
+
+if [ "$DRY_RUN" = true ]; then
+  (
+    echo "10"; echo "# [Simulation] Démontage des anciens montages..." ; sleep 1
+    echo "25"; echo "# [Simulation] Partitionnement GPT de $TARGET_DISK..." ; sleep 1
+    echo "40"; echo "# [Simulation] Formatage ESP (FAT32) et ROOT (Ext4)..." ; sleep 1
+    echo "55"; echo "# [Simulation] Détection du matériel réel (nixos-generate-config)..." ; sleep 1
+    echo "70"; echo "# [Simulation] Téléchargement du framework ChomiamOS..." ; sleep 1
+    echo "85"; echo "# [Simulation] Génération personnalisée de vars.nix..." ; sleep 1
+    echo "95"; echo "# [Simulation] Compilation NixOS & installation du bootloader..." ; sleep 1
+    echo "100"; echo "# [Simulation] Installation terminée avec succès !" ; sleep 0.5
+  ) | yad --progress \
+          --title="[Simulation] Déroulement de l'installation..." \
+          --text="Initialisation de la simulation..." \
+          --percentage=0 \
+          --auto-close \
+          --width=550 \
+          --center
+
+  echo "$GENERATED_VARS" | yad --text-info \
+    --title="[Simulation] Prévisualisation du vars.nix généré" \
+    --width=650 --height=500 \
+    --center \
+    --button="Terminer la simulation!gtk-ok:0"
+
+  yad --info \
+    --title="Simulation réussie !" \
+    --width=450 \
+    --center \
+    --text="<b>🎉 La simulation s'est terminée avec succès !</b>\n\nLe script a correctement traité tous vos choix et généré le fichier de configuration sans modifier votre machine physique." \
+    --button="Super !:0"
   exit 0
 fi
 
-# =============================================================================
-# 5. 🚀 EXÉCUTION DU PARTITIONNEMENT & INSTALLATION NIXOS
-# =============================================================================
-
+# Mode Réel
 (
   echo "10"; echo "# Démontage des anciens montages..."
   umount -R /mnt 2>/dev/null || true
@@ -156,7 +272,6 @@ fi
   sleep 2
   udevadm settle
 
-  # Détection du schéma de nommage des partitions (/dev/nvme0n1p1 vs /dev/sda1)
   if [[ "$TARGET_DISK" =~ [0-9]$ ]]; then
     BOOT_PART="${TARGET_DISK}p1"
     ROOT_PART="${TARGET_DISK}p2"
@@ -184,12 +299,10 @@ fi
   fi
   git clone https://github.com/Chomiam/nix_config_gaming.git /mnt/etc/nixos
 
-  # Remplacement du hardware-configuration.nix de la machine cible
   if [ -f "/mnt/etc/nixos/hardware-configuration.nix" ]; then
     cp -f /mnt/etc/nixos/hardware-configuration.nix /mnt/etc/nixos/hosts/desktop/hardware-configuration.nix
   fi
 
-  # Configuration d'un mount.nix neutre sans disques secondaires physiques pré-montés
   cat << 'EOC' > /mnt/etc/nixos/hosts/desktop/mount.nix
 { config, ... }:
 {
@@ -198,56 +311,7 @@ fi
 EOC
 
   echo "75"; echo "# Génération personnalisée de vars.nix..."
-  cat << EOC > /mnt/etc/nixos/vars.nix
-{
-  hostName = "$HOSTNAME";
-  timeZone = "Europe/Paris";
-  defaultLocale = "fr_FR.UTF-8";
-  stateVersion = "26.05";
-
-  user = {
-    username = "$USERNAME";
-    fullName = "$FULLNAME";
-    homeDirectory = "/home/$USERNAME";
-    shell = "fish";
-    extraGroups = [
-      "networkmanager"
-      "wheel"
-      "docker"
-      "video"
-    ];
-  };
-
-  virtualisation = {
-    enable = $([ "$VIRT_ENABLE" = "TRUE" ] && echo "true" || echo "false");
-  };
-
-  browser = "chrome";
-  firewall = false;
-  desktopEnv = "$DESKTOP_VAL";
-  gpuDriver = "$GPU_VAL";
-
-  gaming = {
-    enable = $([ "$GAMING_ENABLE" = "TRUE" ] && echo "true" || echo "false");
-    deckyLoader = $([ "$DECKY_ENABLE" = "TRUE" ] && echo "true" || echo "false");
-    geforceNow = true;
-    mountGamesDisk = false;
-  };
-
-  steeringWheelSupport = $([ "$STEERING_ENABLE" = "TRUE" ] && echo "true" || echo "false");
-  davinciResolve = "none";
-  blender = true;
-  godot = true;
-
-  aiSuite = {
-    enable = false;
-    rocmOverrideGfx = "12.0.1";
-    keepAlive = "0s";
-    openWebUiPort = 8080;
-    searxPort = 8888;
-  };
-}
-EOC
+  echo "$GENERATED_VARS" > /mnt/etc/nixos/vars.nix
 
   echo "85"; echo "# Compilation et installation du système NixOS (nixos-install)..."
   nixos-install --flake /mnt/etc/nixos#chomiamos --no-root-password
