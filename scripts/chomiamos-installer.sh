@@ -130,9 +130,7 @@ while true; do
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 1/6" \
         --window-icon="$LOGO_ICON" \
-        --image="$LOGO_BANNER" \
-        --image-on-top \
-        --width=750 --height=660 \
+        --width=750 --height=580 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>❄️ ChomiamOS</span> <span size='large' foreground='#a6adc8'>— Étape 1/$TOTAL_STEPS : Compte &amp; Système</span>\n<span foreground='#b4befe'>Créez votre compte utilisateur personnel et définissez l'identité de votre ordinateur.</span>\n" \
         --separator="|" \
@@ -606,31 +604,37 @@ EOC
   # Flake git staging : indispensable pour que Nix voie les nouveaux fichiers
   git -C /mnt/etc/nixos add -A
 
-  echo "70"; echo "# Lancement du déploiement NixOS (nixos-install)..."
-  set -o pipefail
-  REGEX_COPY="copying path '/nix/store/[^-]+-([^']+)'"
-  REGEX_BUILD="building '/nix/store/[^-]+-([^']+)'"
-  PKG_COUNT=0
+  echo "70"; echo "# Démarrage du déploiement NixOS (nixos-install)..."
+  
+  # Lancement direct en arrière-plan avec écriture directe dans le fichier de log (0 surcharge CPU)
+  nixos-install --flake /mnt/etc/nixos#default --no-root-password --show-trace >> "$LOG_FILE" 2>&1 &
+  INSTALL_PID=$!
+
   PCT=70
-
-  nixos-install --flake /mnt/etc/nixos#default --no-root-password --show-trace --option print-build-logs true 2>&1 | while IFS= read -r line; do
-    # Affiche la ligne brute dans la console détaillée de Yad
-    echo "$line"
-
-    # Détection en temps réel des paquets téléchargés et compilés
-    if [[ "$line" =~ $REGEX_COPY ]]; then
-      PKG_NAME="${BASH_REMATCH[1]}"
-      PKG_COUNT=$((PKG_COUNT + 1))
-      if [ $((PKG_COUNT % 10)) -eq 0 ] && [ $PCT -lt 94 ]; then
-        PCT=$((PCT + 1))
-        echo "$PCT"
+  # Boucle de rafraîchissement légère : 1 seule mise à jour par seconde pour ne pas saturer GTK
+  while kill -0 "$INSTALL_PID" 2>/dev/null; do
+    sleep 1
+    LAST_LINE=$(tail -n 10 "$LOG_FILE" 2>/dev/null | grep -E "copying path|building" | tail -n 1 || true)
+    if [ -n "$LAST_LINE" ]; then
+      PKG_NAME=$(echo "$LAST_LINE" | sed -E "s|.*/nix/store/[a-z0-9]+-([^ '.]*).*|\1|")
+      if echo "$LAST_LINE" | grep -q "copying path"; then
+        echo "# ⬇️ Téléchargement : $PKG_NAME"
+      else
+        echo "# ⚙️ Compilation : $PKG_NAME"
       fi
-      echo "# ⬇️ Téléchargement ($PKG_COUNT) : $PKG_NAME"
-    elif [[ "$line" =~ $REGEX_BUILD ]]; then
-      PKG_NAME="${BASH_REMATCH[1]}"
-      echo "# ⚙️ Compilation : $PKG_NAME"
+    fi
+    if [ $PCT -lt 94 ]; then
+      PCT=$((PCT + 1))
+      echo "$PCT"
     fi
   done
+
+  # Récupération du statut réel
+  wait "$INSTALL_PID"
+  INSTALL_STATUS=$?
+  if [ $INSTALL_STATUS -ne 0 ]; then
+    exit $INSTALL_STATUS
+  fi
 
   echo "95"; echo "# Configuration du mot de passe utilisateur..."
   echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt chpasswd

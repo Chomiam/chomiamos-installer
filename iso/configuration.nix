@@ -44,10 +44,7 @@ in
   boot.initrd.kernelModules = [ "virtio_gpu" "virtio_pci" "virtio_balloon" "virtio_console" "qxl" ];
   boot.kernelModules = [ "virtio_gpu" "qxl" ];
 
-  # Forcer la résolution d'affichage minimale à 1920x1080 dès le démarrage
-  boot.kernelParams = [
-    "video=1920x1080@60"
-  ];
+
 
 
 
@@ -153,6 +150,12 @@ in
           dock-fixed = true;
           extend-height = true;
           dash-max-icon-size = lib.gvariant.mkInt32 48;
+          animate-show-apps = false;
+          custom-theme-shrink = false;
+          transparency-mode = "FIXED";
+          customize-alphas = true;
+          min-alpha = 0.95;
+          max-alpha = 0.95;
         };
       };
     }
