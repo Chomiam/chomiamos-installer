@@ -121,8 +121,12 @@ in
     {
       settings = {
         "org/gnome/desktop/background" = {
-          picture-uri = "file://${installerPkg}/share/chomiamos-installer/theme/chomiamos-wallpaper.png";
-          picture-uri-dark = "file://${installerPkg}/share/chomiamos-installer/theme/chomiamos-wallpaper.png";
+          picture-uri = "file://${installerPkg}/share/chomiamos-installer/theme/wallpaper.jpeg";
+          picture-uri-dark = "file://${installerPkg}/share/chomiamos-installer/theme/wallpaper.jpeg";
+          picture-options = "zoom";
+        };
+        "org/gnome/desktop/screensaver" = {
+          picture-uri = "file://${installerPkg}/share/chomiamos-installer/theme/wallpaper.jpeg";
           picture-options = "zoom";
         };
         "org/gnome/desktop/interface" = {
