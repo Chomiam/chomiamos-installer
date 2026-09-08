@@ -5,6 +5,9 @@
 
 set -e
 
+# Forcer le thème sombre GTK3 / GNOME pour toutes les fenêtres Yad
+export GTK_THEME="Adwaita:dark"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CSS_FILE="$SCRIPT_DIR/theme/catppuccin-mocha.css"
 

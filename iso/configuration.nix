@@ -43,6 +43,11 @@ in
   boot.initrd.kernelModules = [ "virtio_gpu" "virtio_pci" "virtio_balloon" "virtio_console" "qxl" ];
   boot.kernelModules = [ "virtio_gpu" "qxl" ];
 
+  # Forcer la résolution d'affichage minimale à 1920x1080 dès le démarrage
+  boot.kernelParams = [
+    "video=1920x1080@60"
+  ];
+
 
 
   # Support de tous les microcodes et firmwares pour compatibilité maximale
@@ -110,6 +115,8 @@ in
     {
       settings = {
         "org/gnome/desktop/interface" = {
+          color-scheme = "prefer-dark";
+          gtk-theme = "Adwaita-dark";
           enable-animations = false;
         };
         "org/gnome/shell" = {

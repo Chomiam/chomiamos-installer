@@ -9,11 +9,17 @@ window, dialog {
     color: #cdd6f4;
 }
 
-/* En-tête */
-headerbar {
+/* En-tête & Barre de titre sombre */
+headerbar, .titlebar {
     background-color: #181825;
     color: #cdd6f4;
-    border-bottom: 2px solid #313244;
+    border-bottom: 1px solid #313244;
+}
+
+headerbar button, .titlebar button {
+    background-color: transparent;
+    color: #cdd6f4;
+    border: none;
 }
 
 /* Labels de texte */
