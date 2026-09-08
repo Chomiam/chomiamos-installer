@@ -126,7 +126,7 @@ while true; do
         --field="🔑 Mot de passe de votre session :H" "$VAL_PASSWORD" \
         --field="🔒 Confirmer le mot de passe :H" "$VAL_PASSWORD_CONFIRM" \
         --field="🏷️ Nom de votre ordinateur sur le réseau (Hostname) :" "$VAL_HOSTNAME" \
-        --field="🐚 Terminal de commande par défaut :" "$VAL_SHELL" \
+        --field="🐚 Terminal de commande par défaut :CB" "$VAL_SHELL" \
         --button="Quitter!application-exit:1" \
         --button="Suivant ➔:0")
 
