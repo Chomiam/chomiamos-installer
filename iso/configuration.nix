@@ -9,7 +9,7 @@ let
       cp -r theme/* $out/share/chomiamos-installer/theme/
       cp chomiamos-installer.sh $out/bin/chomiamos-installer
       chmod +x $out/bin/chomiamos-installer
-      sed -i "s|CSS_FILE=.*|CSS_FILE=$out/share/chomiamos-installer/theme/catppuccin-mocha.css|g" $out/bin/chomiamos-installer
+      sed -i "s|LOGO_ICON=.*|LOGO_ICON=$out/share/chomiamos-installer/theme/logo-icon.png|g" $out/bin/chomiamos-installer
       sed -i "s|THEME_DIR=.*|THEME_DIR=$out/share/chomiamos-installer/theme|g" $out/bin/chomiamos-installer
     '';
   };

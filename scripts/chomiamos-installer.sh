@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ❄️ CHOMIAMOS INSTALLER — Assistant Graphique d'Installation (Yad / Catppuccin)
+# ❄️ CHOMIAMOS INSTALLER — Assistant Graphique d'Installation (GTK3 / Adwaita)
 # =============================================================================
 
 set -e
 
-# Forcer le thème sombre GTK3 / GNOME pour toutes les fenêtres Yad
+# Utiliser le thème sombre natif GTK3 / GNOME (Adwaita:dark natif pré-compilé)
 export GTK_THEME="Adwaita:dark"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CSS_FILE="$SCRIPT_DIR/theme/catppuccin-mocha.css"
 LOGO_ICON="$SCRIPT_DIR/theme/logo-icon.png"
 
 DRY_RUN=false
@@ -65,7 +64,7 @@ else
 fi
 
 if [ ${#DISKS[@]} -eq 0 ]; then
-  yad --css="$CSS_FILE" --error \
+  yad --error \
       --title="Erreur de détection" \
       --width=450 \
       --center \
@@ -142,7 +141,7 @@ VAL_AI_SUITE="FALSE"
 VAL_TARGET_DISK="$DISKS_CHOICES"
 
 # =============================================================================
-# 3. 🧙 ASSISTANT MULTI-PAGES EN 6 ÉTAPES (CATPPUCCIN MOCHA WIZARD)
+# 3. 🧙 ASSISTANT MULTI-PAGES EN 6 ÉTAPES (GTK3 ADWAITA WIZARD)
 # =============================================================================
 
 STEP=1
@@ -156,12 +155,12 @@ while true; do
     # -------------------------------------------------------------------------
     1)
       RET=0
-      OUTPUT=$(yad --css="$CSS_FILE" --form \
+      OUTPUT=$(yad --form \
         --title="ChomiamOS Installer — Étape 1/6" \
         --window-icon="$LOGO_ICON" \
-        --width=750 --height=560 \
+        --width=720 --height=540 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>❄️ ChomiamOS</span> <span size='large' foreground='#a6adc8'>— Étape 1/$TOTAL_STEPS : Compte &amp; Système</span>\n<span foreground='#b4befe'>Créez votre compte utilisateur personnel et définissez l'identité de votre ordinateur.</span>\n" \
+        --text="<big><b>❄️ ChomiamOS — Étape 1/$TOTAL_STEPS : Compte &amp; Système</b></big>\nCréez votre compte utilisateur personnel et définissez l'identité de votre ordinateur.\n" \
         --separator="|" \
         --field="👤 Nom de compte (en minuscules sans espace) :" "$VAL_USERNAME" \
         --field="📝 Votre Nom d'usage ou Prénom :" "$VAL_FULLNAME" \
@@ -178,17 +177,17 @@ while true; do
       VAL_SHELL=$(mark_selected "$SHELL_CHOICES" "$RAW_SHELL")
 
       if [ -z "$VAL_USERNAME" ]; then
-        yad --css="$CSS_FILE" --error --center --text="❌ Le nom d'utilisateur ne peut pas être vide."
+        yad --error --center --text="❌ Le nom d'utilisateur ne peut pas être vide."
         continue
       fi
 
       if [ "$DRY_RUN" = false ] && [ -z "$VAL_PASSWORD" ]; then
-        yad --css="$CSS_FILE" --error --center --text="❌ Le mot de passe ne peut pas être vide."
+        yad --error --center --text="❌ Le mot de passe ne peut pas être vide."
         continue
       fi
 
       if [ "$VAL_PASSWORD" != "$VAL_PASSWORD_CONFIRM" ]; then
-        yad --css="$CSS_FILE" --error --center --text="❌ Les deux mots de passe ne correspondent pas."
+        yad --error --center --text="❌ Les deux mots de passe ne correspondent pas."
         continue
       fi
 
@@ -200,12 +199,12 @@ while true; do
     # -------------------------------------------------------------------------
     2)
       RET=0
-      OUTPUT=$(yad --css="$CSS_FILE" --form \
+      OUTPUT=$(yad --form \
         --title="ChomiamOS Installer — Étape 2/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=520 \
+        --width=720 --height=500 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🖥️ Matériel &amp; Graphisme</span> <span size='large' foreground='#a6adc8'>— Étape 2/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Le pilote GPU et le noyau Linux optimisé (Zen pour AMD, XanMod pour NVIDIA/Intel) seront appliqués.</span>\n" \
+        --text="<big><b>🖥️ Matériel &amp; Graphisme — Étape 2/$TOTAL_STEPS</b></big>\nLe pilote GPU et le noyau Linux optimisé (Zen pour AMD, XanMod pour NVIDIA/Intel) seront appliqués.\n" \
         --separator="|" \
         --field="🎮 Modèle de votre Carte Graphique (GPU) :CB" "$VAL_GPU" \
         --field="🏎️ Volants de course et Simulation (SimRacing / Oversteer) :CHK" "$VAL_STEERING" \
@@ -225,12 +224,12 @@ while true; do
     # -------------------------------------------------------------------------
     3)
       RET=0
-      OUTPUT=$(yad --css="$CSS_FILE" --form \
+      OUTPUT=$(yad --form \
         --title="ChomiamOS Installer — Étape 3/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=520 \
+        --width=720 --height=500 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🎨 Bureau &amp; Navigation</span> <span size='large' foreground='#a6adc8'>— Étape 3/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Choisissez votre environnement visuel et votre navigateur Internet favori.</span>\n" \
+        --text="<big><b>🎨 Bureau &amp; Navigation — Étape 3/$TOTAL_STEPS</b></big>\nChoisissez votre environnement visuel et votre navigateur Internet favori.\n" \
         --separator="|" \
         --field="🖥️ Environnement de bureau principal (GNOME ou COSMIC) :CB" "$VAL_DESKTOP" \
         --field="🌐 Navigateur Internet par défaut :CB" "$VAL_BROWSER" \
@@ -251,14 +250,14 @@ while true; do
     # -------------------------------------------------------------------------
     4)
       RET=0
-      OUTPUT=$(yad --css="$CSS_FILE" --form \
+      OUTPUT=$(yad --form \
         --title="ChomiamOS Installer — Étape 4/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=580 \
+        --width=720 --height=560 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Jeux Vidéo</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez vos lanceurs de jeux et optimisations de performances sous Linux.</span>\n" \
+        --text="<big><b>🕹️ Suite Gaming &amp; Jeux Vidéo — Étape 4/$TOTAL_STEPS</b></big>\nSélectionnez vos lanceurs de jeux et optimisations de performances sous Linux.\n" \
         --separator="|" \
-        --field="🚀 Optimisations Système Gaming (GameMode, GameScope, Noyau Zen/XanMod) :CHK" "$VAL_GAMING_ENABLE" \
+        --field="🚀 Optimisations Système Gaming (GameMode, GameScope, Noyau) :CHK" "$VAL_GAMING_ENABLE" \
         --field="🎮 Lanceur Steam (Valve &amp; Proton) :CHK" "$VAL_LAUNCHER_STEAM" \
         --field="⚔️ Lutris (Jeux Windows, Battle.net, EA, GOG) :CHK" "$VAL_LAUNCHER_LUTRIS" \
         --field="🦸 Heroic Games Launcher (Epic Games &amp; GOG) :CHK" "$VAL_LAUNCHER_HEROIC" \
@@ -280,15 +279,15 @@ while true; do
     # -------------------------------------------------------------------------
     5)
       RET=0
-      OUTPUT=$(yad --css="$CSS_FILE" --form \
+      OUTPUT=$(yad --form \
         --title="ChomiamOS Installer — Étape 5/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=560 \
+        --width=720 --height=540 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🛠️ Virtualisation &amp; Applications</span> <span size='large' foreground='#a6adc8'>— Étape 5/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Activez les outils professionnels, la virtualisation Windows et les logiciels de création.</span>\n" \
+        --text="<big><b>🛠️ Virtualisation &amp; Applications — Étape 5/$TOTAL_STEPS</b></big>\nActivez les outils professionnels, la virtualisation Windows et les logiciels de création.\n" \
         --separator="|" \
         --field="🪟 Virtualisation Windows (Virt-Manager, KVM &amp; pilotes VirtIO) :CHK" "$VAL_VIRT_ENABLE" \
-        --field="📁 Partage de fichiers réseau local (Samba &amp; WSDD pour Windows/Mac) :CHK" "$VAL_SAMBA_ENABLE" \
+        --field="📁 Partage de fichiers réseau local (Samba &amp; WSDD) :CHK" "$VAL_SAMBA_ENABLE" \
         --field="🎨 Logiciel de modélisation &amp; rendu 3D (Blender) :CHK" "$VAL_BLENDER_ENABLE" \
         --field="🎮 Moteur de création de jeux vidéo (Godot Engine 4) :CHK" "$VAL_GODOT_ENABLE" \
         --field="🎬 Montage Vidéo Professionnel (DaVinci Resolve) :CB" "$VAL_DAVINCI" \
@@ -330,24 +329,24 @@ while true; do
       [ "$VAL_LAUNCHER_FAUGUS" = "TRUE" ] && LAUNCHERS_LIST+="Faugus "
       [ -z "$LAUNCHERS_LIST" ] && LAUNCHERS_LIST="Aucun"
 
-      RECAP_TEXT="<span size='large' weight='bold' foreground='#cba6f7'>📋 RÉCAPITULATIF DE VOS SÉLECTIONS :</span>\n"
-      RECAP_TEXT+="• <b>Compte :</b> <span foreground='#a6e3a1'>$VAL_USERNAME</span> ($VAL_FULLNAME) | Hôte : $VAL_HOSTNAME\n"
-      RECAP_TEXT+="• <b>Carte Graphique :</b> <span foreground='#89b4fa'>$RAW_GPU</span> (Pilotes &amp; Noyau optimisés)\n"
-      RECAP_TEXT+="• <b>Bureau :</b> <span foreground='#f5c2e7'>$CHOSEN_DESKTOP</span> | Navigateur : $RAW_BROWSER\n"
-      RECAP_TEXT+="• <b>Jeux Vidéo :</b> Optimisations ($VAL_GAMING_ENABLE), Launchers: <span foreground='#a6e3a1'>$LAUNCHERS_LIST</span>\n"
+      RECAP_TEXT="<big><b>📋 RÉCAPITULATIF DE VOS SÉLECTIONS :</b></big>\n\n"
+      RECAP_TEXT+="• <b>Compte :</b> $VAL_USERNAME ($VAL_FULLNAME) | Hôte : $VAL_HOSTNAME\n"
+      RECAP_TEXT+="• <b>Carte Graphique :</b> $RAW_GPU (Pilotes &amp; Noyau optimisés)\n"
+      RECAP_TEXT+="• <b>Bureau :</b> $CHOSEN_DESKTOP | Navigateur : $RAW_BROWSER\n"
+      RECAP_TEXT+="• <b>Jeux Vidéo :</b> Optimisations ($VAL_GAMING_ENABLE), Launchers: $LAUNCHERS_LIST\n"
       RECAP_TEXT+="• <b>Services :</b> Virt-Manager ($VAL_VIRT_ENABLE), Samba ($VAL_SAMBA_ENABLE)\n"
       RECAP_TEXT+="• <b>Création &amp; IA :</b> Blender ($VAL_BLENDER_ENABLE), Godot ($VAL_GODOT_ENABLE), DaVinci ($RAW_DAVINCI), IA ($VAL_AI_SUITE)\n"
 
       RET=0
-      OUTPUT=$(yad --css="$CSS_FILE" --form \
+      OUTPUT=$(yad --form \
         --title="ChomiamOS Installer — Étape 6/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=580 \
+        --width=720 --height=560 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Récapitulatif &amp; Disque Cible</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n\n$RECAP_TEXT\n<span foreground='#b4befe'>Sélectionnez le disque de destination pour l'installation de ChomiamOS (Ext4).</span>\n" \
+        --text="<big><b>💾 Récapitulatif &amp; Disque Cible — Étape 6/$TOTAL_STEPS</b></big>\n\n$RECAP_TEXT\nSélectionnez le disque de destination pour l'installation de ChomiamOS (Ext4).\n" \
         --separator="|" \
-        --field="<span foreground='#f38ba8' weight='bold'>💾 Disque d'installation de destination :</span>:CB" "$VAL_TARGET_DISK" \
-        --field="<span foreground='#f38ba8'><i>⚠️ ATTENTION : Le disque choisi sera entièrement formaté (ESP 1 Go + racine Ext4).</i></span>:LBL" "" \
+        --field="💾 Disque d'installation de destination :CB" "$VAL_TARGET_DISK" \
+        --field="<i>⚠️ ATTENTION : Le disque choisi sera entièrement formaté (ESP 1 Go + racine Ext4).</i>:LBL" "" \
         --button="⬅ Précédent:2" \
         --button="🚀 Lancer l'installation !:0") || RET=$?
 
@@ -362,7 +361,7 @@ while true; do
       CHOSEN_FS="ext4"
 
       if [ -z "$TARGET_DISK" ] || [[ ! "$TARGET_DISK" =~ ^/dev/ ]]; then
-        yad --css="$CSS_FILE" --error --center --text="❌ Aucun disque cible sélectionné. Veuillez choisir un disque valide."
+        yad --error --center --text="❌ Aucun disque cible sélectionné. Veuillez choisir un disque valide."
         continue
       fi
 
@@ -377,18 +376,18 @@ done
 # =============================================================================
 
 if [ "$DRY_RUN" = true ]; then
-  yad --css="$CSS_FILE" --info \
+  yad --info \
     --title="[SIMULATION] Prêt à simuler" \
     --width=540 \
     --center \
-    --text="<span foreground='#89b4fa' size='x-large'><b>ℹ️ SIMULATION DU DÉPLOIEMENT</b></span>\n\n<b>Disque Cible :</b> $TARGET_DISK\n<b>Système de fichiers :</b> Ext4 (Standard NixOS)\n<b>Utilisateur :</b> $VAL_USERNAME\n\n<i>Cliquez sur Valider pour lancer la simulation des étapes et prévisualiser votre vars.nix Catppuccin !</i>" \
+    --text="<big><b>ℹ️ SIMULATION DU DÉPLOIEMENT</b></big>\n\n<b>Disque Cible :</b> $TARGET_DISK\n<b>Système de fichiers :</b> Ext4 (Standard NixOS)\n<b>Utilisateur :</b> $VAL_USERNAME\n\n<i>Cliquez sur Valider pour lancer la simulation des étapes et prévisualiser votre vars.nix !</i>" \
     --button="Valider et Lancer la Simulation ➔:0"
 else
-  yad --css="$CSS_FILE" --warning \
+  yad --warning \
     --title="Confirmation Définitive de Formatage" \
     --width=540 \
     --center \
-    --text="<span foreground='#f38ba8' size='x-large'><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></span>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et formaté en <b>Ext4</b>.\n\nÊtes-vous absolument sûr de vouloir formater et installer ChomiamOS ?" \
+    --text="<big><b>⚠️ ATTENTION : DESTRUCTION DES DONNÉES</b></big>\n\nLe disque <b>$TARGET_DISK</b> va être intégralement effacé et formaté en <b>Ext4</b>.\n\nÊtes-vous absolument sûr de vouloir formater et installer ChomiamOS ?" \
     --button="Non, Annuler:1" \
     --button="Oui, Formater et Installer:0"
 
@@ -508,7 +507,7 @@ if [ "$DRY_RUN" = true ]; then
     echo "95"; echo "# [Simulation] Compilation NixOS et installation du bootloader EFI..." ; sleep 1
     echo "100"; echo "# [Simulation] Déploiement terminé avec succès !" ; sleep 0.5
     echo "-> Exécution de la simulation en cours..."
-  ) | yad --css="$CSS_FILE" --progress \
+  ) | yad --progress \
           --title="[Simulation] Déroulement de l'installation..." \
           --text="Initialisation de la simulation..." \
           --percentage=0 \
@@ -519,25 +518,25 @@ if [ "$DRY_RUN" = true ]; then
           --width=750 \
           --center
 
-  echo "$GENERATED_VARS" | yad --css="$CSS_FILE" --text-info \
+  echo "$GENERATED_VARS" | yad --text-info \
     --title="[Simulation] Prévisualisation du vars.nix généré" \
     --width=700 --height=550 \
     --center \
     --button="Valider le fichier vars.nix ➔:0" || true
 
-  yad --css="$CSS_FILE" --question \
+  yad --question \
       --title="[Simulation] Installation Terminée !" \
       --width=520 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été simulé avec succès (Ext4).\n\n<i>En conditions réelles sur le Live-CD, ce message vous propose de redémarrer immédiatement pour accéder à votre nouveau bureau ChomiamOS.</i>\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
+      --text="<big><b>🎉 Félicitations !</b></big>\n\nChomiamOS Gaming Edition a été simulé avec succès (Ext4).\n\n<i>En conditions réelles sur le Live-CD, ce message vous propose de redémarrer immédiatement pour accéder à votre nouveau bureau ChomiamOS.</i>\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
       --button="Non, plus tard:1" \
       --button="Oui, Redémarrer (Simulation):0"
   if [ $? -eq 0 ]; then
-    yad --css="$CSS_FILE" --info \
+    yad --info \
       --title="[Simulation] Redémarrage" \
       --width=460 \
       --center \
-      --text="<span foreground='#89b4fa' size='large'><b>🔄 Redémarrage simulé</b></span>\n\nDans l'installation réelle sur Live-CD, l'ordinateur redémarre instantanément." \
+      --text="<big><b>🔄 Redémarrage simulé</b></big>\n\nDans l'installation réelle sur Live-CD, l'ordinateur redémarre instantanément." \
       --button="Terminer:0"
   fi
   exit 0
@@ -666,8 +665,8 @@ EOC
 
   echo "70"; echo "# Démarrage du déploiement NixOS (nixos-install)..."
   
-  # Lancement direct en arrière-plan avec écriture directe dans le fichier de log (0 surcharge CPU)
-  nixos-install --flake /mnt/etc/nixos#default --no-root-password --show-trace >> "$LOG_FILE" 2>&1 &
+  # Priorités CPU et I/O allégées (nice + ionice) pour garantir 100% de fluidité du bureau invité
+  nice -n 15 ionice -c 3 nixos-install --flake /mnt/etc/nixos#default --no-root-password --show-trace >> "$LOG_FILE" 2>&1 &
   INSTALL_PID=$!
 
   PCT=70
@@ -704,7 +703,7 @@ EOC
   fi
 
   echo "100"; echo "# Installation terminée avec succès !"
-) 2>&1 | tee -a "$LOG_FILE" | yad --css="$CSS_FILE" --progress \
+) 2>&1 | tee -a "$LOG_FILE" | yad --progress \
         --title="Installation de ChomiamOS en cours..." \
         --text="Préparation de l'installation..." \
         --percentage=0 \
@@ -718,11 +717,11 @@ EOC
 INSTALL_STATUS=${PIPESTATUS[0]}
 
 if [ $INSTALL_STATUS -eq 0 ]; then
-  yad --css="$CSS_FILE" --question \
+  yad --question \
       --title="Installation Terminée !" \
       --width=480 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#a6e3a1'>🎉 Félicitations !</span>\n\nChomiamOS Gaming Edition a été installé avec succès sur votre machine (Ext4).\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
+      --text="<big><b>🎉 Félicitations !</b></big>\n\nChomiamOS Gaming Edition a été installé avec succès sur votre machine (Ext4).\n\nSouhaitez-vous redémarrer l'ordinateur dès maintenant ?" \
       --button="Non, plus tard:1" \
       --button="Oui, Redémarrer:0"
   if [ $? -eq 0 ]; then
@@ -730,15 +729,15 @@ if [ $INSTALL_STATUS -eq 0 ]; then
   fi
 else
   ERROR_SNIPPET=$(tail -n 15 "$LOG_FILE" 2>/dev/null | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
-  yad --css="$CSS_FILE" --error \
+  yad --error \
       --title="Erreur d'installation" \
       --width=720 --height=460 \
       --center \
-      --text="<span size='large' weight='bold' foreground='#f38ba8'>❌ L'installation a rencontré une erreur !</span>\n\n<span foreground='#cdd6f4'>Dernières lignes du journal d'erreur :</span>\n<tt><span foreground='#f38ba8'>$ERROR_SNIPPET</span></tt>" \
+      --text="<big><b>❌ L'installation a rencontré une erreur !</b></big>\n\n<span foreground='#f38ba8'>Dernières lignes du journal d'erreur :</span>\n<tt>$ERROR_SNIPPET</tt>" \
       --button="Voir journal complet:2" \
       --button="Fermer:0"
   RET_ERR=$?
   if [ $RET_ERR -eq 2 ]; then
-    yad --css="$CSS_FILE" --text-info --title="Journal d'installation complet" --filename="$LOG_FILE" --width=800 --height=600 --center
+    yad --text-info --title="Journal d'installation complet" --filename="$LOG_FILE" --width=800 --height=600 --center
   fi
 fi
