@@ -856,7 +856,7 @@ Item {
                                                 enabled: fmtCheck.checked
                                                 opacity: enabled ? 1.0 : 0.4
                                                 property string pname: modelData.name
-                                                model: ["ext4", "btrfs", "vfat", "swap"]
+                                                model: ["ext4", "vfat", "swap"]
                                                 Component.onCompleted: {
                                                     var fs = engine.partitionFsType(pname) || modelData.fstype || "ext4"
                                                     var idx = model.indexOf(fs)
@@ -1170,14 +1170,8 @@ Item {
 
                                 ThemedRadio {
                                     text: qsTr("ext4")
-                                    checked: filesystem === "ext4"
+                                    checked: true
                                     onClicked: filesystemSelected("ext4")
-                                }
-
-                                ThemedRadio {
-                                    text: qsTr("btrfs")
-                                    checked: filesystem === "btrfs"
-                                    onClicked: filesystemSelected("btrfs")
                                 }
                             }
                         }
@@ -1841,7 +1835,7 @@ Item {
                                         PartCombo {
                                             id: createFsCombo
                                             width: 130
-                                            model: ["ext4", "btrfs", "vfat", "swap"]
+                                            model: ["ext4", "vfat", "swap"]
                                         }
                                     }
 
@@ -2116,7 +2110,7 @@ Item {
                                         PartCombo {
                                             id: formatFsCombo
                                             width: 130
-                                            model: ["ext4", "btrfs", "vfat", "swap"]
+                                            model: ["ext4", "vfat", "swap"]
                                         }
                                     }
 

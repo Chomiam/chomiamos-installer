@@ -2256,12 +2256,9 @@ class EngineBridge(QObject):
 
     @Slot(str)
     def setFilesystem(self, filesystem: str) -> None:
-        """Set root filesystem type."""
-        if self._selections.get("filesystem") != filesystem:
-            self._selections["filesystem"] = filesystem
-            if self._debug:
-                print(f"[Engine] Filesystem set to: {filesystem}")
-            self.selectionsChanged.emit()
+        """Set root filesystem type (ChomiamOS uses ext4 exclusively)."""
+        self._selections["filesystem"] = "ext4"
+        self.selectionsChanged.emit()
 
     @Property(str, notify=selectionsChanged)
     def swapStrategy(self) -> str:
