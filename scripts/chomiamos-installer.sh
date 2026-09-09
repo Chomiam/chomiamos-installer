@@ -519,23 +519,30 @@ rm -f "$LOG_FILE"
   echo "5"; echo "# Démontage des volumes existants..."
   umount -R /mnt 2>/dev/null || true
   swapoff -a 2>/dev/null || true
+  udevadm settle
+
+  echo "10"; echo "# Nettoyage des anciennes signatures de disque..."
+  wipefs -af "$TARGET_DISK" 2>/dev/null || true
 
   if [ "$IS_EFI" = true ]; then
     echo "15"; echo "# Partitionnement GPT (Mode UEFI) de $TARGET_DISK..."
-    parted -s "$TARGET_DISK" mklabel gpt
-    parted -s "$TARGET_DISK" mkpart ESP fat32 1MiB 1024MiB
-    parted -s "$TARGET_DISK" set 1 esp on
-    parted -s "$TARGET_DISK" mkpart primary 1024MiB 100%
+    parted -s "$TARGET_DISK" -- mklabel gpt
+    parted -s "$TARGET_DISK" -- mkpart ESP fat32 1MiB 1024MiB
+    parted -s "$TARGET_DISK" -- set 1 esp on
+    parted -s "$TARGET_DISK" -- mkpart root ext4 1024MiB 100%
   else
     echo "15"; echo "# Partitionnement GPT (Mode BIOS hérité) de $TARGET_DISK..."
-    parted -s "$TARGET_DISK" mklabel gpt
-    parted -s "$TARGET_DISK" mkpart bios_grub 1MiB 3MiB
-    parted -s "$TARGET_DISK" set 1 bios_grub on
-    parted -s "$TARGET_DISK" mkpart primary 3MiB 100%
+    parted -s "$TARGET_DISK" -- mklabel gpt
+    parted -s "$TARGET_DISK" -- mkpart bios_grub 1MiB 3MiB
+    parted -s "$TARGET_DISK" -- set 1 bios_grub on
+    parted -s "$TARGET_DISK" -- mkpart root ext4 3MiB 100%
   fi
 
-  sleep 2
+  # Forcer le rechargement de la table de partition par le noyau
+  sync
+  partprobe "$TARGET_DISK" 2>/dev/null || true
   udevadm settle
+  sleep 2
 
   if [[ "$TARGET_DISK" =~ [0-9]$ ]]; then
     P1="${TARGET_DISK}p1"
@@ -553,15 +560,25 @@ rm -f "$LOG_FILE"
     ROOT_PART="$P2"
   fi
 
+  echo "20"; echo "# Nettoyage approfondi des partitions..."
+  [ -n "$BOOT_PART" ] && wipefs -af "$BOOT_PART" 2>/dev/null || true
+  wipefs -af "$ROOT_PART" 2>/dev/null || true
+  sync
+  udevadm settle
+
   echo "25"; echo "# Formatage de la partition système en Ext4..."
   [ -n "$BOOT_PART" ] && mkfs.fat -F 32 -n BOOT "$BOOT_PART"
   mkfs.ext4 -F -L nixos "$ROOT_PART"
+  sync
+  udevadm settle
+  sleep 1
 
   echo "35"; echo "# Montage des partitions système..."
-  mount "$ROOT_PART" /mnt
+  mkdir -p /mnt
+  mount -t ext4 "$ROOT_PART" /mnt
   if [ -n "$BOOT_PART" ]; then
     mkdir -p /mnt/boot
-    mount "$BOOT_PART" /mnt/boot
+    mount -t vfat "$BOOT_PART" /mnt/boot
   fi
 
   echo "45"; echo "# Téléchargement du framework ChomiamOS..."
