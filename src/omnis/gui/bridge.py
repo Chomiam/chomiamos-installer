@@ -1325,7 +1325,19 @@ class EngineBridge(QObject):
             "pearDesktop": True,
             "kdenlive": True,
             "userShell": "fish",
-            # Granular Multimedia & Network
+                        # Granular Emulation
+            "emulationEnable": True,
+            "emulationFrontend": "es-de",
+            "retroarchEnable": True,
+            "eden": True,
+            "dolphin": True,
+            "pcsx2": True,
+            "ppsspp": True,
+            "melonds": True,
+            "azahar": True,
+            "mgba": True,
+            "rpcs3": False,
+# Granular Multimedia & Network
             "stremio": True,
             "vlc": True,
             "mpv": True,
@@ -3092,6 +3104,121 @@ class EngineBridge(QObject):
             self._selections["kdenlive"] = enabled
             self.selectionsChanged.emit()
 
+
+    # =========================================================================
+    # Granular Emulation Properties
+    # =========================================================================
+
+    @Property(bool, notify=selectionsChanged)
+    def emulationEnable(self) -> bool:
+        return bool(self._selections.get("emulationEnable", True))
+
+    @Slot(bool)
+    def setEmulationEnable(self, enabled: bool) -> None:
+        if self._selections.get("emulationEnable") != enabled:
+            self._selections["emulationEnable"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(str, notify=selectionsChanged)
+    def emulationFrontend(self) -> str:
+        return str(self._selections.get("emulationFrontend", "es-de"))
+
+    @Slot(str)
+    def setEmulationFrontend(self, frontend: str) -> None:
+        if self._selections.get("emulationFrontend") != frontend:
+            self._selections["emulationFrontend"] = frontend
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def retroarchEnable(self) -> bool:
+        return bool(self._selections.get("retroarchEnable", True))
+
+    @Slot(bool)
+    def setRetroarchEnable(self, enabled: bool) -> None:
+        if self._selections.get("retroarchEnable") != enabled:
+            self._selections["retroarchEnable"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def eden(self) -> bool:
+        return bool(self._selections.get("eden", True))
+
+    @Slot(bool)
+    def setEden(self, enabled: bool) -> None:
+        if self._selections.get("eden") != enabled:
+            self._selections["eden"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def dolphin(self) -> bool:
+        return bool(self._selections.get("dolphin", True))
+
+    @Slot(bool)
+    def setDolphin(self, enabled: bool) -> None:
+        if self._selections.get("dolphin") != enabled:
+            self._selections["dolphin"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def pcsx2(self) -> bool:
+        return bool(self._selections.get("pcsx2", True))
+
+    @Slot(bool)
+    def setPcsx2(self, enabled: bool) -> None:
+        if self._selections.get("pcsx2") != enabled:
+            self._selections["pcsx2"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def ppsspp(self) -> bool:
+        return bool(self._selections.get("ppsspp", True))
+
+    @Slot(bool)
+    def setPpsspp(self, enabled: bool) -> None:
+        if self._selections.get("ppsspp") != enabled:
+            self._selections["ppsspp"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def melonds(self) -> bool:
+        return bool(self._selections.get("melonds", True))
+
+    @Slot(bool)
+    def setMelonds(self, enabled: bool) -> None:
+        if self._selections.get("melonds") != enabled:
+            self._selections["melonds"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def azahar(self) -> bool:
+        return bool(self._selections.get("azahar", True))
+
+    @Slot(bool)
+    def setAzahar(self, enabled: bool) -> None:
+        if self._selections.get("azahar") != enabled:
+            self._selections["azahar"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def mgba(self) -> bool:
+        return bool(self._selections.get("mgba", True))
+
+    @Slot(bool)
+    def setMgba(self, enabled: bool) -> None:
+        if self._selections.get("mgba") != enabled:
+            self._selections["mgba"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def rpcs3(self) -> bool:
+        return bool(self._selections.get("rpcs3", False))
+
+    @Slot(bool)
+    def setRpcs3(self, enabled: bool) -> None:
+        if self._selections.get("rpcs3") != enabled:
+            self._selections["rpcs3"] = enabled
+            self.selectionsChanged.emit()
+
     # Multimedia & Network
     @Property(bool, notify=selectionsChanged)
     def stremio(self) -> bool:
@@ -3378,6 +3505,12 @@ class EngineBridge(QObject):
             normalized["desktop_environment"] = normalized.pop("desktopEnvironment")
         if "discordClient" in normalized:
             normalized["discord_client"] = normalized.pop("discordClient")
+                if "emulationEnable" in normalized:
+            normalized["emulation_enable"] = normalized.pop("emulationEnable")
+        if "emulationFrontend" in normalized:
+            normalized["emulation_frontend"] = normalized.pop("emulationFrontend")
+        if "retroarchEnable" in normalized:
+            normalized["retroarch_enable"] = normalized.pop("retroarchEnable")
         if "gamingEnable" in normalized:
             normalized["gaming_enable"] = normalized.pop("gamingEnable")
         if "deckyLoader" in normalized:

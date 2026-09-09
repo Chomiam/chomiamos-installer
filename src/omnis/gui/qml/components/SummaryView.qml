@@ -15,6 +15,7 @@ Item {
     signal editDesktop()
     signal editCommunication()
     signal editGaming()
+    signal editEmulation()
     signal editMediaNetwork()
     signal editCreation()
     signal editPartition()
@@ -48,6 +49,19 @@ Item {
     property bool deckyLoaderValue: true
     property bool geforceNowValue: true
     property bool steeringWheelsValue: true
+
+    // Émulation & Rétrogaming
+    property bool emulationEnableValue: true
+    property string emulationFrontendValue: "es-de"
+    property bool retroarchEnableValue: true
+    property bool edenValue: true
+    property bool dolphinValue: true
+    property bool pcsx2Value: true
+    property bool ppssppValue: true
+    property bool melondsValue: true
+    property bool azaharValue: true
+    property bool mgbaValue: true
+    property bool rpcs3Value: false
 
     // Multimédia & Réseau
     property bool stremioValue: true
@@ -126,6 +140,21 @@ Item {
         if (steeringWheelsValue) list.push("Simracing")
         if (list.length === 0) return "Aucun lanceur sélectionné"
         return list.join(", ")
+    }
+
+    function formatEmulators() {
+        var list = []
+        if (emulationFrontendValue === "es-de") list.push("ES-DE Frontend")
+        if (retroarchEnableValue) list.push("RetroArch (2D/PS1)")
+        if (edenValue) list.push("Eden (Switch)")
+        if (dolphinValue) list.push("Dolphin (GC/Wii)")
+        if (pcsx2Value) list.push("PCSX2 (PS2)")
+        if (ppssppValue) list.push("PPSSPP (PSP)")
+        if (melondsValue) list.push("melonDS (DS)")
+        if (azaharValue) list.push("Azahar (3DS)")
+        if (mgbaValue) list.push("mGBA (GB/GBA)")
+        if (rpcs3Value) list.push("RPCS3 (PS3)")
+        return list.length > 0 ? list.join(", ") : "Aucun"
     }
 
     function formatMediaList() {
@@ -351,6 +380,59 @@ Item {
                             Button {
                                 text: qsTr("Modifier")
                                 onClicked: root.editGaming()
+                            }
+                        }
+                    }
+
+                    // Card: Émulation & Rétrogaming
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: emulationSummaryContent.implicitHeight + 32
+                        color: surfaceColor
+                        radius: 12
+                        border.color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.08)
+
+                        RowLayout {
+                            id: emulationSummaryContent
+                            anchors.fill: parent
+                            anchors.margins: 16
+                            spacing: 16
+
+                            Text {
+                                text: "🕹️"
+                                font.pixelSize: 28
+                                Layout.alignment: Qt.AlignTop
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Text {
+                                    text: qsTr("Émulation & Rétrogaming")
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                    color: textColor
+                                }
+
+                                Text {
+                                    text: qsTr("Suite d'Émulation : %1").arg(emulationEnableValue ? "Activée (~/Jeux/ROMs, ~/Jeux/BIOS)" : "Désactivée")
+                                    font.pixelSize: 13
+                                    color: textMutedColor
+                                }
+
+                                Text {
+                                    text: qsTr("Composants : %1").arg(formatEmulators())
+                                    font.pixelSize: 12
+                                    color: accentColor
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            Button {
+                                text: qsTr("Modifier")
+                                onClicked: root.editEmulation()
                             }
                         }
                     }

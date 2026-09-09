@@ -68,8 +68,8 @@ ApplicationWindow {
 
     // Wizard state
     property int currentStep: 0
-    readonly property int totalSteps: 12  // 0-11
-    readonly property var stepNames: ["Welcome", "Locale", "Users", "Desktop & Web", "Communication", "Gaming", "Media & Network", "Creation", "Partition", "Summary", "Installing", "Finished"]
+    readonly property int totalSteps: 13  // 0-12
+    readonly property var stepNames: ["Welcome", "Locale", "Users", "Desktop & Web", "Communication", "Gaming", "Emulation", "Media & Network", "Creation", "Partition", "Summary", "Installing", "Finished"]
 
     // Installation state
     property bool isInstalling: false
@@ -113,7 +113,7 @@ ApplicationWindow {
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
-            visible: currentStep > 0 && currentStep < 10  // hidden on Welcome(0), Progress(9), Finished(10)
+            visible: currentStep > 0 && currentStep < 11  // hidden on Welcome(0), Progress(11), Finished(12)
 
             // Logo
             Item {
@@ -166,10 +166,10 @@ ApplicationWindow {
             // Step indicator (steps 1-8)
             Row {
                 spacing: 8
-                visible: currentStep >= 1 && currentStep <= 9
+                visible: currentStep >= 1 && currentStep <= 10
 
                 Repeater {
-                    model: 9  // Steps 1-9
+                    model: 10  // Steps 1-10
 
                     Rectangle {
                         width: 40
@@ -398,11 +398,31 @@ ApplicationWindow {
                 }
             }
 
-            // Step 6: Media & Network
+            // Step 6: Emulation
+            EmulationView {
+                id: emulationView
+                anchors.fill: parent
+                visible: currentStep === 6
+                opacity: visible ? 1 : 0
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                successColor: root.successColor
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 7: Media & Network
             MediaNetworkView {
                 id: mediaNetworkView
                 anchors.fill: parent
-                visible: currentStep === 6
+                visible: currentStep === 7
                 opacity: visible ? 1 : 0
 
                 primaryColor: root.primaryColor
@@ -438,11 +458,11 @@ ApplicationWindow {
                 }
             }
 
-            // Step 8: Partition
+            // Step 9: Partition
             PartitionView {
                 id: partitionView
                 anchors.fill: parent
-                visible: currentStep === 8
+                visible: currentStep === 9
                 opacity: visible ? 1 : 0
 
                 disksModel: engine.disksModel
@@ -483,11 +503,11 @@ ApplicationWindow {
                 }
             }
 
-            // Step 9: Summary
+            // Step 10: Summary
             SummaryView {
                 id: summaryView
                 anchors.fill: parent
-                visible: currentStep === 9
+                visible: currentStep === 10
                 opacity: visible ? 1 : 0
 
                 localeValue: engine.selectedLocale
@@ -511,6 +531,18 @@ ApplicationWindow {
                 deckyLoaderValue: engine.deckyLoader
                 geforceNowValue: engine.geforceNow
                 steeringWheelsValue: engine.steeringWheels
+
+                emulationEnableValue: engine.emulationEnable
+                emulationFrontendValue: engine.emulationFrontend
+                retroarchEnableValue: engine.retroarchEnable
+                edenValue: engine.eden
+                dolphinValue: engine.dolphin
+                pcsx2Value: engine.pcsx2
+                ppssppValue: engine.ppsspp
+                melondsValue: engine.melonds
+                azaharValue: engine.azahar
+                mgbaValue: engine.mgba
+                rpcs3Value: engine.rpcs3
 
                 stremioValue: engine.stremio
                 vlcValue: engine.vlc
@@ -553,20 +585,21 @@ ApplicationWindow {
                 onEditDesktop: currentStep = 3
                 onEditCommunication: currentStep = 4
                 onEditGaming: currentStep = 5
-                onEditMediaNetwork: currentStep = 6
-                onEditCreation: currentStep = 7
-                onEditPartition: currentStep = 8
+                onEditEmulation: currentStep = 6
+                onEditMediaNetwork: currentStep = 7
+                onEditCreation: currentStep = 8
+                onEditPartition: currentStep = 9
 
                 Behavior on opacity {
                     NumberAnimation { duration: 300 }
                 }
             }
 
-            // Step 10: Progress
+            // Step 11: Progress
             ProgressView {
                 id: progressView
                 anchors.fill: parent
-                visible: currentStep === 10
+                visible: currentStep === 11
                 opacity: visible ? 1 : 0
 
                 overallProgress: engine.overallProgress
@@ -596,11 +629,11 @@ ApplicationWindow {
                 }
             }
 
-            // Step 11: Finished
+            // Step 12: Finished
             FinishedView {
                 id: finishedView
                 anchors.fill: parent
-                visible: currentStep === 11
+                visible: currentStep === 12
                 opacity: visible ? 1 : 0
 
                 success: installationSuccess
@@ -648,7 +681,7 @@ ApplicationWindow {
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
-            visible: currentStep >= 1 && currentStep <= 9
+            visible: currentStep >= 1 && currentStep <= 10
 
             Text {
                 text: qsTr("Powered by Omnis Installer")
@@ -685,7 +718,7 @@ ApplicationWindow {
             // Next/Install button
             Button {
                 objectName: "nextInstallButton"
-                text: currentStep === 9 ? qsTr("Install") : qsTr("Next")
+                text: currentStep === 10 ? qsTr("Install") : qsTr("Next")
                 enabled: canProceedToNext()
 
                 background: Rectangle {
@@ -746,7 +779,7 @@ ApplicationWindow {
 
     // Navigation functions
     function navigateBack() {
-        if (currentStep > 0 && currentStep <= 9) {
+        if (currentStep > 0 && currentStep <= 10) {
             if (currentStep === 1) {
                 currentStep = 0  // Back to Welcome
             } else {
@@ -756,12 +789,12 @@ ApplicationWindow {
     }
 
     function navigateNext() {
-        if (currentStep === 9) {
+        if (currentStep === 10) {
             // Start installation
             startInstallation()
-        } else if (currentStep < 9) {
-            // Load data for partition step (step 8) if needed
-            if (currentStep === 7) {
+        } else if (currentStep < 10) {
+            // Load data for partition step (step 9) if needed (coming from step 8 Creation)
+            if (currentStep === 8) {
                 engine.refreshDisks()
             }
             currentStep++
@@ -784,13 +817,15 @@ ApplicationWindow {
                 return engine.discordClient !== ""
             case 5:  // Gaming
                 return true
-            case 6:  // Media & Network
+            case 6:  // Emulation
                 return true
-            case 7:  // Creation & Tools
+            case 7:  // Media & Network
                 return true
-            case 8:  // Partition
+            case 8:  // Creation & Tools
+                return true
+            case 9:  // Partition
                 return engine.selectedDisk !== ""
-            case 9:  // Summary
+            case 10: // Summary
                 return engine.confirmed
             default:
                 return true
@@ -813,13 +848,13 @@ ApplicationWindow {
 
         function onInstallationStarted() {
             isInstalling = true
-            currentStep = 10  // Progress view
+            currentStep = 11  // Progress view
         }
 
         function onInstallationFinished(success) {
             isInstalling = false
             installationSuccess = success
-            currentStep = 11  // Go to Finished view
+            currentStep = 12  // Go to Finished view
         }
 
         // recheckInternetStatus() relance déjà la vérification des prérequis :
@@ -865,13 +900,13 @@ ApplicationWindow {
     // Keyboard shortcuts
     Shortcut {
         sequence: "Escape"
-        enabled: currentStep > 0 && currentStep <= 9
+        enabled: currentStep > 0 && currentStep <= 10
         onActivated: navigateBack()
     }
 
     Shortcut {
         sequence: "Return"
-        enabled: currentStep >= 1 && currentStep <= 9 && canProceedToNext()
+        enabled: currentStep >= 1 && currentStep <= 10 && canProceedToNext()
         onActivated: navigateNext()
     }
 

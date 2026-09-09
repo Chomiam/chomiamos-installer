@@ -244,6 +244,19 @@ class NixosJob(BaseJob):
         geforce_now = "true" if s.get("geforce_now", s.get("geforceNow", True)) else "false"
         steering_wheels = "true" if s.get("steering_wheels", s.get("steeringWheels", True)) else "false"
 
+        # Emulation selections
+        emulation_enable = "true" if s.get("emulation_enable", s.get("emulationEnable", True)) else "false"
+        emulation_frontend = str(s.get("emulation_frontend") or s.get("emulationFrontend") or "es-de").strip().lower()
+        retroarch_enable = "true" if s.get("retroarch_enable", s.get("retroarchEnable", True)) else "false"
+        eden = "true" if s.get("eden", True) else "false"
+        dolphin = "true" if s.get("dolphin", True) else "false"
+        pcsx2 = "true" if s.get("pcsx2", True) else "false"
+        ppsspp = "true" if s.get("ppsspp", True) else "false"
+        melonds = "true" if s.get("melonds", True) else "false"
+        azahar = "true" if s.get("azahar", True) else "false"
+        mgba = "true" if s.get("mgba", True) else "false"
+        rpcs3 = "true" if s.get("rpcs3", False) else "false"
+
         # User Shell
         user_shell = str(s.get("shell") or s.get("userShell") or "fish").strip().lower()
         if user_shell not in ("fish", "bash", "zsh"):
@@ -324,6 +337,31 @@ class NixosJob(BaseJob):
   }};
 
   steeringWheelSupport = {steering_wheels};
+
+  # =========================================================================
+  # 🕹️ ÉMULATION & RÉTROGAMING
+  # =========================================================================
+  emulation = {{
+    enable = {emulation_enable};
+    frontend = "{emulation_frontend}";
+    autoCheckUpdates = true;
+
+    retroarch = {{
+      enable = {retroarch_enable};
+    }};
+
+    standalone = {{
+      eden = {eden};
+      dolphin = {dolphin};
+      pcsx2 = {pcsx2};
+      ppsspp = {ppsspp};
+      melonds = {melonds};
+      azahar = {azahar};
+      mgba = {mgba};
+      rpcs3 = {rpcs3};
+    }};
+  }};
+
 
   # Réseau & Partage
   tailscale = {tailscale};
