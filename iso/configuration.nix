@@ -15,6 +15,150 @@ let
   };
   blurPipelines = mkRawGVariant "{'pipeline_default': {'name': <'Default'>, 'effects': <[<{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000000'>, 'params': <{'radius': <30>, 'brightness': <0.6>}>}>]>}, 'pipeline_default_rounded': {'name': <'Default rounded'>, 'effects': <[<{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000001'>, 'params': <{'radius': <30>, 'brightness': <0.6>}>}>]>}}";
 
+  # Définition du caractère Échap (ESC / \u001b) pour sérialisation Fastfetch
+  esc = builtins.fromJSON "\"\\u001b\"";
+
+  # Configuration Fastfetch Catppuccin Macchiato personnalisée
+  fastfetchConfig = pkgs.writeText "fastfetch-config.jsonc" (builtins.toJSON {
+    "$schema" = "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json";
+    logo = {
+      type = "kitty-direct";
+      source = "~/.config/fastfetch/logo/chomiamos_logo.png";
+      width = 40;
+      height = 20;
+      padding = {
+        top = 2;
+        left = 2;
+        right = 2;
+      };
+    };
+    display = {
+      separator = " ${esc}[38;2;198;160;246m${esc}[0m ";
+      constants = [
+        "${esc}[38;2;240;198;198m─────────────────${esc}[0m"
+      ];
+      key = {
+        type = "icon";
+        paddingLeft = 2;
+      };
+    };
+    modules = [
+      {
+        type = "custom";
+        format = "${esc}[38;2;240;198;198m┌${esc}[0m{$1} ${esc}[38;2;198;160;246mHardware Information${esc}[0m {$1}${esc}[38;2;240;198;198m┐${esc}[0m";
+      }
+      {
+        type = "host";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "cpu";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "gpu";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "disk";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "memory";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "display";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "custom";
+        format = "${esc}[38;2;240;198;198m└${esc}[0m{$1}${esc}[38;2;240;198;198m──────────────────────${esc}[0m{$1}${esc}[38;2;240;198;198m┘${esc}[0m";
+      }
+      {
+        type = "custom";
+        format = "";
+      }
+      {
+        type = "custom";
+        format = "${esc}[38;2;240;198;198m┌${esc}[0m{$1} ${esc}[38;2;198;160;246mSoftware Information${esc}[0m {$1}${esc}[38;2;240;198;198m┐${esc}[0m";
+      }
+      {
+        type = "os";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "kernel";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "lm";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "de";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "wm";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "shell";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "terminal";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "font";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "theme";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "icons";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "packages";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "uptime";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "locale";
+        keyColor = "#f5bde6";
+      }
+      {
+        type = "custom";
+        format = "${esc}[38;2;240;198;198m└${esc}[0m{$1}${esc}[38;2;240;198;198m──────────────────────${esc}[0m{$1}${esc}[38;2;240;198;198m┘${esc}[0m";
+      }
+      {
+        type = "colors";
+        symbol = "circle";
+        paddingLeft = 21;
+      }
+    ];
+  });
+
+  # Configuration du terminal Kitty (Catppuccin Mocha + JetBrainsMono Nerd Font)
+  kittyConf = pkgs.writeText "kitty.conf" ''
+    include ${pkgs.kitty-themes}/share/kitty-themes/themes/Catppuccin-Mocha.conf
+    font_family JetBrainsMono Nerd Font
+    font_size 11
+    window_padding_width 8
+    background_opacity 0.90
+    cursor_shape block
+    cursor_blink_interval 0.5
+    confirm_os_window_close 0
+  '';
+
   # Script de lancement robuste d'Omnis gérant l'attente du compositeur graphique et la détection d'instance
   omnis-launcher = pkgs.writeShellScriptBin "omnis-launcher" ''
     set -euo pipefail
@@ -92,6 +236,24 @@ in
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
 
+  # Exclusion de Xterm au niveau serveur d'affichage
+  services.xserver.excludePackages = [ pkgs.xterm ];
+
+  # Exclusions d'applications GNOME indésirables dans le Live-CD
+  environment.gnome.excludePackages = with pkgs; [
+    totem
+    gnome-maps
+    yelp
+    gnome-tour
+    epiphany
+    gnome-console
+  ];
+
+  # Polices Nerd Fonts pour le rendu propre des icônes dans le terminal & Fastfetch
+  fonts.packages = with pkgs; [
+    nerd-fonts.jetbrains-mono
+  ];
+
   # Autologin sur l'utilisateur Live par défaut 'nixos'
   services.displayManager.autoLogin = {
     enable = true;
@@ -148,11 +310,20 @@ in
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
     catppuccin-cursors.mochaLavender
 
-    # Terminal & Outils Live
+    # Terminal, Rendu & Fastfetch
     kitty
     kitty-themes
     fastfetch
+    chafa
+    imagemagick
   ];
+
+  # Lancement automatique de Fastfetch dans le terminal interactif
+  programs.bash.interactiveShellInit = ''
+    if [[ $- == *i* ]]; then
+      fastfetch
+    fi
+  '';
 
   # Raccourci sur le bureau, lancement automatique & Thème Catppuccin Mocha Live
   systemd.tmpfiles.rules = [
@@ -180,7 +351,14 @@ in
 
     # Configuration Kitty Catppuccin Mocha
     "d /home/nixos/.config/kitty 0755 nixos users -"
-    "L+ /home/nixos/.config/kitty/kitty.conf - - - - ${pkgs.kitty-themes}/share/kitty-themes/themes/Catppuccin-Mocha.conf"
+    "L+ /home/nixos/.config/kitty/kitty.conf - - - - ${kittyConf}"
+
+    # Configuration & Assets Fastfetch
+    "d /home/nixos/.config/fastfetch 0755 nixos users -"
+    "d /home/nixos/.config/fastfetch/logo 0755 nixos users -"
+    "L+ /home/nixos/.config/fastfetch/config.jsonc - - - - ${fastfetchConfig}"
+    "L+ /home/nixos/.config/fastfetch/logo/chomiamos_logo.png - - - - ${./assets/chomiamos_fastfetch.png}"
+    "L+ /home/nixos/.config/fastfetch/logo/catppuccin_logo.txt - - - - ${./assets/catppuccin_logo.txt}"
   ];
 
   # Thème système global GTK4 & GTK3 (Fallback XDG)
@@ -190,6 +368,11 @@ in
   environment.etc."xdg/gtk-3.0/gtk.css".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/gtk.css";
   environment.etc."xdg/gtk-3.0/gtk-dark.css".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/gtk-dark.css";
   environment.etc."xdg/gtk-3.0/assets".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/assets";
+
+  # Configuration système globale Fastfetch (Fallback XDG)
+  environment.etc."xdg/fastfetch/config.jsonc".source = fastfetchConfig;
+  environment.etc."xdg/fastfetch/logo/chomiamos_logo.png".source = ./assets/chomiamos_fastfetch.png;
+  environment.etc."xdg/fastfetch/logo/catppuccin_logo.txt".source = ./assets/catppuccin_logo.txt;
 
   # Lancement automatique d'Omnis à l'ouverture de la session Live
   environment.etc."xdg/autostart/omnis.desktop".source =
@@ -228,6 +411,10 @@ in
           cursor-theme = "catppuccin-mocha-lavender-cursors";
           accent-color = "purple";
           enable-animations = false;
+        };
+        "org/gnome/desktop/default-applications/terminal" = {
+          exec = "kitty";
+          exec-arg = "-e";
         };
         "org/gnome/shell" = {
           enabled-extensions = [
