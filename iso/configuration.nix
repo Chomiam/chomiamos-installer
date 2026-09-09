@@ -1,5 +1,11 @@
 { pkgs, lib, omnis, ... }:
 
+let
+  catppuccinTheme = pkgs.catppuccin-gtk.override {
+    variant = "mocha";
+    accents = [ "lavender" ];
+  };
+in
 {
   # =========================================================================
   # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS GAMING EDITION
@@ -72,21 +78,51 @@
     wget
     whois # Fournit mkpasswd
 
-    # Extensions GNOME (Dash to Dock, Vitals) & Thème Catppuccin
+    # Extensions GNOME & Thème Catppuccin Mocha
     gnomeExtensions.dash-to-dock
     gnomeExtensions.vitals
     gnomeExtensions.blur-my-shell
+    gnomeExtensions.user-themes
+    catppuccinTheme
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
     catppuccin-cursors.mochaLavender
+
+    # Terminal & Outils Live
+    kitty
+    kitty-themes
+    fastfetch
   ];
 
-  # Raccourci sur le bureau et lancement automatique
+  # Raccourci sur le bureau, lancement automatique & Thème Catppuccin Mocha Live
   systemd.tmpfiles.rules = [
     "d /run/omnis 0755 root root -"
     "d /home/nixos/Desktop 0755 nixos users -"
     "L+ /home/nixos/Desktop/omnis.desktop - - - - ${omnis}/share/applications/omnis.desktop"
     "z /home/nixos/Desktop/omnis.desktop 0755 nixos users -"
+
+    # Déploiement du thème Catppuccin Mocha pour GTK4 / Libadwaita et GTK3
+    "d /home/nixos/.config 0755 nixos users -"
+    "d /home/nixos/.config/gtk-4.0 0755 nixos users -"
+    "L+ /home/nixos/.config/gtk-4.0/gtk.css - - - - ${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-4.0/gtk.css"
+    "L+ /home/nixos/.config/gtk-4.0/gtk-dark.css - - - - ${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-4.0/gtk-dark.css"
+    "L+ /home/nixos/.config/gtk-4.0/assets - - - - ${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-4.0/assets"
+    "d /home/nixos/.config/gtk-3.0 0755 nixos users -"
+    "L+ /home/nixos/.config/gtk-3.0/gtk.css - - - - ${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/gtk.css"
+    "L+ /home/nixos/.config/gtk-3.0/gtk-dark.css - - - - ${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/gtk-dark.css"
+    "L+ /home/nixos/.config/gtk-3.0/assets - - - - ${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/assets"
+
+    # Configuration Kitty Catppuccin Mocha
+    "d /home/nixos/.config/kitty 0755 nixos users -"
+    "L+ /home/nixos/.config/kitty/kitty.conf - - - - ${pkgs.kitty-themes}/share/kitty-themes/themes/Catppuccin-Mocha.conf"
   ];
+
+  # Thème système global GTK4 & GTK3 (Fallback XDG)
+  environment.etc."xdg/gtk-4.0/gtk.css".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-4.0/gtk.css";
+  environment.etc."xdg/gtk-4.0/gtk-dark.css".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-4.0/gtk-dark.css";
+  environment.etc."xdg/gtk-4.0/assets".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-4.0/assets";
+  environment.etc."xdg/gtk-3.0/gtk.css".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/gtk.css";
+  environment.etc."xdg/gtk-3.0/gtk-dark.css".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/gtk-dark.css";
+  environment.etc."xdg/gtk-3.0/assets".source = "${catppuccinTheme}/share/themes/catppuccin-mocha-lavender-standard/gtk-3.0/assets";
 
   # Lancement automatique d'Omnis à l'ouverture de la session Live
   environment.etc."xdg/autostart/omnis.desktop".source =
@@ -107,7 +143,7 @@
         };
         "org/gnome/desktop/interface" = {
           color-scheme = "prefer-dark";
-          gtk-theme = "Adwaita-dark";
+          gtk-theme = "catppuccin-mocha-lavender-standard";
           icon-theme = "Papirus-Dark";
           cursor-theme = "catppuccin-mocha-lavender-cursors";
           accent-color = "purple";
@@ -115,6 +151,7 @@
         };
         "org/gnome/shell" = {
           enabled-extensions = [
+            "user-theme@gnome-shell-extensions.gcampax.github.com"
             "dash-to-dock@micxgx.gmail.com"
             "Vitals@CoreCoding.com"
             "blur-my-shell@aunetx"
@@ -125,6 +162,9 @@
             "kitty.desktop"
             "google-chrome.desktop"
           ];
+        };
+        "org/gnome/shell/extensions/user-theme" = {
+          name = "catppuccin-mocha-lavender-standard";
         };
         "org/gnome/desktop/wm/preferences" = {
           button-layout = "icon:minimize,maximize,close";
