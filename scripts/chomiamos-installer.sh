@@ -10,6 +10,7 @@ export GTK_THEME="Adwaita:dark"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CSS_FILE="$SCRIPT_DIR/theme/catppuccin-mocha.css"
+LOGO_ICON="$SCRIPT_DIR/theme/logo-icon.png"
 
 DRY_RUN=false
 for arg in "$@"; do
@@ -78,27 +79,54 @@ if [ ${#DISKS[@]} -gt 0 ]; then
 fi
 DISKS_CHOICES=$(IFS="!"; echo "${DISKS[*]}")
 
+# Helper pour conserver la liste complète des choix avec l'option choisie active
+mark_selected() {
+  local choices="$1"
+  local selected="$2"
+  local sel_key="${selected%% *}"
+  sel_key="${sel_key#\^}"
+  local clean="${choices//\^/}"
+  local result=()
+  local oldIFS="$IFS"
+  IFS="!" read -ra items <<< "$clean"
+  for item in "${items[@]}"; do
+    local key="${item%% *}"
+    if [ "$key" = "$sel_key" ]; then
+      result+=("^$item")
+    else
+      result+=("$item")
+    fi
+  done
+  IFS="!"
+  echo "${result[*]}"
+}
+
 # =============================================================================
 # 2. 🎛️ VALEURS INITIALES DU FORMULAIRE
 # =============================================================================
+
+SHELL_CHOICES="^fish (Moderne, avec autocomplétion intelligente)!zsh (Très personnalisable)!bash (Le shell Linux classique)"
+DESKTOP_CHOICES="^Gnome!Cosmic!Les deux"
+BROWSER_CHOICES="^chrome (Google Chrome)!firefox (Mozilla Firefox)!zen (Zen Browser - Moderne et orienté confidentialité)!librewolf (LibreWolf - Firefox durci axé sur la vie privée)!opera-gx (Opera GX - Navigateur orienté gaming)!opera (Opera Standard)"
+DAVINCI_CHOICES="^none (Non installé)!free (DaVinci Resolve - Version Gratuite)!studio (DaVinci Resolve Studio - Version Payante)"
 
 VAL_USERNAME="chomiam"
 VAL_FULLNAME="Axel Valens"
 VAL_PASSWORD=""
 VAL_PASSWORD_CONFIRM=""
 VAL_HOSTNAME="chomiamos"
-VAL_SHELL="^fish (Moderne, avec autocomplétion intelligente)!zsh (Très personnalisable)!bash (Le shell Linux classique)"
+VAL_SHELL="$SHELL_CHOICES"
 
 VAL_GPU="$GPU_CHOICES"
 VAL_STEERING="TRUE"
 
-VAL_DESKTOP="^Gnome!Cosmic!Les deux"
+VAL_DESKTOP="$DESKTOP_CHOICES"
 
 VAL_LAUNCHER_STEAM="TRUE"
 VAL_LAUNCHER_LUTRIS="TRUE"
 VAL_LAUNCHER_HEROIC="TRUE"
 VAL_LAUNCHER_FAUGUS="TRUE"
-VAL_BROWSER="^chrome (Google Chrome)!firefox (Mozilla Firefox)!zen (Zen Browser - Moderne et orienté confidentialité)!librewolf (LibreWolf - Firefox durci axé sur la vie privée)!opera-gx (Opera GX - Navigateur orienté gaming)!opera (Opera Standard)"
+VAL_BROWSER="$BROWSER_CHOICES"
 
 VAL_GAMING_ENABLE="TRUE"
 VAL_DECKY_ENABLE="TRUE"
@@ -108,7 +136,7 @@ VAL_VIRT_ENABLE="TRUE"
 VAL_SAMBA_ENABLE="TRUE"
 VAL_BLENDER_ENABLE="TRUE"
 VAL_GODOT_ENABLE="TRUE"
-VAL_DAVINCI="^none (Non installé)!free (DaVinci Resolve - Version Gratuite)!studio (DaVinci Resolve Studio - Version Payante)"
+VAL_DAVINCI="$DAVINCI_CHOICES"
 VAL_AI_SUITE="FALSE"
 
 VAL_TARGET_DISK="$DISKS_CHOICES"
@@ -127,10 +155,11 @@ while true; do
     # ÉTAPE 1 : IDENTITÉ & COMPTE UTILISATEUR
     # -------------------------------------------------------------------------
     1)
+      RET=0
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 1/6" \
         --window-icon="$LOGO_ICON" \
-        --width=750 --height=580 \
+        --width=750 --height=560 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>❄️ ChomiamOS</span> <span size='large' foreground='#a6adc8'>— Étape 1/$TOTAL_STEPS : Compte &amp; Système</span>\n<span foreground='#b4befe'>Créez votre compte utilisateur personnel et définissez l'identité de votre ordinateur.</span>\n" \
         --separator="|" \
@@ -141,12 +170,12 @@ while true; do
         --field="🏷️ Nom de votre ordinateur sur le réseau (Hostname) :" "$VAL_HOSTNAME" \
         --field="🐚 Terminal de commande par défaut :CB" "$VAL_SHELL" \
         --button="Quitter!application-exit:1" \
-        --button="Suivant ➔:0")
+        --button="Suivant ➔:0") || RET=$?
 
-      RET=$?
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_USERNAME VAL_FULLNAME VAL_PASSWORD VAL_PASSWORD_CONFIRM VAL_HOSTNAME VAL_SHELL _ <<< "$OUTPUT"
+      IFS="|" read -r VAL_USERNAME VAL_FULLNAME VAL_PASSWORD VAL_PASSWORD_CONFIRM VAL_HOSTNAME RAW_SHELL _ <<< "$OUTPUT"
+      VAL_SHELL=$(mark_selected "$SHELL_CHOICES" "$RAW_SHELL")
 
       if [ -z "$VAL_USERNAME" ]; then
         yad --css="$CSS_FILE" --error --center --text="❌ Le nom d'utilisateur ne peut pas être vide."
@@ -170,25 +199,24 @@ while true; do
     # ÉTAPE 2 : MATÉRIEL & PILOTES GRAPHIQUES
     # -------------------------------------------------------------------------
     2)
+      RET=0
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 2/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=540 \
+        --width=760 --height=520 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🖥️ Matériel &amp; Graphisme</span> <span size='large' foreground='#a6adc8'>— Étape 2/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Le bon pilote GPU et le noyau Linux optimisé (Zen pour AMD, XanMod pour NVIDIA/Intel) seront appliqués.</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🖥️ Matériel &amp; Graphisme</span> <span size='large' foreground='#a6adc8'>— Étape 2/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Le pilote GPU et le noyau Linux optimisé (Zen pour AMD, XanMod pour NVIDIA/Intel) seront appliqués.</span>\n" \
         --separator="|" \
         --field="🎮 Modèle de votre Carte Graphique (GPU) :CB" "$VAL_GPU" \
-        --field="<i>La détection matérielle a pré-sélectionné la carte détectée sur votre ordinateur.</i>:LBL" "" \
-        --field="🏎️ Volants de course et Simulation (SimRacing) :CHK" "$VAL_STEERING" \
-        --field="<i>Active la gestion du retour de force (Logitech G29/G920, Thrustmaster, Fanatec) et l'utilitaire Oversteer.</i>:LBL" "" \
+        --field="🏎️ Volants de course et Simulation (SimRacing / Oversteer) :CHK" "$VAL_STEERING" \
         --button="⬅ Précédent:2" \
-        --button="Suivant ➔:0")
+        --button="Suivant ➔:0") || RET=$?
 
-      RET=$?
       if [ $RET -eq 2 ]; then STEP=1; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_GPU _ VAL_STEERING _ <<< "$OUTPUT"
+      IFS="|" read -r RAW_GPU VAL_STEERING _ <<< "$OUTPUT"
+      VAL_GPU=$(mark_selected "$GPU_CHOICES" "$RAW_GPU")
       STEP=3
       ;;
 
@@ -196,25 +224,25 @@ while true; do
     # ÉTAPE 3 : BUREAU & INTERFACE UTILISATEUR
     # -------------------------------------------------------------------------
     3)
+      RET=0
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 3/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=540 \
+        --width=760 --height=520 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🎨 Bureau &amp; Navigation</span> <span size='large' foreground='#a6adc8'>— Étape 3/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Choisissez votre environnement visuel et votre navigateur Internet favori.</span>\n" \
         --separator="|" \
-        --field="🖥️ Environnement de bureau principal :CB" "$VAL_DESKTOP" \
-        --field="<i>GNOME avec personnalisations Catppuccin ou COSMIC Desktop nouvelle génération.</i>:LBL" "" \
+        --field="🖥️ Environnement de bureau principal (GNOME ou COSMIC) :CB" "$VAL_DESKTOP" \
         --field="🌐 Navigateur Internet par défaut :CB" "$VAL_BROWSER" \
-        --field="<i>Il sera directement placé dans votre barre de raccourcis principale.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
-        --button="Suivant ➔:0")
+        --button="Suivant ➔:0") || RET=$?
 
-      RET=$?
       if [ $RET -eq 2 ]; then STEP=2; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_DESKTOP _ VAL_BROWSER _ <<< "$OUTPUT"
+      IFS="|" read -r RAW_DESKTOP RAW_BROWSER _ <<< "$OUTPUT"
+      VAL_DESKTOP=$(mark_selected "$DESKTOP_CHOICES" "$RAW_DESKTOP")
+      VAL_BROWSER=$(mark_selected "$BROWSER_CHOICES" "$RAW_BROWSER")
       STEP=4
       ;;
 
@@ -222,31 +250,28 @@ while true; do
     # ÉTAPE 4 : GAMING & STEAM OPTIMISATIONS
     # -------------------------------------------------------------------------
     4)
+      RET=0
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 4/6" \
         --window-icon="$LOGO_ICON" \
-        --width=760 --height=620 \
+        --width=760 --height=580 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🕹️ Suite Gaming &amp; Jeux Vidéo</span> <span size='large' foreground='#a6adc8'>— Étape 4/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez vos lanceurs de jeux et optimisations de performances sous Linux.</span>\n" \
         --separator="|" \
-        --field="🚀 Optimisations Système Gaming (GameMode, GameScope, Noyau) :CHK" "$VAL_GAMING_ENABLE" \
-        --field="<i>Active GameMode (priorités CPU/GPU), GameScope, Sunshine et le noyau optimisé.</i>:LBL" "" \
+        --field="🚀 Optimisations Système Gaming (GameMode, GameScope, Noyau Zen/XanMod) :CHK" "$VAL_GAMING_ENABLE" \
         --field="🎮 Lanceur Steam (Valve &amp; Proton) :CHK" "$VAL_LAUNCHER_STEAM" \
         --field="⚔️ Lutris (Jeux Windows, Battle.net, EA, GOG) :CHK" "$VAL_LAUNCHER_LUTRIS" \
         --field="🦸 Heroic Games Launcher (Epic Games &amp; GOG) :CHK" "$VAL_LAUNCHER_HEROIC" \
         --field="⚡ Faugus Launcher (Nouveau lanceur rapide jeux Windows) :CHK" "$VAL_LAUNCHER_FAUGUS" \
-        --field="🔌 Decky Loader pour Steam (Jovian-NixOS) :CHK" "$VAL_DECKY_ENABLE" \
-        --field="<i>Permet d'installer des extensions et des thèmes visuels directement dans Steam.</i>:LBL" "" \
+        --field="🔌 Decky Loader pour Steam (Jovian-NixOS / extensions Steam) :CHK" "$VAL_DECKY_ENABLE" \
         --field="☁️ Raccourci NVIDIA GeForce NOW (Cloud Gaming) :CHK" "$VAL_GEFORCE_NOW" \
-        --field="<i>Permet de jouer en streaming dans le cloud à vos jeux depuis votre dock.</i>:LBL" "" \
         --button="⬅ Précédent:2" \
-        --button="Suivant ➔:0")
+        --button="Suivant ➔:0") || RET=$?
 
-      RET=$?
       if [ $RET -eq 2 ]; then STEP=3; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_GAMING_ENABLE _ VAL_LAUNCHER_STEAM VAL_LAUNCHER_LUTRIS VAL_LAUNCHER_HEROIC VAL_LAUNCHER_FAUGUS VAL_DECKY_ENABLE _ VAL_GEFORCE_NOW _ <<< "$OUTPUT"
+      IFS="|" read -r VAL_GAMING_ENABLE VAL_LAUNCHER_STEAM VAL_LAUNCHER_LUTRIS VAL_LAUNCHER_HEROIC VAL_LAUNCHER_FAUGUS VAL_DECKY_ENABLE VAL_GEFORCE_NOW _ <<< "$OUTPUT"
       STEP=5
       ;;
 
@@ -254,30 +279,28 @@ while true; do
     # ÉTAPE 5 : SERVICES, VIRTUALISATION & CRÉATION
     # -------------------------------------------------------------------------
     5)
+      RET=0
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 5/6" \
         --window-icon="$LOGO_ICON" \
-        --width=780 --height=610 \
+        --width=760 --height=560 \
         --center \
         --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>🛠️ Virtualisation &amp; Applications</span> <span size='large' foreground='#a6adc8'>— Étape 5/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Activez les outils professionnels, la virtualisation Windows et les logiciels de création.</span>\n" \
         --separator="|" \
-        --field="🪟 Machines Virtuelles Windows (Virt-Manager &amp; KVM) :CHK" "$VAL_VIRT_ENABLE" \
-        --field="<i>Permet d'exécuter Windows 10, 11 ou Windows 7 avec accélération matérielle et pilotes VirtIO pré-installés.</i>:LBL" "" \
-        --field="📁 Partage de fichiers sur le réseau local (Samba &amp; WSDD) :CHK" "$VAL_SAMBA_ENABLE" \
-        --field="<i>Permet d'accéder facilement à vos dossiers depuis un autre PC Windows ou un Mac sur votre réseau.</i>:LBL" "" \
-        --field="🎨 Logiciel de modélisation 3D Blender :CHK" "$VAL_BLENDER_ENABLE" \
-        --field="🎮 Moteur de création de jeux vidéo Godot Engine 4 :CHK" "$VAL_GODOT_ENABLE" \
-        --field="🎬 Montage Vidéo Professionnel DaVinci Resolve :CB" "$VAL_DAVINCI" \
-        --field="🤖 Intelligence Artificielle Locale Privée (Ollama &amp; WebUI) :CHK" "$VAL_AI_SUITE" \
-        --field="<i>Permet d'exécuter des modèles IA directement sur votre carte graphique en toute confidentialité.</i>:LBL" "" \
+        --field="🪟 Virtualisation Windows (Virt-Manager, KVM &amp; pilotes VirtIO) :CHK" "$VAL_VIRT_ENABLE" \
+        --field="📁 Partage de fichiers réseau local (Samba &amp; WSDD pour Windows/Mac) :CHK" "$VAL_SAMBA_ENABLE" \
+        --field="🎨 Logiciel de modélisation &amp; rendu 3D (Blender) :CHK" "$VAL_BLENDER_ENABLE" \
+        --field="🎮 Moteur de création de jeux vidéo (Godot Engine 4) :CHK" "$VAL_GODOT_ENABLE" \
+        --field="🎬 Montage Vidéo Professionnel (DaVinci Resolve) :CB" "$VAL_DAVINCI" \
+        --field="🤖 Suite IA Locale Privée (Ollama &amp; WebUI) :CHK" "$VAL_AI_SUITE" \
         --button="⬅ Précédent:2" \
-        --button="Suivant ➔:0")
+        --button="Suivant ➔:0") || RET=$?
 
-      RET=$?
       if [ $RET -eq 2 ]; then STEP=4; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-      IFS="|" read -r VAL_VIRT_ENABLE _ VAL_SAMBA_ENABLE _ VAL_BLENDER_ENABLE VAL_GODOT_ENABLE VAL_DAVINCI VAL_AI_SUITE _ <<< "$OUTPUT"
+      IFS="|" read -r VAL_VIRT_ENABLE VAL_SAMBA_ENABLE VAL_BLENDER_ENABLE VAL_GODOT_ENABLE RAW_DAVINCI VAL_AI_SUITE _ <<< "$OUTPUT"
+      VAL_DAVINCI=$(mark_selected "$DAVINCI_CHOICES" "$RAW_DAVINCI")
       STEP=6
       ;;
 
@@ -286,15 +309,18 @@ while true; do
     # -------------------------------------------------------------------------
     6)
       RAW_GPU=$(echo "$VAL_GPU" | awk '{print $1}')
+      RAW_GPU="${RAW_GPU#\^}"
       RAW_DESKTOP=$(echo "$VAL_DESKTOP" | awk '{print $1}')
+      RAW_DESKTOP="${RAW_DESKTOP#\^}"
       RAW_BROWSER=$(echo "$VAL_BROWSER" | awk '{print $1}')
+      RAW_BROWSER="${RAW_BROWSER#\^}"
       RAW_DAVINCI=$(echo "$VAL_DAVINCI" | awk '{print $1}')
-      RAW_FS=$(echo "$VAL_FS" | awk '{print $1}')
+      RAW_DAVINCI="${RAW_DAVINCI#\^}"
 
       case "$RAW_DESKTOP" in
-        Gnome*|gnome*) CHOSEN_DESKTOP="gnome" ;;
-        Cosmic*|cosmic*) CHOSEN_DESKTOP="cosmic" ;;
-        *) CHOSEN_DESKTOP="both" ;;
+        Gnome*|gnome*) CHOSEN_DESKTOP="GNOME" ;;
+        Cosmic*|cosmic*) CHOSEN_DESKTOP="COSMIC" ;;
+        *) CHOSEN_DESKTOP="GNOME + COSMIC" ;;
       esac
 
       LAUNCHERS_LIST=""
@@ -304,32 +330,32 @@ while true; do
       [ "$VAL_LAUNCHER_FAUGUS" = "TRUE" ] && LAUNCHERS_LIST+="Faugus "
       [ -z "$LAUNCHERS_LIST" ] && LAUNCHERS_LIST="Aucun"
 
-      RECAP_TEXT="<span size='large' weight='bold' foreground='#cba6f7'>📋 RÉCAPITULATIF DE VOS SÉLECTIONS :</span>\n\n"
+      RECAP_TEXT="<span size='large' weight='bold' foreground='#cba6f7'>📋 RÉCAPITULATIF DE VOS SÉLECTIONS :</span>\n"
       RECAP_TEXT+="• <b>Compte :</b> <span foreground='#a6e3a1'>$VAL_USERNAME</span> ($VAL_FULLNAME) | Hôte : $VAL_HOSTNAME\n"
       RECAP_TEXT+="• <b>Carte Graphique :</b> <span foreground='#89b4fa'>$RAW_GPU</span> (Pilotes &amp; Noyau optimisés)\n"
       RECAP_TEXT+="• <b>Bureau :</b> <span foreground='#f5c2e7'>$CHOSEN_DESKTOP</span> | Navigateur : $RAW_BROWSER\n"
       RECAP_TEXT+="• <b>Jeux Vidéo :</b> Optimisations ($VAL_GAMING_ENABLE), Launchers: <span foreground='#a6e3a1'>$LAUNCHERS_LIST</span>\n"
       RECAP_TEXT+="• <b>Services :</b> Virt-Manager ($VAL_VIRT_ENABLE), Samba ($VAL_SAMBA_ENABLE)\n"
-      RECAP_TEXT+="• <b>Création :</b> Blender ($VAL_BLENDER_ENABLE), Godot ($VAL_GODOT_ENABLE), DaVinci ($RAW_DAVINCI)\n"
+      RECAP_TEXT+="• <b>Création &amp; IA :</b> Blender ($VAL_BLENDER_ENABLE), Godot ($VAL_GODOT_ENABLE), DaVinci ($RAW_DAVINCI), IA ($VAL_AI_SUITE)\n"
 
+      RET=0
       OUTPUT=$(yad --css="$CSS_FILE" --form \
         --title="ChomiamOS Installer — Étape 6/6" \
         --window-icon="$LOGO_ICON" \
-        --width=780 --height=620 \
+        --width=760 --height=580 \
         --center \
-        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Disque &amp; Confirmation Finale</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n<span foreground='#b4befe'>Sélectionnez le disque de destination pour l'installation de ChomiamOS (Ext4).</span>\n" \
+        --text="<span size='xx-large' weight='bold' foreground='#cba6f7'>💾 Récapitulatif &amp; Disque Cible</span> <span size='large' foreground='#a6adc8'>— Étape 6/$TOTAL_STEPS</span>\n\n$RECAP_TEXT\n<span foreground='#b4befe'>Sélectionnez le disque de destination pour l'installation de ChomiamOS (Ext4).</span>\n" \
         --separator="|" \
-        --field="$RECAP_TEXT:LBL" "" \
         --field="<span foreground='#f38ba8' weight='bold'>💾 Disque d'installation de destination :</span>:CB" "$VAL_TARGET_DISK" \
-        --field="<span foreground='#f38ba8'><i>⚠️ ATTENTION : Le disque choisi sera entièrement effacé (Partition ESP 1 Go + partition racine).</i></span>:LBL" "" \
+        --field="<span foreground='#f38ba8'><i>⚠️ ATTENTION : Le disque choisi sera entièrement formaté (ESP 1 Go + racine Ext4).</i></span>:LBL" "" \
         --button="⬅ Précédent:2" \
-        --button="🚀 Lancer l'installation !:0")
+        --button="🚀 Lancer l'installation !:0") || RET=$?
 
-      RET=$?
       if [ $RET -eq 2 ]; then STEP=5; continue; fi
       if [ $RET -ne 0 ]; then exit 0; fi
 
-IFS="|" read -r _ RAW_TARGET_DISK _ <<< "$OUTPUT"
+      IFS="|" read -r RAW_TARGET_DISK _ <<< "$OUTPUT"
+      VAL_TARGET_DISK=$(mark_selected "$DISKS_CHOICES" "$RAW_TARGET_DISK")
       TARGET_DISK=$(echo "$RAW_TARGET_DISK" | awk '{print $1}')
       # Nettoyage de tout éventuel double préfixe /dev//dev/
       TARGET_DISK="${TARGET_DISK/#\/dev\/\/dev\//\/dev\/}"
@@ -339,7 +365,6 @@ IFS="|" read -r _ RAW_TARGET_DISK _ <<< "$OUTPUT"
         yad --css="$CSS_FILE" --error --center --text="❌ Aucun disque cible sélectionné. Veuillez choisir un disque valide."
         continue
       fi
-
 
       break
       ;;
@@ -377,6 +402,23 @@ fi
 # =============================================================================
 
 CLEAN_SHELL=$(echo "$VAL_SHELL" | awk '{print $1}')
+CLEAN_SHELL="${CLEAN_SHELL#\^}"
+
+case "$RAW_DESKTOP" in
+  Gnome*|gnome*|GNOME*) VAR_DESKTOP="gnome" ;;
+  Cosmic*|cosmic*|COSMIC*) VAR_DESKTOP="cosmic" ;;
+  *) VAR_DESKTOP="both" ;;
+esac
+
+HASHED_PW=""
+if [ -n "$VAL_PASSWORD" ]; then
+  HASHED_PW=$(mkpasswd -m sha-512 "$VAL_PASSWORD" 2>/dev/null || openssl passwd -6 "$VAL_PASSWORD" 2>/dev/null || true)
+fi
+
+HASHED_PW_LINE=""
+if [ -n "$HASHED_PW" ]; then
+  HASHED_PW_LINE="    initialHashedPassword = \"$HASHED_PW\";"
+fi
 
 GENERATED_VARS=$(cat << EOC
 {
@@ -395,6 +437,7 @@ GENERATED_VARS=$(cat << EOC
     fullName = "$VAL_FULLNAME";
     homeDirectory = "/home/$VAL_USERNAME";
     shell = "$CLEAN_SHELL";
+$HASHED_PW_LINE
     extraGroups = [
       "networkmanager"
       "wheel"
@@ -413,7 +456,7 @@ GENERATED_VARS=$(cat << EOC
   firewall = false;
 
   # Environnement graphique & Pilote GPU
-  desktopEnv = "$CHOSEN_DESKTOP";
+  desktopEnv = "$VAR_DESKTOP";
   gpuDriver = "$RAW_GPU";
 
   # Suite Gaming & Divertissement
@@ -653,8 +696,12 @@ EOC
     exit $INSTALL_STATUS
   fi
 
-  echo "95"; echo "# Configuration du mot de passe utilisateur..."
-  echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt chpasswd
+  echo "95"; echo "# Configuration et vérification du compte utilisateur..."
+  if [ -n "$VAL_PASSWORD" ]; then
+    echo "$VAL_USERNAME:$VAL_PASSWORD" | nixos-enter --root /mnt -c "chpasswd" 2>/dev/null || \
+    echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt /nix/var/nix/profiles/system/sw/bin/chpasswd 2>/dev/null || \
+    echo "$VAL_USERNAME:$VAL_PASSWORD" | chroot /mnt /run/current-system/sw/bin/chpasswd 2>/dev/null || true
+  fi
 
   echo "100"; echo "# Installation terminée avec succès !"
 ) 2>&1 | tee -a "$LOG_FILE" | yad --css="$CSS_FILE" --progress \

@@ -95,6 +95,7 @@ in
     git
     curl
     wget
+    mkpasswd
 
     # Extensions GNOME (Dash to Dock, Vitals) & Thème Catppuccin
     gnomeExtensions.dash-to-dock
