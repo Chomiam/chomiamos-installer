@@ -494,22 +494,112 @@ class NixosJob(BaseJob):
             return
         username = str(context.selections.get("username") or "chomiam")
         etc_nixos = Path(target_root) / "etc" / "nixos"
-        if etc_nixos.is_dir():
+        if not etc_nixos.is_dir():
+            return
+
+        # Résolution de l'UID et GID de l'utilisateur depuis /etc/passwd de la cible
+        target_passwd = Path(target_root) / "etc" / "passwd"
+        uid = 1000
+        gid = 100
+        if target_passwd.is_file():
             try:
-                # 1. Chown récursif pour l'utilisateur
-                self._run_command(
-                    ["chown", "-R", f"{username}:users", str(etc_nixos)],
-                    description=f"Attribution de {etc_nixos} à {username}:users",
-                    dry_run=False,
-                )
-                # 2. Permissions complètes lecture/écriture
-                self._run_command(
-                    ["chmod", "-R", "u+rwX,g+rwX", str(etc_nixos)],
-                    description=f"Permissions lecture/écriture sur {etc_nixos}",
-                    dry_run=False,
+                for line in target_passwd.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    parts = line.strip().split(":")
+                    if len(parts) >= 4 and parts[0] == username:
+                        uid = int(parts[2])
+                        gid = int(parts[3])
+                        logger.info("UID/GID trouvés pour %s: %d:%d", username, uid, gid)
+                        break
+            except Exception as e:
+                logger.warning("Impossible de lire %s: %s", target_passwd, e)
+
+        try:
+            # 1. Chown et chmod récursifs en Python natif
+            for root, dirs, files in os.walk(etc_nixos):
+                for d in dirs:
+                    p = os.path.join(root, d)
+                    try:
+                        os.chown(p, uid, gid, follow_symlinks=False)
+                        os.chmod(p, 0o775)
+                    except OSError:
+                        pass
+                for f in files:
+                    p = os.path.join(root, f)
+                    try:
+                        os.chown(p, uid, gid, follow_symlinks=False)
+                        st = os.stat(p, follow_symlinks=False)
+                        mode = 0o775 if (st.st_mode & 0o111) else 0o664
+                        os.chmod(p, mode)
+                    except OSError:
+                        pass
+            try:
+                os.chown(etc_nixos, uid, gid, follow_symlinks=False)
+                os.chmod(etc_nixos, 0o775)
+            except OSError:
+                pass
+
+            # 2. Commandes système de renfort (chown/chmod avec UID:GID numérique)
+            self._run_command(
+                ["chown", "-R", f"{uid}:{gid}", str(etc_nixos)],
+                description=f"Attribution de {etc_nixos} à {username} ({uid}:{gid})",
+                dry_run=False,
+            )
+            self._run_command(
+                ["chmod", "-R", "u+rwX,g+rwX", str(etc_nixos)],
+                description=f"Permissions complètes lecture/écriture sur {etc_nixos}",
+                dry_run=False,
+            )
+
+            # 3. Exécution dans le chroot avec nixos-enter si disponible
+            try:
+                subprocess.run(
+                    ["nixos-enter", "--root", target_root, "-c", f"chown -R {username}:users /etc/nixos && chmod -R u+rwX,g+rwX /etc/nixos"],
+                    check=False,
+                    capture_output=True,
                 )
             except Exception as exc:
-                logger.warning("Impossible d'ajuster les permissions sur %s: %s", etc_nixos, exc)
+                logger.debug("nixos-enter permissions check: %s", exc)
+
+            # 4. Configuration Git pour nh et commit initial propre
+            subprocess.run(
+                ["git", "-C", str(etc_nixos), "config", "core.fileMode", "false"],
+                check=False,
+            )
+            subprocess.run(
+                ["git", "-C", str(etc_nixos), "config", "user.name", username],
+                check=False,
+            )
+            subprocess.run(
+                ["git", "-C", str(etc_nixos), "config", "user.email", f"{username}@chomiamos.local"],
+                check=False,
+            )
+            subprocess.run(["git", "-C", str(etc_nixos), "add", "-A"], check=False)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(etc_nixos),
+                    "-c",
+                    f"user.name={username}",
+                    "-c",
+                    f"user.email={username}@chomiamos.local",
+                    "commit",
+                    "-m",
+                    "chore: configuration initiale ChomiamOS",
+                    "--allow-empty",
+                ],
+                check=False,
+            )
+
+            # 5. Re-chown pour s'assurer que les fichiers .git créés par git commit appartiennent à l'utilisateur
+            self._run_command(
+                ["chown", "-R", f"{uid}:{gid}", str(etc_nixos)],
+                description=f"Attribution finale de {etc_nixos} à {username} ({uid}:{gid})",
+                dry_run=False,
+            )
+            logger.info("Droits d'accès et permissions /etc/nixos configurés avec succès pour %s (%d:%d)", username, uid, gid)
+        except Exception as exc:
+            logger.warning("Impossible d'ajuster les permissions sur %s: %s", etc_nixos, exc)
 
     def _generate_config(self, target_root: str, dry_run: bool) -> JobResult:
         if dry_run:
