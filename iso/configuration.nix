@@ -14,6 +14,51 @@ let
     __toString = self: str;
   };
   blurPipelines = mkRawGVariant "{'pipeline_default': {'name': <'Default'>, 'effects': <[{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000000'>, 'params': <{'radius': <30>, 'brightness': <0.6>}>}]>}, 'pipeline_default_rounded': {'name': <'Default rounded'>, 'effects': <[{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000001'>, 'params': <{'radius': <30>, 'brightness': <0.6>}>}]>}}";
+
+  # Script de lancement robuste d'Omnis gérant l'attente du compositeur graphique et la détection d'instance
+  omnis-launcher = pkgs.writeShellScriptBin "omnis-launcher" ''
+    set -euo pipefail
+
+    # Éviter les lancements concurrents
+    if ${pkgs.procps}/bin/pgrep -x omnis >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -f "python.*omnis" >/dev/null 2>&1; then
+      exit 0
+    fi
+
+    # Attendre que la session graphique (Wayland ou X11) soit opérationnelle
+    for i in $(seq 1 30); do
+      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -e "''${XDG_RUNTIME_DIR:-}/$WAYLAND_DISPLAY" ]; then
+        break
+      fi
+      if [ -n "''${DISPLAY:-}" ]; then
+        break
+      fi
+      sleep 0.5
+    done
+
+    # Laisser GNOME Shell stabiliser le bureau et les extensions
+    sleep 1
+
+    # Permettre à root de communiquer avec XWayland si DISPLAY est défini
+    if [ -n "''${DISPLAY:-}" ] && command -v ${pkgs.xhost}/bin/xhost >/dev/null 2>&1; then
+      ${pkgs.xhost}/bin/xhost +si:localuser:root >/dev/null 2>&1 || true
+    fi
+
+    # Lancement d'Omnis avec élévation des privilèges et préservation de l'environnement graphique
+    exec sudo -E ${omnis}/bin/omnis "$@"
+  '';
+
+  # Fichier Desktop officiel pointant vers le lanceur Omnis
+  omnisDesktop = pkgs.makeDesktopItem {
+    name = "omnis";
+    desktopName = "Installer ChomiamOS";
+    genericName = "System Installer";
+    comment = "Assistant d'installation graphique de ChomiamOS Gaming Edition";
+    icon = "chomiamos";
+    exec = "${omnis-launcher}/bin/omnis-launcher";
+    startupWMClass = "omnis";
+    terminal = false;
+    categories = [ "Qt" "System" "Settings" ];
+  };
 in
 {
   # =========================================================================
@@ -66,8 +111,11 @@ in
 
   # Paquets d'outils requis pour le partitionnement et l'installation
   environment.systemPackages = with pkgs; [
-    # Installateur moderne Omnis (Qt6/QML/Python 3)
+    # Installateur moderne Omnis (Qt6/QML/Python 3) & Lanceur sécurisé Live
     omnis
+    omnis-launcher
+    omnisDesktop
+    xhost
 
     # Outils de disque & partitionnement
     parted
@@ -110,8 +158,14 @@ in
   systemd.tmpfiles.rules = [
     "d /run/omnis 0755 root root -"
     "d /home/nixos/Desktop 0755 nixos users -"
-    "L+ /home/nixos/Desktop/omnis.desktop - - - - ${omnis}/share/applications/omnis.desktop"
+    "L+ /home/nixos/Desktop/omnis.desktop - - - - ${omnisDesktop}/share/applications/omnis.desktop"
     "z /home/nixos/Desktop/omnis.desktop 0755 nixos users -"
+
+    # Raccourci autostart dans le profil utilisateur en complément du service systemd
+    "d /home/nixos/.config 0755 nixos users -"
+    "d /home/nixos/.config/autostart 0755 nixos users -"
+    "L+ /home/nixos/.config/autostart/omnis.desktop - - - - ${omnisDesktop}/share/applications/omnis.desktop"
+    "z /home/nixos/.config/autostart/omnis.desktop 0755 nixos users -"
 
     # Déploiement du thème Catppuccin Mocha pour GTK4 / Libadwaita et GTK3
     "d /home/nixos/.config 0755 nixos users -"
@@ -139,7 +193,20 @@ in
 
   # Lancement automatique d'Omnis à l'ouverture de la session Live
   environment.etc."xdg/autostart/omnis.desktop".source =
-    "${omnis}/share/applications/omnis.desktop";
+    "${omnisDesktop}/share/applications/omnis.desktop";
+
+  # Service de démarrage automatique d'Omnis à l'ouverture de la session graphique GNOME
+  systemd.user.services.omnis-autostart = {
+    description = "Assistant d'installation graphique ChomiamOS (Omnis)";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${omnis-launcher}/bin/omnis-launcher";
+      Restart = "no";
+    };
+  };
 
   # Configuration GNOME pour le Live-CD (Thème Catppuccin & Dash to Dock)
   programs.dconf.profiles.user.databases = [
@@ -259,6 +326,12 @@ in
     }
   ];
 
-  # Droits sudo sans mot de passe pour l'utilisateur Live
-  security.sudo.wheelNeedsPassword = false;
+  # Droits sudo sans mot de passe pour l'utilisateur Live et préservation de l'environnement d'affichage
+  security.sudo = {
+    enable = true;
+    wheelNeedsPassword = false;
+    extraConfig = ''
+      Defaults env_keep += "WAYLAND_DISPLAY XDG_RUNTIME_DIR DISPLAY XAUTHORITY QT_QPA_PLATFORM"
+    '';
+  };
 }

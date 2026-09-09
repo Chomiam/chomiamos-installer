@@ -143,7 +143,9 @@ class EngineProcess:
             cmd_args.append("--dry-run")
 
         # Choose privilege escalation method
-        if use_pkexec and shutil.which(PKEXEC_CMD):
+        if os.geteuid() == 0:
+            full_cmd = cmd_args
+        elif use_pkexec and shutil.which(PKEXEC_CMD):
             full_cmd = [PKEXEC_CMD, *cmd_args]
         elif shutil.which(SUDO_CMD):
             full_cmd = [SUDO_CMD, *cmd_args]
