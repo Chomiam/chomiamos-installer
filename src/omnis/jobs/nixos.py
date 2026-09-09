@@ -470,6 +470,9 @@ class NixosJob(BaseJob):
             if not result.success:
                 return result
 
+            context.report_progress(95, "Attribution des droits d'accès sur /etc/nixos à l'utilisateur pour nh...")
+            self._fix_permissions(target_root, context, dry_run)
+
             self._succeeded = True
             context.report_progress(100, "Installation de ChomiamOS terminée avec succès !")
             return JobResult.ok(
@@ -483,6 +486,30 @@ class NixosJob(BaseJob):
         finally:
             hashes = PasswordHashes()
             del hashes
+
+    def _fix_permissions(self, target_root: str, context: JobContext, dry_run: bool) -> None:
+        """Donne à l'utilisateur les droits d'accès et de modification sur /etc/nixos pour nh et git."""
+        if dry_run:
+            logger.info("[DRY-RUN] Attribution des permissions sur /etc/nixos")
+            return
+        username = str(context.selections.get("username") or "chomiam")
+        etc_nixos = Path(target_root) / "etc" / "nixos"
+        if etc_nixos.is_dir():
+            try:
+                # 1. Chown récursif pour l'utilisateur
+                self._run_command(
+                    ["chown", "-R", f"{username}:users", str(etc_nixos)],
+                    description=f"Attribution de {etc_nixos} à {username}:users",
+                    dry_run=False,
+                )
+                # 2. Permissions complètes lecture/écriture
+                self._run_command(
+                    ["chmod", "-R", "u+rwX,g+rwX", str(etc_nixos)],
+                    description=f"Permissions lecture/écriture sur {etc_nixos}",
+                    dry_run=False,
+                )
+            except Exception as exc:
+                logger.warning("Impossible d'ajuster les permissions sur %s: %s", etc_nixos, exc)
 
     def _generate_config(self, target_root: str, dry_run: bool) -> JobResult:
         if dry_run:
