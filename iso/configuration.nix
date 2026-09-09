@@ -75,6 +75,7 @@
     # Extensions GNOME (Dash to Dock, Vitals) & Thème Catppuccin
     gnomeExtensions.dash-to-dock
     gnomeExtensions.vitals
+    gnomeExtensions.blur-my-shell
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
     catppuccin-cursors.mochaLavender
   ];
@@ -116,6 +117,7 @@
           enabled-extensions = [
             "dash-to-dock@micxgx.gmail.com"
             "Vitals@CoreCoding.com"
+            "blur-my-shell@aunetx"
           ];
           favorite-apps = [
             "omnis.desktop"
@@ -127,6 +129,55 @@
         "org/gnome/desktop/wm/preferences" = {
           button-layout = "icon:minimize,maximize,close";
         };
+
+        "org/gnome/shell/extensions/blur-my-shell" = {
+          settings-version = lib.gvariant.mkInt32 2;
+        };
+        "org/gnome/shell/extensions/blur-my-shell/appfolder" = {
+          brightness = lib.gvariant.mkDouble 0.6;
+          sigma = lib.gvariant.mkInt32 30;
+        };
+        "org/gnome/shell/extensions/blur-my-shell/applications" = {
+          blur = true;
+          blur-on-overview = true;
+          dynamic-opacity = false;
+          enable-all = false;
+          pipeline = "pipeline_default";
+          sigma = lib.gvariant.mkInt32 30;
+          static-blur = false;
+          whitelist = [ "org.gnome.Nautilus" ];
+        };
+        "org/gnome/shell/extensions/blur-my-shell/coverflow-alt-tab" = {
+          pipeline = "pipeline_default";
+        };
+        "org/gnome/shell/extensions/blur-my-shell/dash-to-dock" = {
+          blur = true;
+          brightness = lib.gvariant.mkDouble 0.6;
+          pipeline = "pipeline_default_rounded";
+          sigma = lib.gvariant.mkInt32 30;
+          static-blur = true;
+          style-dash-to-dock = lib.gvariant.mkInt32 0;
+        };
+        "org/gnome/shell/extensions/blur-my-shell/lockscreen" = {
+          pipeline = "pipeline_default";
+        };
+        "org/gnome/shell/extensions/blur-my-shell/overview" = {
+          pipeline = "pipeline_default";
+        };
+        "org/gnome/shell/extensions/blur-my-shell/panel" = {
+          brightness = lib.gvariant.mkDouble 0.6;
+          corner-radius = lib.gvariant.mkInt32 0;
+          pipeline = "pipeline_default";
+          sigma = lib.gvariant.mkInt32 30;
+        };
+        "org/gnome/shell/extensions/blur-my-shell/screenshot" = {
+          pipeline = "pipeline_default";
+        };
+        "org/gnome/shell/extensions/blur-my-shell/window-list" = {
+          brightness = lib.gvariant.mkDouble 0.6;
+          sigma = lib.gvariant.mkInt32 30;
+        };
+
         "org/gnome/shell/extensions/dash-to-dock" = {
           dock-position = "LEFT";
           dock-fixed = true;

@@ -68,8 +68,8 @@ ApplicationWindow {
 
     // Wizard state
     property int currentStep: 0
-    readonly property int totalSteps: 8  // 0-7
-    readonly property var stepNames: ["Welcome", "Locale", "Users", "Desktop", "Partition", "Summary", "Installing", "Finished"]
+    readonly property int totalSteps: 11  // 0-10
+    readonly property var stepNames: ["Welcome", "Locale", "Users", "Desktop & Web", "Communication", "Gaming", "Creation", "Partition", "Summary", "Installing", "Finished"]
 
     // Installation state
     property bool isInstalling: false
@@ -113,7 +113,7 @@ ApplicationWindow {
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
-            visible: currentStep > 0 && currentStep < 6  // hidden on Welcome, Progress(6), Finished(7)
+            visible: currentStep > 0 && currentStep < 9  // hidden on Welcome(0), Progress(9), Finished(10)
 
             // Logo
             Item {
@@ -163,13 +163,13 @@ ApplicationWindow {
                 }
             }
 
-            // Step indicator (steps 1-5 only)
+            // Step indicator (steps 1-8)
             Row {
                 spacing: 8
-                visible: currentStep >= 1 && currentStep <= 5
+                visible: currentStep >= 1 && currentStep <= 8
 
                 Repeater {
-                    model: 5  // Steps 1-5
+                    model: 8  // Steps 1-8
 
                     Rectangle {
                         width: 40
@@ -339,17 +339,12 @@ ApplicationWindow {
                 }
             }
 
-            // Step 3: Environment (desktop environment + edition/flavor)
-            EnvironmentView {
-                id: environmentView
+            // Step 3: Desktop & Browser
+            DesktopBrowserView {
+                id: desktopBrowserView
                 anchors.fill: parent
                 visible: currentStep === 3
                 opacity: visible ? 1 : 0
-
-                desktopEnvironmentsModel: engine.desktopEnvironmentsModel
-                editionsModel: engine.editionsModel
-                // selectedDesktopEnvironment / selectedEdition are read directly
-                // from engine by the view (readonly mirrors).
 
                 primaryColor: root.primaryColor
                 backgroundColor: root.backgroundColor
@@ -358,29 +353,79 @@ ApplicationWindow {
                 textMutedColor: root.textMutedColor
                 accentColor: root.accentColor
 
-                onDesktopEnvironmentSelected: function(environmentId) {
-                    engine.setDesktopEnvironment(environmentId)
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
                 }
-                onEditionSelected: function(editionId) {
-                    engine.setEdition(editionId)
-                }
+            }
+
+            // Step 4: Communication
+            CommunicationView {
+                id: communicationView
+                anchors.fill: parent
+                visible: currentStep === 4
+                opacity: visible ? 1 : 0
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                successColor: root.successColor
 
                 Behavior on opacity {
                     NumberAnimation { duration: 300 }
                 }
             }
 
-            // Step 4: Partition
+            // Step 5: Gaming
+            GamingView {
+                id: gamingView
+                anchors.fill: parent
+                visible: currentStep === 5
+                opacity: visible ? 1 : 0
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                successColor: root.successColor
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 6: Creation & Tools
+            CreationToolsView {
+                id: creationToolsView
+                anchors.fill: parent
+                visible: currentStep === 6
+                opacity: visible ? 1 : 0
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                successColor: root.successColor
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 7: Partition
             PartitionView {
                 id: partitionView
                 anchors.fill: parent
-                visible: currentStep === 4
+                visible: currentStep === 7
                 opacity: visible ? 1 : 0
 
                 disksModel: engine.disksModel
-                // selectedDisk / partitionMode / filesystem / swapStrategy /
-                // encryption sont lus directement depuis engine par la vue
-                // (miroirs readonly), plus besoin de les passer ici.
 
                 primaryColor: root.primaryColor
                 backgroundColor: root.backgroundColor
@@ -418,17 +463,13 @@ ApplicationWindow {
                 }
             }
 
-            // Step 5: Summary
+            // Step 8: Summary
             SummaryView {
                 id: summaryView
                 anchors.fill: parent
-                visible: currentStep === 5
+                visible: currentStep === 8
                 opacity: visible ? 1 : 0
 
-                // Bind chaque champ du résumé aux getters SCALAIRES notifiés du
-                // bridge (propagation fiable sur selectionsChanged) plutôt qu'au
-                // dict engine.selections dont les sous-propriétés ne se
-                // ré-évaluaient pas dans QML (fix persistance du résumé).
                 localeValue: engine.selectedLocale
                 timezoneValue: engine.selectedTimezone
                 keymapValue: engine.selectedKeymap
@@ -437,13 +478,30 @@ ApplicationWindow {
                 hostnameValue: engine.hostname
                 autoLoginValue: engine.autoLogin
                 isAdminValue: engine.isAdmin
+
                 desktopEnvironmentValue: engine.desktopEnvironment
-                editionValue: engine.edition
+                browserValue: engine.browser
+                discordClientValue: engine.discordClient
+
+                gamingEnableValue: engine.gamingEnable
+                steamValue: engine.steam
+                lutrisValue: engine.lutris
+                heroicValue: engine.heroic
+                faugusValue: engine.faugus
+                deckyLoaderValue: engine.deckyLoader
+                geforceNowValue: engine.geforceNow
+                steeringWheelsValue: engine.steeringWheels
+
+                davinciResolveValue: engine.davinciResolve
+                blenderValue: engine.blender
+                godotValue: engine.godot
+                virtualisationValue: engine.virtualisation
+                aiSuiteValue: engine.aiSuite
+
                 diskValue: engine.selectedDisk
                 diskSizeValue: engine.selectedDiskSize
                 partitionModeValue: engine.partitionMode
 
-                // ITEM 2: reflète et arme la confirmation finale.
                 confirmed: engine.confirmed
                 onConfirmedToggled: function(value) { engine.setConfirmed(value) }
 
@@ -461,19 +519,22 @@ ApplicationWindow {
 
                 onEditLocale: currentStep = 1
                 onEditUsers: currentStep = 2
-                onEditEnvironment: currentStep = 3
-                onEditPartition: currentStep = 4
+                onEditDesktop: currentStep = 3
+                onEditCommunication: currentStep = 4
+                onEditGaming: currentStep = 5
+                onEditCreation: currentStep = 6
+                onEditPartition: currentStep = 7
 
                 Behavior on opacity {
                     NumberAnimation { duration: 300 }
                 }
             }
 
-            // Step 6: Progress
+            // Step 9: Progress
             ProgressView {
                 id: progressView
                 anchors.fill: parent
-                visible: currentStep === 6
+                visible: currentStep === 9
                 opacity: visible ? 1 : 0
 
                 overallProgress: engine.overallProgress
@@ -503,11 +564,11 @@ ApplicationWindow {
                 }
             }
 
-            // Step 7: Finished
+            // Step 10: Finished
             FinishedView {
                 id: finishedView
                 anchors.fill: parent
-                visible: currentStep === 7
+                visible: currentStep === 10
                 opacity: visible ? 1 : 0
 
                 success: installationSuccess
@@ -555,7 +616,7 @@ ApplicationWindow {
         RowLayout {
             Layout.fillWidth: true
             spacing: 16
-            visible: currentStep >= 1 && currentStep <= 5
+            visible: currentStep >= 1 && currentStep <= 8
 
             Text {
                 text: qsTr("Powered by Omnis Installer")
@@ -592,7 +653,7 @@ ApplicationWindow {
             // Next/Install button
             Button {
                 objectName: "nextInstallButton"
-                text: currentStep === 5 ? qsTr("Install") : qsTr("Next")
+                text: currentStep === 8 ? qsTr("Install") : qsTr("Next")
                 enabled: canProceedToNext()
 
                 background: Rectangle {
@@ -653,7 +714,7 @@ ApplicationWindow {
 
     // Navigation functions
     function navigateBack() {
-        if (currentStep > 0 && currentStep <= 5) {
+        if (currentStep > 0 && currentStep <= 8) {
             if (currentStep === 1) {
                 currentStep = 0  // Back to Welcome
             } else {
@@ -663,13 +724,13 @@ ApplicationWindow {
     }
 
     function navigateNext() {
-        if (currentStep === 5) {
+        if (currentStep === 8) {
             // Start installation
             startInstallation()
-        } else if (currentStep < 5) {
-            // Load data for next step if needed
-            if (currentStep === 3) {
-                engine.refreshDisks()  // Load disks before partition step (step 4)
+        } else if (currentStep < 8) {
+            // Load data for partition step (step 7) if needed
+            if (currentStep === 6) {
+                engine.refreshDisks()
             }
             currentStep++
         }
@@ -685,24 +746,23 @@ ApplicationWindow {
                        engine.selectedKeymap !== ""
             case 2:  // Users
                 return usersView.isValid
-            case 3:  // Environment (DE + edition) — defaults always set
-                return engine.desktopEnvironment !== "" &&
-                       engine.edition !== ""
-            case 4:  // Partition
+            case 3:  // Desktop & Browser
+                return engine.desktopEnvironment !== "" && engine.browser !== ""
+            case 4:  // Communication
+                return engine.discordClient !== ""
+            case 5:  // Gaming
+                return true
+            case 6:  // Creation & Tools
+                return true
+            case 7:  // Partition
                 return engine.selectedDisk !== ""
-            case 5:  // Summary
-                // ITEM 2: n'arme l'installation que si l'utilisateur a coché la
-                // case de confirmation (garde-fou destructif côté backend aussi).
+            case 8:  // Summary
                 return engine.confirmed
             default:
                 return true
         }
     }
 
-    // La vue ne bascule plus ici : c'est onInstallationStarted qui la commande.
-    // Basculer en amont laissait l'utilisateur sur l'écran Installing alors que
-    // le moteur avait refusé de démarrer, et un Retry rejouait alors toute la
-    // liste de jobs — partitionnement destructif compris.
     function startInstallation() {
         engine.applySelectionsToContext()
         engine.startInstallation()
@@ -719,13 +779,13 @@ ApplicationWindow {
 
         function onInstallationStarted() {
             isInstalling = true
-            currentStep = 6  // Progress view
+            currentStep = 9  // Progress view
         }
 
         function onInstallationFinished(success) {
             isInstalling = false
             installationSuccess = success
-            currentStep = 7  // Go to Finished view
+            currentStep = 10  // Go to Finished view
         }
 
         // recheckInternetStatus() relance déjà la vérification des prérequis :
@@ -771,13 +831,13 @@ ApplicationWindow {
     // Keyboard shortcuts
     Shortcut {
         sequence: "Escape"
-        enabled: currentStep > 0 && currentStep <= 5
+        enabled: currentStep > 0 && currentStep <= 8
         onActivated: navigateBack()
     }
 
     Shortcut {
         sequence: "Return"
-        enabled: currentStep >= 1 && currentStep <= 5 && canProceedToNext()
+        enabled: currentStep >= 1 && currentStep <= 8 && canProceedToNext()
         onActivated: navigateNext()
     }
 

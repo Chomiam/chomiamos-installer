@@ -208,23 +208,25 @@ class NixosJob(BaseJob):
         desktop_env = "cosmic" if de == "cosmic" else "gnome"
         gpu = self._detect_gpu()
         state_ver = self._detect_state_version()
+        browser = str(s.get("browser") or "chrome").strip().lower()
+        discord_client = str(s.get("discord_client") or s.get("discordClient") or "discord").strip().lower()
 
-        edition = str(s.get("edition") or "gaming").strip().lower()
-        if edition == "minimal":
-            gaming_enable = "false"
-            davinci = "none"
-            blender = "false"
-            godot = "false"
-        elif edition == "studio":
-            gaming_enable = "true"
-            davinci = "free"
-            blender = "true"
-            godot = "true"
-        else:  # gaming
-            gaming_enable = "true"
-            davinci = "none"
-            blender = "false"
-            godot = "false"
+        # Gaming selections
+        gaming_enable = "true" if s.get("gaming_enable", s.get("gamingEnable", True)) else "false"
+        steam = "true" if s.get("steam", True) else "false"
+        lutris = "true" if s.get("lutris", True) else "false"
+        heroic = "true" if s.get("heroic", True) else "false"
+        faugus = "true" if s.get("faugus", True) else "false"
+        decky_loader = "true" if s.get("decky_loader", s.get("deckyLoader", True)) else "false"
+        geforce_now = "true" if s.get("geforce_now", s.get("geforceNow", True)) else "false"
+        steering_wheels = "true" if s.get("steering_wheels", s.get("steeringWheels", True)) else "false"
+
+        # Creative & Pro tools selections
+        davinci = str(s.get("davinci_resolve") or s.get("davinciResolve") or "none").strip().lower()
+        blender = "true" if s.get("blender", True) else "false"
+        godot = "true" if s.get("godot", True) else "false"
+        virtualisation = "true" if s.get("virtualisation", True) else "false"
+        ai_suite = "true" if s.get("ai_suite", s.get("aiSuite", False)) else "false"
 
         hashed_pwd = f'"{hashes.user}"' if hashes.user else "null"
 
@@ -259,10 +261,11 @@ class NixosJob(BaseJob):
   }};
 
   virtualisation = {{
-    enable = true;
+    enable = {virtualisation};
   }};
 
-  browser = "chrome";
+  browser = "{browser}";
+  discordClient = "{discord_client}";
   firewall = false;
 
   desktopEnv = "{desktop_env}";
@@ -271,24 +274,24 @@ class NixosJob(BaseJob):
   gaming = {{
     enable = {gaming_enable};
     launchers = {{
-      steam = {gaming_enable};
-      lutris = {gaming_enable};
-      heroic = {gaming_enable};
-      faugus = {gaming_enable};
+      steam = {steam};
+      lutris = {lutris};
+      heroic = {heroic};
+      faugus = {faugus};
     }};
-    deckyLoader = {gaming_enable};
-    geforceNow = {gaming_enable};
+    deckyLoader = {decky_loader};
+    geforceNow = {geforce_now};
     mountGamesDisk = false;
   }};
 
-  steeringWheelSupport = false;
+  steeringWheelSupport = {steering_wheels};
 
   davinciResolve = "{davinci}";
   blender = {blender};
   godot = {godot};
 
   aiSuite = {{
-    enable = false;
+    enable = {ai_suite};
     rocmOverrideGfx = "12.0.1";
     keepAlive = "0s";
     openWebUiPort = 8080;

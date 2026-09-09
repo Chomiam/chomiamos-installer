@@ -1303,6 +1303,24 @@ class EngineBridge(QObject):
             # nixos job consumes these as glf.environment.type / .edition.
             "desktopEnvironment": "gnome",
             "edition": "standard",
+            # Browser & Discord
+            "browser": "chrome",
+            "discordClient": "discord",
+            # Granular Gaming
+            "gamingEnable": True,
+            "steam": True,
+            "lutris": True,
+            "heroic": True,
+            "faugus": True,
+            "deckyLoader": True,
+            "geforceNow": True,
+            "steeringWheels": True,
+            # Granular Creation & Tools
+            "davinciResolve": "none",
+            "blender": True,
+            "godot": True,
+            "virtualisation": True,
+            "aiSuite": False,
             # SECURITY: final confirmation gate. Destructive jobs (partition,
             # nixos) refuse to run for real unless this is armed to True at the
             # summary step. Defaults to False so an accidental start stays in a
@@ -2857,6 +2875,166 @@ class EngineBridge(QObject):
             self.selectionsChanged.emit()
 
     # =========================================================================
+    # Granular Component Selection Properties & Slots
+    # =========================================================================
+
+    @Property(str, notify=selectionsChanged)
+    def browser(self) -> str:
+        return str(self._selections.get("browser", "chrome"))
+
+    @Slot(str)
+    def setBrowser(self, browser: str) -> None:
+        if self._selections.get("browser") != browser:
+            self._selections["browser"] = browser
+            if self._debug:
+                print(f"[Engine] Browser set to: {browser}")
+            self.selectionsChanged.emit()
+
+    @Property(str, notify=selectionsChanged)
+    def discordClient(self) -> str:
+        return str(self._selections.get("discordClient", "discord"))
+
+    @Slot(str)
+    def setDiscordClient(self, client: str) -> None:
+        if self._selections.get("discordClient") != client:
+            self._selections["discordClient"] = client
+            if self._debug:
+                print(f"[Engine] Discord client set to: {client}")
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def gamingEnable(self) -> bool:
+        return bool(self._selections.get("gamingEnable", True))
+
+    @Slot(bool)
+    def setGamingEnable(self, enabled: bool) -> None:
+        if self._selections.get("gamingEnable") != enabled:
+            self._selections["gamingEnable"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def steam(self) -> bool:
+        return bool(self._selections.get("steam", True))
+
+    @Slot(bool)
+    def setSteam(self, enabled: bool) -> None:
+        if self._selections.get("steam") != enabled:
+            self._selections["steam"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def lutris(self) -> bool:
+        return bool(self._selections.get("lutris", True))
+
+    @Slot(bool)
+    def setLutris(self, enabled: bool) -> None:
+        if self._selections.get("lutris") != enabled:
+            self._selections["lutris"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def heroic(self) -> bool:
+        return bool(self._selections.get("heroic", True))
+
+    @Slot(bool)
+    def setHeroic(self, enabled: bool) -> None:
+        if self._selections.get("heroic") != enabled:
+            self._selections["heroic"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def faugus(self) -> bool:
+        return bool(self._selections.get("faugus", True))
+
+    @Slot(bool)
+    def setFaugus(self, enabled: bool) -> None:
+        if self._selections.get("faugus") != enabled:
+            self._selections["faugus"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def deckyLoader(self) -> bool:
+        return bool(self._selections.get("deckyLoader", True))
+
+    @Slot(bool)
+    def setDeckyLoader(self, enabled: bool) -> None:
+        if self._selections.get("deckyLoader") != enabled:
+            self._selections["deckyLoader"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def geforceNow(self) -> bool:
+        return bool(self._selections.get("geforceNow", True))
+
+    @Slot(bool)
+    def setGeforceNow(self, enabled: bool) -> None:
+        if self._selections.get("geforceNow") != enabled:
+            self._selections["geforceNow"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def steeringWheels(self) -> bool:
+        return bool(self._selections.get("steeringWheels", True))
+
+    @Slot(bool)
+    def setSteeringWheels(self, enabled: bool) -> None:
+        if self._selections.get("steeringWheels") != enabled:
+            self._selections["steeringWheels"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(str, notify=selectionsChanged)
+    def davinciResolve(self) -> str:
+        return str(self._selections.get("davinciResolve", "none"))
+
+    @Slot(str)
+    def setDavinciResolve(self, version: str) -> None:
+        if self._selections.get("davinciResolve") != version:
+            self._selections["davinciResolve"] = version
+            if self._debug:
+                print(f"[Engine] DaVinci Resolve set to: {version}")
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def blender(self) -> bool:
+        return bool(self._selections.get("blender", True))
+
+    @Slot(bool)
+    def setBlender(self, enabled: bool) -> None:
+        if self._selections.get("blender") != enabled:
+            self._selections["blender"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def godot(self) -> bool:
+        return bool(self._selections.get("godot", True))
+
+    @Slot(bool)
+    def setGodot(self, enabled: bool) -> None:
+        if self._selections.get("godot") != enabled:
+            self._selections["godot"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def virtualisation(self) -> bool:
+        return bool(self._selections.get("virtualisation", True))
+
+    @Slot(bool)
+    def setVirtualisation(self, enabled: bool) -> None:
+        if self._selections.get("virtualisation") != enabled:
+            self._selections["virtualisation"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def aiSuite(self) -> bool:
+        return bool(self._selections.get("aiSuite", False))
+
+    @Slot(bool)
+    def setAiSuite(self, enabled: bool) -> None:
+        if self._selections.get("aiSuite") != enabled:
+            self._selections["aiSuite"] = enabled
+            self.selectionsChanged.emit()
+
+    # =========================================================================
     # Progress Properties
     # =========================================================================
 
@@ -3075,6 +3253,20 @@ class EngineBridge(QObject):
         # glf.environment.edition. See PackagesJob for the current storage point.
         if "desktopEnvironment" in normalized:
             normalized["desktop_environment"] = normalized.pop("desktopEnvironment")
+        if "discordClient" in normalized:
+            normalized["discord_client"] = normalized.pop("discordClient")
+        if "gamingEnable" in normalized:
+            normalized["gaming_enable"] = normalized.pop("gamingEnable")
+        if "deckyLoader" in normalized:
+            normalized["decky_loader"] = normalized.pop("deckyLoader")
+        if "geforceNow" in normalized:
+            normalized["geforce_now"] = normalized.pop("geforceNow")
+        if "steeringWheels" in normalized:
+            normalized["steering_wheels"] = normalized.pop("steeringWheels")
+        if "davinciResolve" in normalized:
+            normalized["davinci_resolve"] = normalized.pop("davinciResolve")
+        if "aiSuite" in normalized:
+            normalized["ai_suite"] = normalized.pop("aiSuite")
         # ``edition`` is already snake-compatible (single word); kept as-is.
         # filesystem and encryption keys are already snake-compatible.
 
