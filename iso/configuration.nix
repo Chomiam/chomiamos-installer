@@ -306,6 +306,7 @@ in
     gnomeExtensions.blur-my-shell
     gnomeExtensions.arcmenu
     gnomeExtensions.user-themes
+    gnomeExtensions.no-overview
     catppuccinTheme
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
     catppuccin-cursors.mochaLavender
@@ -423,6 +424,7 @@ in
             "Vitals@CoreCoding.com"
             "blur-my-shell@aunetx"
             "arcmenu@arcmenu.com"
+            "no-overview@fthx"
           ];
           favorite-apps = [
             "omnis.desktop"
