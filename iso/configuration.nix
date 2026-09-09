@@ -5,6 +5,15 @@ let
     variant = "mocha";
     accents = [ "lavender" ];
   };
+
+  # Helper GVariant brut pour les pipelines personnalisés de Blur-My-Shell
+  mkRawGVariant = str: {
+    _type = "gvariant";
+    type = "raw";
+    value = str;
+    __toString = self: str;
+  };
+  blurPipelines = mkRawGVariant "{'pipeline_default': {'name': <'Default'>, 'effects': <[{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000000'>, 'params': <{'radius': <30>, 'brightness': <0.6>}>}]>}, 'pipeline_default_rounded': {'name': <'Default rounded'>, 'effects': <[{'type': <'native_static_gaussian_blur'>, 'id': <'effect_000000000001'>, 'params': <{'radius': <30>, 'brightness': <0.6>}>}]>}}";
 in
 {
   # =========================================================================
@@ -184,6 +193,8 @@ in
         };
 
         "org/gnome/shell/extensions/blur-my-shell" = {
+          pipelines = blurPipelines;
+          rounded-blur-found = false;
           settings-version = lib.gvariant.mkInt32 2;
         };
         "org/gnome/shell/extensions/blur-my-shell/appfolder" = {
