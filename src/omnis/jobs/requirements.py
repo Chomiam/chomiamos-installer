@@ -16,7 +16,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
-from omnis.jobs.gpu import GPUDetector
+from omnis.jobs.gpu import GPUDetector, GPUVendor
 from omnis.utils.disk_detector import list_disks
 
 logger = logging.getLogger(__name__)
@@ -444,24 +444,40 @@ class SystemRequirementsChecker:
 
             current_cores = cpu_count or 0
 
+            cpu_model = ""
+            try:
+                with open("/proc/cpuinfo") as f:
+                    for line in f:
+                        if "model name" in line:
+                            cpu_model = line.split(":", 1)[1].strip()
+                            cpu_model = cpu_model.replace(" Processor", "").replace(" 8-Core", "").replace(" 6-Core", "").replace(" 12-Core", "").replace(" 16-Core", "").strip()
+                            break
+            except Exception:
+                pass
+
+            if cpu_model:
+                curr_val = f"{cpu_model} ({current_cores} cœurs)"
+            else:
+                curr_val = f"{current_cores} cœurs"
+
             # Determine status based on thresholds
             if current_cores < min_cores:
                 status = RequirementStatus.FAIL
-                details = f"Insufficient CPU cores: {current_cores} detected, minimum {min_cores} required"
+                details = f"Processeur insuffisant: {current_cores} cœurs détectés, minimum {min_cores} requis"
             elif current_cores < warn_cores:
                 status = RequirementStatus.WARN
-                details = f"CPU cores below recommended: {current_cores} detected, {warn_cores} recommended"
+                details = f"Processeur sous le seuil recommandé: {current_cores} cœurs détectés, {warn_cores} recommandés"
             else:
                 status = RequirementStatus.PASS
-                details = "Sufficient CPU cores for optimal performance"
+                details = f"Processeur optimal détecté ({current_cores} cœurs)"
 
             return RequirementCheck(
                 name="cpu_cores",
-                description="CPU Cores",
+                description="Processeur (CPU)",
                 status=status,
-                current_value=f"{current_cores} cores",
-                required_value=f"{min_cores} cores",
-                recommended_value=f"{recommended_cores} cores",
+                current_value=curr_val,
+                required_value=f"{min_cores} cœurs",
+                recommended_value=f"{recommended_cores} cœurs",
                 details=details,
             )
 
@@ -563,66 +579,76 @@ class SystemRequirementsChecker:
             )
 
     def _check_internet(self) -> RequirementCheck:
-        """Check internet connectivity."""
+        """Check internet connectivity with fast multi-probe verification."""
         cfg = self._get_check_config("internet")
-        require_internet = cfg.get("required", False)
+        require_internet = cfg.get("required", True)
         recommend_internet = cfg.get("recommended", True)
 
+        has_internet = False
         try:
-            # Try to reach a known host
-            if shutil.which("ping"):
-                result = subprocess.run(
-                    ["ping", "-c", "1", "-W", "3", "1.1.1.1"],
-                    capture_output=True,
-                    timeout=5,
-                )
-                has_internet = result.returncode == 0
-            else:
-                # Fallback: check if we can resolve DNS
-                import socket
-
+            import socket
+            for host in ("1.1.1.1", "8.8.8.8", "9.9.9.9"):
                 try:
-                    socket.getaddrinfo("cloudflare.com", 443, socket.AF_INET, socket.SOCK_STREAM)
+                    s = socket.create_connection((host, 53), timeout=2)
+                    s.close()
                     has_internet = True
-                except socket.gaierror:
+                    break
+                except Exception:
+                    continue
+
+            if not has_internet:
+                if shutil.which("ping"):
+                    try:
+                        result = subprocess.run(
+                            ["ping", "-c", "1", "-W", "2", "1.1.1.1"],
+                            capture_output=True,
+                            timeout=3,
+                        )
+                        has_internet = (result.returncode == 0)
+                    except Exception:
+                        pass
+
+            if not has_internet:
+                try:
+                    socket.getaddrinfo("nixos.org", 443, socket.AF_INET, socket.SOCK_STREAM)
+                    has_internet = True
+                except Exception:
                     has_internet = False
 
             if has_internet:
                 status = RequirementStatus.PASS
-                current = "Connected"
-                details = "Internet connection available"
+                current = "Connecté"
+                details = "Connexion Internet active et fonctionnelle"
             elif require_internet:
                 status = RequirementStatus.FAIL
-                current = "Not connected"
-                details = "Internet connection required for installation"
+                current = "Non connecté"
+                details = "Une connexion Internet active est obligatoire pour télécharger et installer le système."
             elif recommend_internet:
                 status = RequirementStatus.WARN
-                current = "Not connected"
-                details = "No internet connection, recommended for package updates"
+                current = "Non connecté"
+                details = "Pas de connexion Internet (recommandée pour l'installation)"
             else:
                 status = RequirementStatus.PASS
-                current = "Not connected"
-                details = "Offline installation mode"
+                current = "Non connecté"
+                details = "Mode installation hors-ligne"
 
             return RequirementCheck(
                 name="internet",
-                description="Internet Connection",
+                description="Connexion Internet",
                 status=status,
                 current_value=current,
-                required_value="Required"
-                if require_internet
-                else "Recommended"
-                if recommend_internet
-                else "Optional",
+                required_value="Obligatoire" if require_internet else "Recommandée",
                 details=details,
             )
 
         except Exception as e:
             return RequirementCheck(
                 name="internet",
-                description="Internet Connection",
-                status=RequirementStatus.SKIP,
-                details=f"Could not check internet: {e}",
+                description="Connexion Internet",
+                status=RequirementStatus.FAIL if require_internet else RequirementStatus.SKIP,
+                current_value="Erreur",
+                required_value="Obligatoire" if require_internet else "Recommandée",
+                details=f"Échec du test de connectivité: {e}",
             )
 
     def _check_power(self) -> RequirementCheck:
@@ -735,7 +761,7 @@ class SystemRequirementsChecker:
         cfg = self._get_check_config("gpu")
 
         # Get configuration values
-        availability = cfg.get("availability", ["AMD", "INTEL", "NVIDIA"])
+        availability = cfg.get("availability", ["AMD", "INTEL", "NVIDIA", "VM"])
         require_dedicated = cfg.get("require_dedicated", False)
         overrides = cfg.get("overrides", {})
         # GPU is advisory by default (WARN) so GPU-less / virtual machines can
@@ -822,7 +848,9 @@ class SystemRequirementsChecker:
         import re
 
         full_name = str(gpu)
-        vendor = gpu.vendor.value  # AMD, INTEL, NVIDIA
+        if getattr(gpu, "vendor", None) == GPUVendor.VM or "Machine Virtuelle" in full_name:
+            return str(getattr(gpu, "name", full_name))
+        vendor = gpu.vendor.value  # AMD, INTEL, NVIDIA, VM
 
         # Extract marketing name from brackets [Name]
         # Look for the bracket containing the actual product name

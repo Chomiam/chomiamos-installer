@@ -71,14 +71,14 @@ Rectangle {
         switch(name) {
             case "ram": return "\ud83d\udcbe"       // Floppy disk
             case "disk": return "\ud83d\udcbf"      // CD
-            case "cpu_arch": return "\ud83d\udda5"  // Desktop
-            case "cpu_cores": return "\u2699"       // Gear (for CPU cores)
+            case "cpu": case "cpu_arch": case "cpu_cores": return "\ud83d\udda5"  // Desktop / CPU
             case "efi": return "\u26a1"             // Lightning
             case "secure_boot": return "\ud83d\udd12" // Lock
             case "internet": return "\ud83c\udf10"  // Globe
             case "power": return "\ud83d\udd0c"     // Plug
             case "battery": return "\ud83d\udd0b"   // Battery
             case "gpu": return "\ud83c\udfae"       // Gamepad
+            case "vm": return "\ud83d\udcbb"        // VM / Laptop
             default: return "\ud83d\udccb"          // Clipboard
         }
     }

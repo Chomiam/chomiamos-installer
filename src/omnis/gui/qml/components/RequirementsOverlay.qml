@@ -60,6 +60,8 @@ Rectangle {
             case "ram": iconKey = "ram"; break
             case "disk": iconKey = "disk"; break
             case "gpu": iconKey = "gpu"; break
+            case "internet": iconKey = "internet"; break
+            case "cpu": case "cpu_cores": case "cpu_arch": iconKey = "cpu"; break
             default: return ""
         }
         // Build the key like "ram_pass", "disk_warn", etc.

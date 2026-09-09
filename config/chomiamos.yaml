@@ -62,31 +62,48 @@ jobs:
   - name: welcome
     config:
       show_release_notes: false
-      check_requirements:
-        min_ram_gb: 4
-        min_disk_gb: 20
-        cpu_arch: "x86_64"
-        efi:
-          enabled: false
-          required: false
-        secure_boot:
-          enabled: false
-          require_disabled: false
-        internet:
+      requirements:
+        cpu:
+          cpu_cores:
+            enabled: true
+            min_cores: 2
+            recommended_cores: 4
+          cpu_arch:
+            enabled: true
+            architectures:
+              - "x86_64"
+        ram:
           enabled: true
-          required: false
-          recommended: true
-        power:
+          min_gb: 4
+          warn_gb: 8
+          recommended_gb: 16
+        disk:
           enabled: true
-          min_battery_percent: 20
+          min_gb: 20
+          warn_gb: 40
+          recommended_gb: 60
         gpu:
           enabled: true
           availability:
             - AMD
             - INTEL
             - NVIDIA
+            - VM
           require_dedicated: false
           required: false
+        efi:
+          enabled: true
+          required: false
+        secure_boot:
+          enabled: false
+          require_disabled: false
+        internet:
+          enabled: true
+          required: true
+          recommended: true
+        power:
+          enabled: true
+          min_battery_percent: 20
 
   # 2. Choix de la langue, fuseau horaire et clavier
   - name: locale

@@ -24,7 +24,8 @@ class GPUVendor(Enum):
     NVIDIA = "NVIDIA"
     AMD = "AMD"
     INTEL = "INTEL"
-    UNKNOWN = "UNKNOWN"
+    VM = "VM"
+    UNKNOWN = "UNKNOWN" 
 
 
 class GPUType(Enum):
@@ -58,7 +59,9 @@ class GPUInfo:
         return self.gpu_type == GPUType.INTEGRATED
 
     def __str__(self) -> str:
-        return f"{self.vendor.value} {self.name}"
+        if self.vendor == GPUVendor.VM:
+            return self.name
+        return f"{self.vendor.value} {self.name}" 
 
 
 # =============================================================================
@@ -406,6 +409,11 @@ class GPUDetector:
         "0x10de": GPUVendor.NVIDIA,
         "0x1002": GPUVendor.AMD,
         "0x8086": GPUVendor.INTEL,
+        "0x1af4": GPUVendor.VM,  # Red Hat / QEMU VirtIO GPU
+        "0x15ad": GPUVendor.VM,  # VMware SVGA II / VMWgfx
+        "0x80ee": GPUVendor.VM,  # Oracle VirtualBox
+        "0x1234": GPUVendor.VM,  # QEMU / Bochs standard VGA
+        "0x1b36": GPUVendor.VM,  # QEMU QXL
     }
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
@@ -425,6 +433,55 @@ class GPUDetector:
             self._gpus = self._detect_gpus()
         return self._gpus
 
+    def _detect_via_virt(self) -> list[GPUInfo]:
+        """Detect virtual machine display adapters."""
+        virt_gpus: list[GPUInfo] = []
+        try:
+            virt_out = subprocess.run(
+                ["systemd-detect-virt"],
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout.strip().lower()
+
+            lspci_out = subprocess.run(
+                ["lspci"],
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout.lower()
+
+            is_vm = (virt_out not in ("", "none")) or any(
+                k in lspci_out for k in ("virtio", "qemu", "vmware", "virtualbox", "innotek", "red hat")
+            )
+
+            if is_vm:
+                if "qemu" in virt_out or "kvm" in virt_out or "virtio" in lspci_out or "red hat" in lspci_out:
+                    vm_label = "Machine Virtuelle (QEMU / KVM)"
+                    vm_model = "VirtIO GPU"
+                elif "vmware" in virt_out or "vmware" in lspci_out:
+                    vm_label = "Machine Virtuelle (VMware)"
+                    vm_model = "SVGA II"
+                elif "oracle" in virt_out or "virtualbox" in lspci_out:
+                    vm_label = "Machine Virtuelle (VirtualBox)"
+                    vm_model = "VBoxVGA"
+                else:
+                    vm_label = f"Machine Virtuelle ({virt_out.upper() or VirtIO})"
+                    vm_model = "Virtual Display"
+
+                virt_gpus.append(
+                    GPUInfo(
+                        vendor=GPUVendor.VM,
+                        name=vm_label,
+                        model=vm_model,
+                        gpu_type=GPUType.DEDICATED,
+                        driver="mesa",
+                    )
+                )
+        except Exception as e:
+            logger.debug(f"VM detection failed: {e}")
+        return virt_gpus
+
     def _detect_gpus(self) -> list[GPUInfo]:
         """Detect all GPUs in the system."""
         gpus: list[GPUInfo] = []
@@ -436,6 +493,10 @@ class GPUDetector:
         # Enhance with lspci info if available
         if gpus:
             self._enhance_with_lspci(gpus)
+
+        # If no physical GPUs found, check for VM virtual display
+        if not gpus:
+            gpus.extend(self._detect_via_virt())
 
         logger.info(f"Detected {len(gpus)} GPU(s): {[str(g) for g in gpus]}")
         return gpus
@@ -647,7 +708,13 @@ class GPUDetector:
         overrides = overrides or {}
 
         # Convert availability to enum
-        allowed_vendors = {GPUVendor[v.upper()] for v in availability}
+        allowed_vendors = set()
+        for v in availability:
+            try:
+                allowed_vendors.add(GPUVendor[v.upper()])
+            except KeyError:
+                pass
+        allowed_vendors.add(GPUVendor.VM)
 
         # Filter GPUs by allowed vendors
         compatible_gpus = [gpu for gpu in self.gpus if gpu.vendor in allowed_vendors]
@@ -655,6 +722,11 @@ class GPUDetector:
 
         if not compatible_gpus:
             return "fail", "No compatible GPU detected", []
+
+        # Fast-track VM GPUs
+        for gpu in compatible_gpus:
+            if gpu.vendor == GPUVendor.VM:
+                return "pass", f"Environnement virtualisé ({gpu.name})", gpu_names
 
         # Check for dedicated GPU
         dedicated_gpus = [gpu for gpu in compatible_gpus if gpu.is_dedicated]

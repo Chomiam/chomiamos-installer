@@ -1402,7 +1402,7 @@ class EngineBridge(QObject):
         welcome_config = {}
         for job_def in self._engine.config.normalize_jobs():
             if job_def.name == "welcome":
-                welcome_config = job_def.config.get("requirements", {})
+                welcome_config = job_def.config.get("requirements") or job_def.config.get("check_requirements") or {}
                 break
 
         self._requirements_checker = SystemRequirementsChecker(welcome_config)
@@ -1682,12 +1682,18 @@ class EngineBridge(QObject):
         result = self._requirements_checker.check_all()
 
         # Convert to QML-compatible list
+        translator = get_translator()
         self._requirements_model = []
         for check in result.checks:
+            desc = translator.get(f"{check.name}_name", "requirements", default=check.description)
+            if check.name == "cpu_cores":
+                desc = translator.get("cpu_name", "requirements", default=check.description)
+            elif check.name == "cpu_arch":
+                desc = "Architecture 64-bit"
             self._requirements_model.append(
                 {
                     "name": check.name,
-                    "description": check.description,
+                    "description": desc,
                     "status": check.status.name.lower(),
                     "currentValue": check.current_value,
                     "requiredValue": check.required_value,

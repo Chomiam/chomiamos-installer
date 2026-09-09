@@ -189,14 +189,33 @@ class NixosJob(BaseJob):
     @staticmethod
     def _detect_gpu() -> str:
         try:
+            virt_out = subprocess.run(
+                ["systemd-detect-virt"],
+                capture_output=True,
+                text=True,
+                check=False,
+            ).stdout.strip().lower()
+
             res = subprocess.run(["lspci"], capture_output=True, text=True, check=False)
             out = (res.stdout or "").lower()
+
             if "nvidia" in out or "geforce" in out:
                 return "nvidia"
-            elif "amd" in out or "radeon" in out or "advanced micro devices" in out:
+            elif "radeon" in out or ("amd" in out and "advanced micro devices" in out):
                 return "amd"
-            elif "intel" in out or "iris" in out or "arc" in out:
+            elif "arc" in out or "iris" in out:
                 return "intel"
+
+            # Virtual machine detection
+            if (virt_out not in ("", "none")) or any(
+                k in out for k in ("virtio", "qemu", "vmware", "virtualbox", "innotek", "red hat")
+            ):
+                return "vm"
+
+            if "intel" in out:
+                return "intel"
+            elif "amd" in out:
+                return "amd"
         except Exception:
             pass
         return "amd"
