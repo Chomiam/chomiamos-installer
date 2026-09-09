@@ -15,6 +15,7 @@ Item {
     signal editDesktop()
     signal editCommunication()
     signal editGaming()
+    signal editMediaNetwork()
     signal editCreation()
     signal editPartition()
 
@@ -48,6 +49,14 @@ Item {
     property bool geforceNowValue: true
     property bool steeringWheelsValue: true
 
+    // Multimédia & Réseau
+    property bool stremioValue: true
+    property bool vlcValue: true
+    property bool mpvValue: true
+    property bool localsendValue: true
+    property bool tailscaleValue: true
+    property bool motrixValue: true
+
     // Création & Outils
     property string davinciResolveValue: "none"
     property bool blenderValue: true
@@ -77,7 +86,6 @@ Item {
     property color warningColor: "#f9e2af"
     property color errorColor: "#f38ba8"
 
-    // Helper functions for readable labels
     function formatDiscordLabel(client) {
         if (client === "discord") return "Discord Officiel (Natif NixOS)"
         if (client === "equibop") return "Equibop (Flatpak)"
@@ -111,6 +119,24 @@ Item {
         if (deckyLoaderValue) list.push("Decky Loader")
         if (steeringWheelsValue) list.push("Simracing")
         if (list.length === 0) return "Aucun lanceur sélectionné"
+        return list.join(", ")
+    }
+
+    function formatMediaList() {
+        var list = []
+        if (stremioValue) list.push("Stremio")
+        if (vlcValue) list.push("VLC")
+        if (mpvValue) list.push("MPV")
+        if (list.length === 0) return "Aucun lecteur"
+        return list.join(", ")
+    }
+
+    function formatNetworkList() {
+        var list = []
+        if (localsendValue) list.push("LocalSend")
+        if (tailscaleValue) list.push("Tailscale VPN")
+        if (motrixValue) list.push("Motrix")
+        if (list.length === 0) return "Aucun outil réseau"
         return list.join(", ")
     }
 
@@ -320,7 +346,57 @@ Item {
                         }
                     }
 
-                    // Card 4: Création & Outils
+                    // Card 4: Multimédia & Réseau
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: medNetCol.implicitHeight + 28
+                        radius: 12
+                        color: surfaceColor
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 14
+
+                            Text {
+                                text: "📺"
+                                font.pixelSize: 24
+                                Layout.alignment: Qt.AlignTop
+                            }
+
+                            ColumnLayout {
+                                id: medNetCol
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Text {
+                                    text: qsTr("Multimédia & Réseau")
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                    color: textColor
+                                }
+
+                                Text {
+                                    text: qsTr("Multimédia : %1").arg(formatMediaList())
+                                    font.pixelSize: 13
+                                    color: textMutedColor
+                                }
+
+                                Text {
+                                    text: qsTr("Réseau & Partage : %1").arg(formatNetworkList())
+                                    font.pixelSize: 12
+                                    color: accentColor
+                                }
+                            }
+
+                            Button {
+                                text: qsTr("Modifier")
+                                onClicked: root.editMediaNetwork()
+                            }
+                        }
+                    }
+
+                    // Card 5: Création & Outils
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: creatCol.implicitHeight + 28
@@ -366,7 +442,7 @@ Item {
                         }
                     }
 
-                    // Card 5: Utilisateur & Machine
+                    // Card 6: Utilisateur & Machine
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: userCol.implicitHeight + 28
@@ -422,7 +498,7 @@ Item {
                         }
                     }
 
-                    // Card 6: Disque & Partitionnement
+                    // Card 7: Disque & Partitionnement
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: diskCol.implicitHeight + 28

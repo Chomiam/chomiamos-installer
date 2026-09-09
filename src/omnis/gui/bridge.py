@@ -1321,6 +1321,13 @@ class EngineBridge(QObject):
             "godot": True,
             "virtualisation": True,
             "aiSuite": False,
+            # Granular Multimedia & Network
+            "stremio": True,
+            "vlc": True,
+            "mpv": True,
+            "localsend": True,
+            "tailscale": True,
+            "motrix": True,
             # SECURITY: final confirmation gate. Destructive jobs (partition,
             # nixos) refuse to run for real unless this is armed to True at the
             # summary step. Defaults to False so an accidental start stays in a
@@ -3032,6 +3039,67 @@ class EngineBridge(QObject):
     def setAiSuite(self, enabled: bool) -> None:
         if self._selections.get("aiSuite") != enabled:
             self._selections["aiSuite"] = enabled
+            self.selectionsChanged.emit()
+
+    # Multimedia & Network
+    @Property(bool, notify=selectionsChanged)
+    def stremio(self) -> bool:
+        return bool(self._selections.get("stremio", True))
+
+    @Slot(bool)
+    def setStremio(self, enabled: bool) -> None:
+        if self._selections.get("stremio") != enabled:
+            self._selections["stremio"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def vlc(self) -> bool:
+        return bool(self._selections.get("vlc", True))
+
+    @Slot(bool)
+    def setVlc(self, enabled: bool) -> None:
+        if self._selections.get("vlc") != enabled:
+            self._selections["vlc"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def mpv(self) -> bool:
+        return bool(self._selections.get("mpv", True))
+
+    @Slot(bool)
+    def setMpv(self, enabled: bool) -> None:
+        if self._selections.get("mpv") != enabled:
+            self._selections["mpv"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def localsend(self) -> bool:
+        return bool(self._selections.get("localsend", True))
+
+    @Slot(bool)
+    def setLocalsend(self, enabled: bool) -> None:
+        if self._selections.get("localsend") != enabled:
+            self._selections["localsend"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def tailscale(self) -> bool:
+        return bool(self._selections.get("tailscale", True))
+
+    @Slot(bool)
+    def setTailscale(self, enabled: bool) -> None:
+        if self._selections.get("tailscale") != enabled:
+            self._selections["tailscale"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def motrix(self) -> bool:
+        return bool(self._selections.get("motrix", True))
+
+    @Slot(bool)
+    def setMotrix(self, enabled: bool) -> None:
+        if self._selections.get("motrix") != enabled:
+            self._selections["motrix"] = enabled
             self.selectionsChanged.emit()
 
     # =========================================================================

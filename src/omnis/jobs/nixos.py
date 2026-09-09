@@ -228,6 +228,14 @@ class NixosJob(BaseJob):
         virtualisation = "true" if s.get("virtualisation", True) else "false"
         ai_suite = "true" if s.get("ai_suite", s.get("aiSuite", False)) else "false"
 
+        # Multimedia & Network selections
+        stremio = "true" if s.get("stremio", True) else "false"
+        vlc = "true" if s.get("vlc", True) else "false"
+        mpv = "true" if s.get("mpv", True) else "false"
+        tailscale = "true" if s.get("tailscale", True) else "false"
+        localsend = "true" if s.get("localsend", True) else "false"
+        motrix = "true" if s.get("motrix", True) else "false" 
+
         hashed_pwd = f'"{hashes.user}"' if hashes.user else "null"
 
         return f"""{{
@@ -285,6 +293,16 @@ class NixosJob(BaseJob):
   }};
 
   steeringWheelSupport = {steering_wheels};
+
+  # Réseau & Partage
+  tailscale = {tailscale};
+  localsend = {localsend};
+  motrix = {motrix};
+
+  # Multimédia & Streaming
+  stremio = {stremio};
+  vlc = {vlc};
+  mpv = {mpv};
 
   davinciResolve = "{davinci}";
   blender = {blender};
