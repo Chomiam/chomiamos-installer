@@ -148,17 +148,21 @@ in
             "google-chrome.desktop"
           ];
         };
+        "org/gnome/desktop/wm/preferences" = {
+          button-layout = "icon:minimize,maximize,close";
+        };
         "org/gnome/shell/extensions/dash-to-dock" = {
           dock-position = "LEFT";
           dock-fixed = true;
           extend-height = true;
           dash-max-icon-size = lib.gvariant.mkInt32 48;
-          animate-show-apps = false;
-          custom-theme-shrink = false;
-          transparency-mode = "FIXED";
-          customize-alphas = true;
-          min-alpha = 0.95;
-          max-alpha = 0.95;
+          height-fraction = lib.gvariant.mkDouble 0.9;
+          background-opacity = lib.gvariant.mkDouble 0.8;
+          custom-theme-shrink = true;
+          hide-tooltip = false;
+          preferred-monitor = lib.gvariant.mkInt32 (-2);
+          show-icons-notifications-counter = false;
+          show-show-apps-button = false;
         };
       };
     }
