@@ -3505,7 +3505,7 @@ class EngineBridge(QObject):
             normalized["desktop_environment"] = normalized.pop("desktopEnvironment")
         if "discordClient" in normalized:
             normalized["discord_client"] = normalized.pop("discordClient")
-                if "emulationEnable" in normalized:
+        if "emulationEnable" in normalized:
             normalized["emulation_enable"] = normalized.pop("emulationEnable")
         if "emulationFrontend" in normalized:
             normalized["emulation_frontend"] = normalized.pop("emulationFrontend")

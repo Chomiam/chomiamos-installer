@@ -109,6 +109,7 @@ python3Packages.buildPythonApplication {
   # Ship the config + theme tree so the NixOS module can provision
   # /etc/omnis/omnis.yaml and the theme assets from the same versioned source.
   postInstall = ''
+    python -m compileall -q src
     mkdir -p $out/share/omnis
     cp -r config $out/share/omnis/config
     cp config/chomiamos.yaml $out/share/omnis/omnis.yaml
