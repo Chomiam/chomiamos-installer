@@ -1,33 +1,8 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, omnis, ... }:
 
-let
-  installerPkg = pkgs.stdenv.mkDerivation {
-    name = "chomiamos-installer";
-    src = ../scripts;
-    installPhase = ''
-      mkdir -p $out/bin $out/share/chomiamos-installer/theme
-      cp -r theme/* $out/share/chomiamos-installer/theme/
-      cp chomiamos-installer.sh $out/bin/chomiamos-installer
-      chmod +x $out/bin/chomiamos-installer
-      sed -i "s|LOGO_ICON=.*|LOGO_ICON=$out/share/chomiamos-installer/theme/logo-icon.png|g" $out/bin/chomiamos-installer
-      sed -i "s|THEME_DIR=.*|THEME_DIR=$out/share/chomiamos-installer/theme|g" $out/bin/chomiamos-installer
-    '';
-  };
-
-  installerDesktop = pkgs.makeDesktopItem {
-    name = "chomiamos-installer";
-    desktopName = "Installer chomiamos";
-    comment = "Assistant d'installation graphique de chomiamos";
-    exec = "sudo ${installerPkg}/bin/chomiamos-installer";
-    icon = "${installerPkg}/share/chomiamos-installer/theme/logo-icon.png";
-    terminal = false;
-    type = "Application";
-    categories = [ "System" "Settings" ];
-  };
-in
 {
   # =========================================================================
-  # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS
+  # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS GAMING EDITION
   # =========================================================================
 
   # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager)
@@ -43,10 +18,6 @@ in
   # Modules de virtualisation et d'accélération d'affichage invité
   boot.initrd.kernelModules = [ "virtio_gpu" "virtio_pci" "virtio_balloon" "virtio_console" "qxl" ];
   boot.kernelModules = [ "virtio_gpu" "qxl" ];
-
-
-
-
 
   # Support de tous les microcodes et firmwares pour compatibilité maximale
   hardware.enableAllFirmware = true;
@@ -74,19 +45,23 @@ in
 
   boot.zfs.forceImportRoot = false;
 
+  # Configuration système pour Omnis Installer
+  environment.etc."omnis/omnis.yaml".source = "${omnis}/share/omnis/omnis.yaml";
+  environment.etc."omnis/config".source = "${omnis}/share/omnis/config";
+
   # Paquets d'outils requis pour le partitionnement et l'installation
   environment.systemPackages = with pkgs; [
-    # Assistant Yad thémé Catppuccin et script d'installation
-    yad
-    installerPkg
-    installerDesktop
+    # Installateur moderne Omnis (Qt6/QML/Python 3)
+    omnis
 
     # Outils de disque & partitionnement
     parted
     gparted
+    gptfdisk
     e2fsprogs
     dosfstools
     btrfs-progs
+    cryptsetup
     util-linux
 
     # Détection matérielle & réseau
@@ -95,7 +70,7 @@ in
     git
     curl
     wget
-    mkpasswd
+    whois # Fournit mkpasswd
 
     # Extensions GNOME (Dash to Dock, Vitals) & Thème Catppuccin
     gnomeExtensions.dash-to-dock
@@ -106,26 +81,27 @@ in
 
   # Raccourci sur le bureau et lancement automatique
   systemd.tmpfiles.rules = [
+    "d /run/omnis 0755 root root -"
     "d /home/nixos/Desktop 0755 nixos users -"
-    "L+ /home/nixos/Desktop/chomiamos-installer.desktop - - - - ${installerDesktop}/share/applications/chomiamos-installer.desktop"
-    "z /home/nixos/Desktop/chomiamos-installer.desktop 0755 nixos users -"
+    "L+ /home/nixos/Desktop/omnis.desktop - - - - ${omnis}/share/applications/omnis.desktop"
+    "z /home/nixos/Desktop/omnis.desktop 0755 nixos users -"
   ];
 
-  # Lancement automatique de l'installateur à l'ouverture de la session Live
-  environment.etc."xdg/autostart/chomiamos-installer.desktop".source =
-    "${installerDesktop}/share/applications/chomiamos-installer.desktop";
+  # Lancement automatique d'Omnis à l'ouverture de la session Live
+  environment.etc."xdg/autostart/omnis.desktop".source =
+    "${omnis}/share/applications/omnis.desktop";
 
   # Configuration GNOME pour le Live-CD (Thème Catppuccin & Dash to Dock)
   programs.dconf.profiles.user.databases = [
     {
       settings = {
         "org/gnome/desktop/background" = {
-          picture-uri = "file://${installerPkg}/share/chomiamos-installer/theme/wallpaper.jpeg";
-          picture-uri-dark = "file://${installerPkg}/share/chomiamos-installer/theme/wallpaper.jpeg";
+          picture-uri = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper.jpeg";
+          picture-uri-dark = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper.jpeg";
           picture-options = "zoom";
         };
         "org/gnome/desktop/screensaver" = {
-          picture-uri = "file://${installerPkg}/share/chomiamos-installer/theme/wallpaper.jpeg";
+          picture-uri = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper.jpeg";
           picture-options = "zoom";
         };
         "org/gnome/desktop/interface" = {
@@ -142,7 +118,7 @@ in
             "Vitals@CoreCoding.com"
           ];
           favorite-apps = [
-            "chomiamos-installer.desktop"
+            "omnis.desktop"
             "org.gnome.Nautilus.desktop"
             "kitty.desktop"
             "google-chrome.desktop"

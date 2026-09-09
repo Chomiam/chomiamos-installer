@@ -2,3 +2,7 @@ result
 result-*
 *.iso
 .direnv
+dist/
+*.part-*
+__pycache__/
+*.pyc

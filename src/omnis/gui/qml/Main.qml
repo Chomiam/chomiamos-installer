@@ -1,0 +1,1080 @@
+/*
+ * Omnis Installer - Main QML Interface
+ *
+ * Modern, fluid UI with dynamic branding support.
+ * Colors and text are loaded from branding configuration.
+ *
+ * Wizard Steps:
+ * 0 - Welcome (requirements check)
+ * 1 - Locale (language, timezone, keyboard)
+ * 2 - Users (username, password, options)
+ * 3 - Environment (desktop environment + edition/flavor)
+ * 4 - Partition (disk selection)
+ * 5 - Summary (review selections)
+ * 6 - Progress (installation)
+ * 7 - Finished (reboot/shutdown)
+ */
+
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Effects
+import "components"
+
+ApplicationWindow {
+    id: root
+
+    width: 1024
+    height: 768
+    minimumWidth: 800
+    minimumHeight: 600
+    visible: true
+    title: branding.name + " Installer"
+
+    // System font for non-Latin languages (CJK, Arabic, Hebrew, etc.)
+    // Uses Noto Sans when a non-Latin locale is selected, otherwise system default
+    readonly property string systemFontFamily: engine.systemFontFamily
+    readonly property bool needsUnicodeFont: engine.needsUnicodeFont
+
+    // Apply font globally: theme primary font for Latin, Noto Sans for non-Latin
+    // scripts. Empty string falls back to the Qt system default.
+    font.family: needsUnicodeFont && systemFontFamily ? systemFontFamily : (branding.fontPrimary || "")
+
+    // Le style Fusion rend le texte des champs via palette.text (noir par
+    // défaut) en ignorant la propriété color. On force un gris clair lisible
+    // sur le thème sombre, propagé à tous les TextField de l'application.
+    palette.text: "#d1d5db"
+    palette.placeholderText: "#9CA3AF"
+
+    // React to font changes when locale changes
+    Connections {
+        target: engine
+        function onSystemFontChanged() {
+            console.log("System font changed to:", engine.systemFontFamily || "system default")
+        }
+    }
+
+    // Dynamic color palette from branding
+    readonly property color primaryColor: branding.primaryColor
+    readonly property color secondaryColor: branding.secondaryColor
+    readonly property color accentColor: branding.accentColor
+    readonly property color backgroundColor: branding.backgroundColor
+    readonly property color surfaceColor: branding.surfaceColor
+    readonly property color textColor: branding.textColor
+    readonly property color textMutedColor: branding.textMutedColor
+    readonly property color successColor: branding.successColor || "#10B981"
+    readonly property color warningColor: branding.warningColor || "#F59E0B"
+    readonly property color errorColor: branding.errorColor || "#EF4444"
+
+    // Wizard state
+    property int currentStep: 0
+    readonly property int totalSteps: 8  // 0-7
+    readonly property var stepNames: ["Welcome", "Locale", "Users", "Desktop", "Partition", "Summary", "Installing", "Finished"]
+
+    // Installation state
+    property bool isInstalling: false
+    property bool installationSuccess: false
+
+    color: backgroundColor
+
+    // Background wallpaper (with gradient fallback)
+    Image {
+        id: backgroundImage
+        anchors.fill: parent
+        source: branding.backgroundUrl
+        fillMode: Image.PreserveAspectCrop
+        visible: status === Image.Ready
+
+        // Dark overlay for readability
+        Rectangle {
+            anchors.fill: parent
+            color: backgroundColor
+            opacity: 0.3
+        }
+    }
+
+    // Fallback gradient when no wallpaper
+    Rectangle {
+        anchors.fill: parent
+        visible: backgroundImage.status !== Image.Ready
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: backgroundColor }
+            GradientStop { position: 1.0; color: Qt.darker(backgroundColor, 1.3) }
+        }
+    }
+
+    // Main content
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 32
+        spacing: 24
+
+        // Header (hidden on Welcome and Finished)
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 16
+            visible: currentStep > 0 && currentStep < 6  // hidden on Welcome, Progress(6), Finished(7)
+
+            // Logo
+            Item {
+                width: 48
+                height: 48
+
+                Image {
+                    id: headerLogo
+                    anchors.fill: parent
+                    source: branding.logoSmallUrl
+                    fillMode: Image.PreserveAspectFit
+                    visible: status === Image.Ready
+                }
+
+                // Fallback when logo not available
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 12
+                    color: primaryColor
+                    visible: headerLogo.status !== Image.Ready
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: branding.name.charAt(0)
+                        font.pixelSize: 24
+                        font.bold: true
+                        color: textColor
+                    }
+                }
+            }
+
+            Column {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Text {
+                    text: branding.name + " Installer"
+                    font.pixelSize: 20
+                    font.bold: true
+                    color: textColor
+                }
+
+                Text {
+                    text: stepNames[currentStep] || ""
+                    font.pixelSize: 14
+                    color: textMutedColor
+                }
+            }
+
+            // Step indicator (steps 1-5 only)
+            Row {
+                spacing: 8
+                visible: currentStep >= 1 && currentStep <= 5
+
+                Repeater {
+                    model: 5  // Steps 1-5
+
+                    Rectangle {
+                        width: 40
+                        height: 4
+                        radius: 2
+                        color: (index + 1) < currentStep ? primaryColor :
+                               (index + 1) === currentStep ? accentColor : Qt.darker(surfaceColor, 1.2)
+
+                        Behavior on color {
+                            ColorAnimation { duration: 300 }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Content area
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            // Step 0: Welcome
+            WelcomeView {
+                id: welcomeView
+                anchors.fill: parent
+                visible: currentStep === 0
+                opacity: visible ? 1 : 0
+
+                welcomeWallpaper: branding.welcomeWallpaperUrl || branding.backgroundUrl
+                logoUrl: branding.logoUrl
+                welcomeTitle: branding.welcomeTitle
+                welcomeSubtitle: branding.welcomeSubtitle
+                installButtonText: branding.installButton
+                brandingCodename: branding.version || ""
+                brandingEdition: branding.edition || ""
+                websiteUrl: branding.websiteUrl
+                websiteLabel: branding.websiteLabel
+
+                showRequirements: engine.showRequirements
+                requirements: engine.requirementsModel
+                canProceed: engine.canProceed
+                hasWarnings: engine.hasRequirementWarnings
+                isCheckingRequirements: engine.isCheckingRequirements
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                successColor: root.successColor
+                warningColor: root.warningColor
+                errorColor: root.errorColor
+
+                onInstallClicked: {
+                    // Locale data already loaded at startup for early detection
+                    currentStep = 1
+                }
+
+                onRequirementsChecked: {
+                    engine.checkRequirements()
+                }
+
+                onConfigureNetworkRequested: {
+                    console.log("Launching network configuration...")
+                    engine.launchNetworkSettings()
+                    networkRecheckTimer.restartPolling()
+                }
+
+                onRecheckRequirementsRequested: engine.recheckInternetStatus()
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 1: Locale
+            LocaleView {
+                id: localeView
+                anchors.fill: parent
+                visible: currentStep === 1
+                opacity: visible ? 1 : 0
+
+                localesModel: engine.localesModel
+                localesModelNative: engine.localesModelNative
+                timezonesModel: engine.timezonesModel
+                keymapsModel: engine.keymapsModel
+                keyboardVariantsModel: engine.keyboardVariantsModel
+                // Les sélections (selectedLocale/Timezone/Keymap/Variant) sont
+                // désormais lues directement depuis engine par la vue (miroirs
+                // readonly), plus besoin de les passer ici.
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+
+                // Auto-detect and apply UI language when LocaleView opens
+                onVisibleChanged: {
+                    if (visible && engine.detectedLocale) {
+                        // Extract base locale (e.g., "fr_FR" from "fr_FR.UTF-8")
+                        var detectedBase = engine.detectedLocale.split(".")[0]
+                        var currentBase = translator.currentLocale.split(".")[0]
+
+                        // Only switch if different and translator is available
+                        if (detectedBase !== currentBase && translator) {
+                            console.log("Auto-switching UI language to:", detectedBase)
+                            translator.setLocale(detectedBase)
+                        }
+                    }
+                }
+
+                onLocaleSelected: function(locale) {
+                    engine.setSelectedLocale(locale)
+                    // Trigger live language switching
+                    if (translator) {
+                        // Normalize locale for translator (remove .UTF-8 suffix)
+                        var normalizedLocale = locale.split(".")[0]
+                        translator.setLocale(normalizedLocale)
+                    }
+                    engine.applyKeyboardLayout(engine.selectedKeymap, engine.selectedKeyboardVariant)
+                }
+                onTimezoneSelected: function(timezone) {
+                    engine.setSelectedTimezone(timezone)
+                }
+                onKeymapSelected: function(keymap) {
+                    engine.setSelectedKeymap(keymap)
+                    engine.applyKeyboardLayout(engine.selectedKeymap, engine.selectedKeyboardVariant)
+                }
+                onKeyboardVariantSelected: function(variant) {
+                    engine.setSelectedKeyboardVariant(variant)
+                    engine.applyKeyboardLayout(engine.selectedKeymap, engine.selectedKeyboardVariant)
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 2: Users
+            UsersView {
+                id: usersView
+                anchors.fill: parent
+                visible: currentStep === 2
+                opacity: visible ? 1 : 0
+
+                branding: branding
+
+                // Source de vérité unique : la vue lit/écrit directement via
+                // `engine.*` (setUsername/setFullName/…). Plus de propriétés
+                // miroir ni de handlers onXChanged ici, qui cassaient le binding
+                // descendant dès la première saisie. Les mots de passe restent
+                // write-only côté vue (aucun binding descendant depuis engine).
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                errorColor: root.errorColor
+                successColor: root.successColor
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 3: Environment (desktop environment + edition/flavor)
+            EnvironmentView {
+                id: environmentView
+                anchors.fill: parent
+                visible: currentStep === 3
+                opacity: visible ? 1 : 0
+
+                desktopEnvironmentsModel: engine.desktopEnvironmentsModel
+                editionsModel: engine.editionsModel
+                // selectedDesktopEnvironment / selectedEdition are read directly
+                // from engine by the view (readonly mirrors).
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+
+                onDesktopEnvironmentSelected: function(environmentId) {
+                    engine.setDesktopEnvironment(environmentId)
+                }
+                onEditionSelected: function(editionId) {
+                    engine.setEdition(editionId)
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 4: Partition
+            PartitionView {
+                id: partitionView
+                anchors.fill: parent
+                visible: currentStep === 4
+                opacity: visible ? 1 : 0
+
+                disksModel: engine.disksModel
+                // selectedDisk / partitionMode / filesystem / swapStrategy /
+                // encryption sont lus directement depuis engine par la vue
+                // (miroirs readonly), plus besoin de les passer ici.
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                warningColor: root.warningColor
+                errorColor: root.errorColor
+
+                onDiskSelected: function(disk) {
+                    engine.setSelectedDisk(disk)
+                }
+                onModeSelected: function(mode) {
+                    engine.setPartitionMode(mode)
+                }
+                onFilesystemSelected: function(fs) {
+                    engine.setFilesystem(fs)
+                }
+                onSwapStrategySelected: function(strategy) {
+                    engine.setSwapStrategy(strategy)
+                }
+                onEncryptionToggled: function(enabled) {
+                    engine.setEncryption(enabled)
+                }
+                onEncryptionPassphraseSet: function(passphrase) {
+                    engine.setEncryptionPassphrase(passphrase)
+                }
+                onEfiSizeChanged: function(sizeMb) {
+                    engine.setEfiSizeMb(sizeMb)
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 5: Summary
+            SummaryView {
+                id: summaryView
+                anchors.fill: parent
+                visible: currentStep === 5
+                opacity: visible ? 1 : 0
+
+                // Bind chaque champ du résumé aux getters SCALAIRES notifiés du
+                // bridge (propagation fiable sur selectionsChanged) plutôt qu'au
+                // dict engine.selections dont les sous-propriétés ne se
+                // ré-évaluaient pas dans QML (fix persistance du résumé).
+                localeValue: engine.selectedLocale
+                timezoneValue: engine.selectedTimezone
+                keymapValue: engine.selectedKeymap
+                usernameValue: engine.username
+                fullNameValue: engine.fullName
+                hostnameValue: engine.hostname
+                autoLoginValue: engine.autoLogin
+                isAdminValue: engine.isAdmin
+                desktopEnvironmentValue: engine.desktopEnvironment
+                editionValue: engine.edition
+                diskValue: engine.selectedDisk
+                diskSizeValue: engine.selectedDiskSize
+                partitionModeValue: engine.partitionMode
+
+                // ITEM 2: reflète et arme la confirmation finale.
+                confirmed: engine.confirmed
+                onConfirmedToggled: function(value) { engine.setConfirmed(value) }
+
+                distroName: branding.name
+                distroVersion: branding.version
+                distroLogo: branding.logoSmallUrl
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                warningColor: root.warningColor
+
+                onEditLocale: currentStep = 1
+                onEditUsers: currentStep = 2
+                onEditEnvironment: currentStep = 3
+                onEditPartition: currentStep = 4
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 6: Progress
+            ProgressView {
+                id: progressView
+                anchors.fill: parent
+                visible: currentStep === 6
+                opacity: visible ? 1 : 0
+
+                overallProgress: engine.overallProgress
+                currentJobProgress: engine.currentJobProgress
+                currentJobName: engine.currentJobName
+                currentJobMessage: engine.currentJobMessage
+                jobsList: engine.jobsList
+                installationStatus: engine.installationStatus
+                errorMessage: engine.errorMessage
+                isStalled: engine.isStalled
+                indeterminate: engine.indeterminate
+
+                distroName: branding.name
+                distroLogo: branding.logoSmallUrl
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                accentColor: root.accentColor
+                successColor: root.successColor
+                errorColor: root.errorColor
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+
+            // Step 7: Finished
+            FinishedView {
+                id: finishedView
+                anchors.fill: parent
+                visible: currentStep === 7
+                opacity: visible ? 1 : 0
+
+                success: installationSuccess
+                installing: root.isInstalling
+                errorMessage: engine.errorMessage
+                summary: engine.installationSummary
+
+                distroName: branding.name
+                distroLogo: branding.logoUrl
+                backgroundUrl: branding.backgroundUrl
+                websiteUrl: branding.websiteUrl
+                websiteLabel: branding.websiteLabel
+
+                primaryColor: root.primaryColor
+                backgroundColor: root.backgroundColor
+                surfaceColor: root.surfaceColor
+                textColor: root.textColor
+                textMutedColor: root.textMutedColor
+                successColor: root.successColor
+                errorColor: root.errorColor
+
+                onRebootClicked: engine.executeFinishAction("reboot")
+                onShutdownClicked: engine.executeFinishAction("shutdown")
+                onContinueClicked: Qt.quit()
+                onViewLogsClicked: fullLogDialog.open()
+                onRetryClicked: {
+                    // Repart d'un état propre : réinitialise le moteur/journal
+                    // puis relance l'installation depuis le début. Le garde
+                    // isInstalling évite de rejouer le partitionnement pendant
+                    // la fenêtre où le thread précédent n'est pas encore sorti.
+                    if (root.isInstalling)
+                        return
+                    engine.resetInstallation()
+                    progressView.logMessages = []
+                    startInstallation()
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+            }
+        }
+
+        // Footer with navigation (hidden on Welcome, Progress, Finished)
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 16
+            visible: currentStep >= 1 && currentStep <= 5
+
+            Text {
+                text: qsTr("Powered by Omnis Installer")
+                font.pixelSize: 12
+                color: textMutedColor
+            }
+
+            Item { Layout.fillWidth: true }
+
+            // Back button
+            Button {
+                text: qsTr("Back")
+                onClicked: navigateBack()
+
+                background: Rectangle {
+                    implicitWidth: 100
+                    implicitHeight: 40
+                    radius: 8
+                    color: parent.pressed ? Qt.darker(surfaceColor, 1.2) :
+                           parent.hovered ? Qt.lighter(surfaceColor, 1.1) : surfaceColor
+                    border.color: textMutedColor
+                    border.width: 1
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    font.pixelSize: 14
+                    color: textColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            // Next/Install button
+            Button {
+                objectName: "nextInstallButton"
+                text: currentStep === 5 ? qsTr("Install") : qsTr("Next")
+                enabled: canProceedToNext()
+
+                background: Rectangle {
+                    implicitWidth: 120
+                    implicitHeight: 40
+                    radius: 8
+                    color: !parent.enabled ? Qt.darker(surfaceColor, 1.3) :
+                           parent.pressed ? Qt.darker(primaryColor, 1.2) :
+                           parent.hovered ? Qt.lighter(primaryColor, 1.1) : primaryColor
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    font.pixelSize: 14
+                    font.bold: true
+                    color: parent.enabled ? textColor : textMutedColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                onClicked: navigateNext()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            // Website link (right-aligned)
+            Text {
+                text: branding.websiteLabel || branding.websiteUrl
+                font.pixelSize: 12
+                color: accentColor
+
+                MouseArea {
+                    id: websiteLinkMouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onClicked: Qt.openUrlExternally(branding.websiteUrl)
+                }
+
+                // Underline on hover
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: -2
+                    color: accentColor
+                    visible: websiteLinkMouseArea.containsMouse
+                }
+
+                // Brighten on hover
+                opacity: websiteLinkMouseArea.containsMouse ? 0.8 : 1.0
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+        }
+    }
+
+    // Navigation functions
+    function navigateBack() {
+        if (currentStep > 0 && currentStep <= 5) {
+            if (currentStep === 1) {
+                currentStep = 0  // Back to Welcome
+            } else {
+                currentStep--
+            }
+        }
+    }
+
+    function navigateNext() {
+        if (currentStep === 5) {
+            // Start installation
+            startInstallation()
+        } else if (currentStep < 5) {
+            // Load data for next step if needed
+            if (currentStep === 3) {
+                engine.refreshDisks()  // Load disks before partition step (step 4)
+            }
+            currentStep++
+        }
+    }
+
+    function canProceedToNext() {
+        if (engine.skipValidation)
+            return true
+        switch (currentStep) {
+            case 1:  // Locale
+                return engine.selectedLocale !== "" &&
+                       engine.selectedTimezone !== "" &&
+                       engine.selectedKeymap !== ""
+            case 2:  // Users
+                return usersView.isValid
+            case 3:  // Environment (DE + edition) — defaults always set
+                return engine.desktopEnvironment !== "" &&
+                       engine.edition !== ""
+            case 4:  // Partition
+                return engine.selectedDisk !== ""
+            case 5:  // Summary
+                // ITEM 2: n'arme l'installation que si l'utilisateur a coché la
+                // case de confirmation (garde-fou destructif côté backend aussi).
+                return engine.confirmed
+            default:
+                return true
+        }
+    }
+
+    // La vue ne bascule plus ici : c'est onInstallationStarted qui la commande.
+    // Basculer en amont laissait l'utilisateur sur l'écran Installing alors que
+    // le moteur avait refusé de démarrer, et un Retry rejouait alors toute la
+    // liste de jobs — partitionnement destructif compris.
+    function startInstallation() {
+        engine.applySelectionsToContext()
+        engine.startInstallation()
+    }
+
+    // Step change handler
+    onCurrentStepChanged: {
+        console.log("Step changed to:", currentStep, "-", stepNames[currentStep])
+    }
+
+    // Engine connections
+    Connections {
+        target: engine
+
+        function onInstallationStarted() {
+            isInstalling = true
+            currentStep = 6  // Progress view
+        }
+
+        function onInstallationFinished(success) {
+            isInstalling = false
+            installationSuccess = success
+            currentStep = 7  // Go to Finished view
+        }
+
+        // recheckInternetStatus() relance déjà la vérification des prérequis :
+        // ici on se contente d'arrêter le sondage dès que la connexion est là.
+        function onInternetStatusChanged(connected) {
+            if (connected)
+                networkRecheckTimer.stop()
+        }
+
+        function onInstallationRefused(reason, message) {
+            console.warn("Installation refused (" + reason + "):", message)
+            isInstalling = false
+            refusalDialog.reasonCode = reason
+            refusalDialog.detail = message
+            refusalDialog.open()
+        }
+
+        function onJobProgress(jobName, percent, message) {
+            console.log("Progress:", jobName, percent + "%", message)
+        }
+
+        function onErrorOccurred(jobName, errorMessage) {
+            console.error("Error in", jobName + ":", errorMessage)
+        }
+    }
+
+    // Translator connections for live language switching
+    Connections {
+        target: translator
+
+        function onLanguageChanged() {
+            console.log("Language changed to:", translator.currentLocale)
+            // QML will automatically retranslate qsTr() strings
+            // Also retranslate branding strings from Python translator
+            branding.retranslate()
+        }
+
+        function onLocaleChanged(locale) {
+            console.log("Locale updated:", locale)
+        }
+    }
+
+    // Keyboard shortcuts
+    Shortcut {
+        sequence: "Escape"
+        enabled: currentStep > 0 && currentStep <= 5
+        onActivated: navigateBack()
+    }
+
+    Shortcut {
+        sequence: "Return"
+        enabled: currentStep >= 1 && currentStep <= 5 && canProceedToNext()
+        onActivated: navigateNext()
+    }
+
+    // Sondage borné après ouverture des réglages réseau. Un tir unique à 5 s
+    // partait au LANCEMENT de l'outil, pas à sa fermeture : choisir un réseau et
+    // saisir une phrase de passe prend bien plus que ça, et le seul essai tombait
+    // systématiquement dans le vide — les prérequis restaient au rouge.
+    Timer {
+        id: networkRecheckTimer
+        property int attemptsLeft: 0
+        readonly property int maxAttempts: 40  // ~2 min à 3 s d'intervalle
+
+        interval: 3000
+        repeat: true
+        onTriggered: {
+            if (attemptsLeft <= 0) {
+                stop()
+                return
+            }
+            attemptsLeft -= 1
+            console.log("Rechecking internet connectivity...")
+            engine.recheckInternetStatus()
+        }
+
+        function restartPolling() {
+            attemptsLeft = maxAttempts
+            restart()
+        }
+    }
+
+    // Full installation log dialog (opened from FinishedView "View Full Logs")
+    // Affiché quand le moteur refuse de démarrer l'installation (pas de droits
+    // root, outillage manquant). Sans ce retour l'utilisateur restait devant un
+    // écran figé sans savoir que rien n'avait démarré.
+    Dialog {
+        id: refusalDialog
+
+        property string reasonCode: ""
+        property string detail: ""
+
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(parent ? parent.width * 0.7 : 640, 640)
+        modal: true
+        focus: true
+        padding: 24
+        standardButtons: Dialog.Ok
+        title: reasonCode === "not-root"
+               ? qsTr("Administrator privileges required")
+               : qsTr("Cannot start the installation")
+
+        background: Rectangle {
+            color: surfaceColor
+            radius: 12
+            border.color: warningColor
+            border.width: 1
+        }
+
+        header: Rectangle {
+            color: "transparent"
+            implicitHeight: refusalTitle.implicitHeight + 24
+
+            Text {
+                id: refusalTitle
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 24
+                text: refusalDialog.title
+                font.pixelSize: 20
+                font.bold: true
+                color: textColor
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: refusalDialog.detail
+            wrapMode: Text.WordWrap
+            font.pixelSize: 14
+            color: textColor
+        }
+    }
+
+    Dialog {
+        id: fullLogDialog
+
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: parent ? parent.width * 0.9 : 900
+        height: parent ? parent.height * 0.9 : 650
+        modal: true
+        focus: true
+        padding: 20
+        title: qsTr("Installation Logs")
+
+        // Upload state, local to this dialog
+        property bool uploadInProgress: false
+        property string uploadUrl: ""
+        property string uploadError: ""
+
+        background: Rectangle {
+            color: surfaceColor
+            radius: 12
+            border.color: textMutedColor
+            border.width: 1
+        }
+
+        header: Rectangle {
+            color: "transparent"
+            implicitHeight: dialogTitle.implicitHeight + 24
+
+            Text {
+                id: dialogTitle
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 24
+                text: fullLogDialog.title
+                font.pixelSize: 20
+                font.bold: true
+                color: textColor
+            }
+        }
+
+        onOpened: {
+            uploadUrl = ""
+            uploadError = ""
+            uploadInProgress = false
+        }
+
+        Connections {
+            target: engine
+            function onLogUploadFinished(url, ok, error) {
+                fullLogDialog.uploadInProgress = false
+                if (ok) {
+                    fullLogDialog.uploadUrl = url
+                    fullLogDialog.uploadError = ""
+                } else {
+                    fullLogDialog.uploadUrl = ""
+                    fullLogDialog.uploadError = error
+                }
+            }
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 16
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                TextArea {
+                    id: fullLogTextArea
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextArea.Wrap
+                    font.family: branding.fontMonospace
+                    font.pixelSize: 12
+                    color: textColor
+                    text: engine.installationLog
+
+                    background: Rectangle {
+                        color: backgroundColor
+                        radius: 8
+                    }
+                }
+            }
+
+            // Upload result (URL sélectionnable + copie), affiché sous le journal
+            RowLayout {
+                Layout.fillWidth: true
+                visible: fullLogDialog.uploadInProgress || fullLogDialog.uploadUrl.length > 0 || fullLogDialog.uploadError.length > 0
+                spacing: 8
+
+                Text {
+                    visible: fullLogDialog.uploadInProgress
+                    text: qsTr("Sending…")
+                    color: textMutedColor
+                    font.pixelSize: 13
+                }
+
+                TextField {
+                    id: uploadUrlField
+                    Layout.fillWidth: true
+                    visible: !fullLogDialog.uploadInProgress && fullLogDialog.uploadUrl.length > 0
+                    readOnly: true
+                    selectByMouse: true
+                    text: fullLogDialog.uploadUrl
+                    color: textColor
+                    font.pixelSize: 13
+
+                    // Le style Fusion par défaut affiche un fond clair pour
+                    // les TextField (palette embossée), ce qui rend le texte
+                    // clair (`color: textColor`) illisible sur le thème
+                    // sombre du dialogue. Fond explicite pour le contraste.
+                    background: Rectangle {
+                        color: backgroundColor
+                        radius: 8
+                        border.color: textMutedColor
+                        border.width: 1
+                    }
+                }
+
+                Button {
+                    text: qsTr("Copy")
+                    visible: !fullLogDialog.uploadInProgress && fullLogDialog.uploadUrl.length > 0
+                    height: 32
+
+                    background: Rectangle {
+                        radius: 8
+                        color: parent.pressed ? Qt.darker(backgroundColor, 1.2) : backgroundColor
+                        border.color: textMutedColor
+                        border.width: 1
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        font.pixelSize: 13
+                        color: textColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: {
+                        uploadUrlField.selectAll()
+                        uploadUrlField.copy()
+                        uploadUrlField.deselect()
+                    }
+                }
+
+                Text {
+                    visible: !fullLogDialog.uploadInProgress && fullLogDialog.uploadError.length > 0
+                    text: qsTr("Sending failed: ") + fullLogDialog.uploadError
+                    color: errorColor
+                    font.pixelSize: 13
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        footer: Item {
+            implicitHeight: footerRow.implicitHeight + 24
+
+            RowLayout {
+                id: footerRow
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 12
+
+                Button {
+                    text: qsTr("Copy")
+                    onClicked: {
+                        fullLogTextArea.selectAll()
+                        fullLogTextArea.copy()
+                        fullLogTextArea.deselect()
+                    }
+                }
+
+                Button {
+                    text: qsTr("Send Logs")
+                    enabled: !fullLogDialog.uploadInProgress
+                    onClicked: {
+                        fullLogDialog.uploadInProgress = true
+                        fullLogDialog.uploadUrl = ""
+                        fullLogDialog.uploadError = ""
+                        engine.uploadInstallLog()
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: qsTr("Close")
+                    onClicked: fullLogDialog.close()
+                }
+            }
+        }
+    }
+
+    // Initialize
+    Component.onCompleted: {
+        console.log("Omnis Installer started")
+        console.log("Debug mode:", engine.debugMode)
+        console.log("Dry run:", engine.dryRun)
+
+        // Early locale detection for immediate UI translation
+        engine.loadLocaleData()
+
+        // Apply detected locale for UI translation
+        if (engine.detectedLocale && translator) {
+            var detectedBase = engine.detectedLocale.split(".")[0]
+            console.log("Early locale detection - applying UI language:", detectedBase)
+            translator.setLocale(detectedBase)
+        }
+
+        // Check system requirements
+        engine.checkRequirements()
+    }
+}

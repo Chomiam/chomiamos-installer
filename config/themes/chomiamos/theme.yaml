@@ -1,0 +1,90 @@
+# =============================================================================
+# ChomiamOS Theme - Catppuccin Mocha Edition
+# =============================================================================
+
+metadata:
+  name: "ChomiamOS"
+  codename: "Gaming Edition"
+  version: "26.05"
+  author: "Chomiam"
+  website: "https://github.com/Chomiam/nix_config_gaming"
+  license: "MIT"
+
+# -----------------------------------------------------------------------------
+# Palette de couleurs Catppuccin Mocha
+# -----------------------------------------------------------------------------
+colors:
+  primary: "#cba6f7"
+  secondary: "#b4befe"
+  accent: "#89b4fa"
+
+  background: "#1e1e2e"
+  background_light: "#181825"
+  surface: "#313244"
+
+  text: "#cdd6f4"
+  text_muted: "#a6adc8"
+  text_on_primary: "#11111b"
+
+  success: "#a6e3a1"
+  warning: "#f9e2af"
+  error: "#f38ba8"
+
+fonts:
+  primary: "Poppins"
+  display: "Lemon Milk"
+  monospace: "Roboto Mono"
+  weights:
+    regular: 400
+    medium: 600
+    bold: 700
+
+logos:
+  main: "logos/logo.png"
+  main_256: "logos/logo-256.png"
+  main_128: "logos/logo-256.png"
+  main_64: "logos/logo-64.png"
+  main_32: "logos/logo-64.png"
+
+  light: "logos/logo.png"
+  light_256: "logos/logo-256.png"
+  light_128: "logos/logo-256.png"
+
+wallpapers:
+  default: "wallpapers/wallpaper.jpeg"
+  welcome_dark: "wallpapers/wallpaper.jpeg"
+  welcome_light: "wallpapers/wallpaper.jpeg"
+
+boot:
+  bootloader: "boot/glf-bootloader.png"
+  efi_icon: "boot/glf-efi.png"
+
+requirement_icons:
+  cpu_cores: "icons/requirements/cat-cpu_cores.svg"
+  cpu_arch: "icons/requirements/cat-cpu_arch.svg"
+  ram: "icons/requirements/cat-ram.svg"
+  disk: "icons/requirements/cat-disk.svg"
+  gpu: "icons/requirements/cat-gpu.svg"
+  internet: "icons/requirements/cat-internet.svg"
+  efi: "icons/requirements/cat-efi.svg"
+  secure_boot: "icons/requirements/cat-secure_boot.svg"
+  power: "icons/requirements/cat-power.svg"
+  battery: "icons/requirements/cat-battery.svg"
+
+strings:
+  welcome_title: "Bienvenue sur ChomiamOS"
+  welcome_subtitle: "Gaming Edition — Le système Linux pensé pour le jeu vidéo et la création"
+  install_button: "Installer ChomiamOS"
+
+  progress_partitioning: "Partitionnement du disque cible..."
+  progress_installing: "Déploiement de ChomiamOS..."
+  progress_configuring: "Configuration matérielle et compte..."
+  progress_bootloader: "Installation du bootloader ChomiamOS..."
+
+  finished_title: "Installation terminée !"
+  finished_message: "ChomiamOS a été installé avec succès sur votre machine. Redémarrez dès maintenant pour profiter de votre nouveau système."
+  reboot_button: "Redémarrer maintenant"
+
+  error_generic: "Une erreur est survenue lors de l'installation"
+  error_disk_space: "Espace disque insuffisant"
+  error_network: "Connexion réseau requise pour cloner le framework"

@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Installer ChomiamOS
-Comment=Assistant d'installation graphique de ChomiamOS Gaming Edition
-Exec=sudo /usr/local/bin/chomiamos-installer
-Icon=system-software-install
-Terminal=false
-Type=Application
-Categories=System;Settings;
-StartupNotify=true

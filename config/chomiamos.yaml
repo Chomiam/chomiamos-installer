@@ -1,0 +1,160 @@
+# =============================================================================
+# Omnis Installer - Configuration ChomiamOS Gaming Edition
+# =============================================================================
+
+version: "1.0"
+
+# Dossier du thème (contenant les assets Catppuccin)
+theme: "themes/chomiamos"
+
+# -----------------------------------------------------------------------------
+# Internationalisation (i18n)
+# -----------------------------------------------------------------------------
+i18n:
+  default_locale: "fr_FR"
+  available_locales:
+    - "fr_FR"
+    - "en_US"
+  fallback_locale: "fr_FR"
+
+# -----------------------------------------------------------------------------
+# Branding ChomiamOS
+# -----------------------------------------------------------------------------
+branding:
+  name: "ChomiamOS"
+  version: "26.05"
+  edition: "Gaming Edition"
+  tagline: "Le système Linux pensé pour le jeu vidéo et la création"
+
+  colors:
+    primary: "#cba6f7"
+    secondary: "#b4befe"
+    accent: "#89b4fa"
+    background: "#1e1e2e"
+    surface: "#313244"
+    text: "#cdd6f4"
+    text_muted: "#a6adc8"
+    success: "#a6e3a1"
+    warning: "#f9e2af"
+    error: "#f38ba8"
+
+  assets:
+    logo: "logos/logo.png"
+    logo_light: "logos/logo.png"
+    logo_small: "logos/logo-64.png"
+    logo_256: "logos/logo-256.png"
+    background: "wallpapers/wallpaper.jpeg"
+    icon: "logos/logo-256.png"
+
+  fonts:
+    primary: "Poppins"
+    display: "Lemon Milk"
+    monospace: "Roboto Mono"
+
+  links:
+    website: "https://github.com/Chomiam/nix_config_gaming"
+
+# -----------------------------------------------------------------------------
+# Jobs - Pipeline d'installation séquentiel
+# -----------------------------------------------------------------------------
+jobs:
+  # 1. Écran d'accueil & Vérification matérielle
+  - name: welcome
+    config:
+      show_release_notes: false
+      check_requirements:
+        min_ram_gb: 4
+        min_disk_gb: 20
+        cpu_arch: "x86_64"
+        efi:
+          enabled: false
+          required: false
+        secure_boot:
+          enabled: false
+          require_disabled: false
+        internet:
+          enabled: true
+          required: false
+          recommended: true
+        power:
+          enabled: true
+          min_battery_percent: 20
+        gpu:
+          enabled: true
+          availability:
+            - AMD
+            - INTEL
+            - NVIDIA
+          require_dedicated: false
+          required: false
+
+  # 2. Choix de la langue, fuseau horaire et clavier
+  - name: locale
+    config:
+      default_language: "fr_FR"
+      default_timezone: "Europe/Paris"
+      show_keyboard_preview: true
+      auto_detection:
+        enabled: true
+        methods:
+          cmdline:
+            enabled: true
+          efi:
+            enabled: true
+        override_mode: "prefer_local"
+        confidence_threshold: 0.8
+
+  # 3. Partitionnement du disque cible
+  - name: partition
+    config:
+      default_filesystem: ext4
+      allow_encryption: true
+      allow_manual_partitioning: true
+      efi_partition_size_mb: 1024
+      swap_strategy: auto
+
+  # 4. Installation du système NixOS ChomiamOS
+  - name: nixos
+    config:
+      flake_source: "/etc/nixos"
+      flake_attr: "default"
+      desktop_environments:
+        - id: gnome
+          name: "GNOME"
+          description: "Interface moderne et épurée avec Dash to Dock, Vitals et thème Catppuccin pré-activé."
+          icon: "environments/gnome.png"
+          default: true
+        - id: cosmic
+          name: "COSMIC Desktop"
+          description: "Le nouvel environnement moderne en Rust développé par System76 pour des performances accrues."
+          icon: "environments/cosmic.png"
+      editions:
+        - id: gaming
+          name: "Gaming Edition"
+          description: "Suite complète de jeu : Steam, Lutris, Heroic, Faugus, GameMode, GameScope et pilotes GPU optimisés."
+          icon: "editions/standard.png"
+          default: true
+        - id: studio
+          name: "Création / Studio"
+          description: "Suite Gaming complète enrichie d'outils de création : Blender, DaVinci Resolve, Godot Engine."
+          icon: "editions/studio.png"
+        - id: minimal
+          name: "Minimal"
+          description: "Système épuré sans suites logicielles gaming préinstallées, idéal pour une installation légère."
+          icon: "editions/mini.png"
+
+  # 5. Finalisation
+  - name: finished
+    config:
+      show_install_log: true
+      auto_reboot_delay: 10
+
+# -----------------------------------------------------------------------------
+# Options avancées
+# -----------------------------------------------------------------------------
+advanced:
+  log_level: info
+  log_file: "/var/log/omnis-install.log"
+  ipc_socket: "/run/omnis/ipc.sock"
+  job_timeout: 7200
+  debug_mode: false
