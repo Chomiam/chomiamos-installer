@@ -78,10 +78,14 @@ in
     wget
     whois # Fournit mkpasswd
 
+    # Navigateur Web
+    firefox
+
     # Extensions GNOME & Thème Catppuccin Mocha
     gnomeExtensions.dash-to-dock
     gnomeExtensions.vitals
     gnomeExtensions.blur-my-shell
+    gnomeExtensions.arcmenu
     gnomeExtensions.user-themes
     catppuccinTheme
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
@@ -155,16 +159,25 @@ in
             "dash-to-dock@micxgx.gmail.com"
             "Vitals@CoreCoding.com"
             "blur-my-shell@aunetx"
+            "arcmenu@arcmenu.com"
           ];
           favorite-apps = [
             "omnis.desktop"
             "org.gnome.Nautilus.desktop"
             "kitty.desktop"
-            "google-chrome.desktop"
+            "firefox.desktop"
           ];
         };
         "org/gnome/shell/extensions/user-theme" = {
           name = "catppuccin-mocha-lavender-standard";
+        };
+
+        "org/gnome/shell/extensions/arcmenu" = {
+          menu-button-appearance = "None";
+          menu-layout = "runner";
+          prefs-visible-page = lib.gvariant.mkInt32 0;
+          search-entry-border-radius = lib.gvariant.mkTuple [ (lib.gvariant.mkBoolean true) (lib.gvariant.mkInt32 25) ];
+          update-notifier-project-version = lib.gvariant.mkInt32 73;
         };
         "org/gnome/desktop/wm/preferences" = {
           button-layout = "icon:minimize,maximize,close";

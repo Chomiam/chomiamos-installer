@@ -527,6 +527,7 @@ ApplicationWindow {
                 aiSuiteValue: engine.aiSuite
                 antigravityValue: engine.antigravity
                 pearDesktopValue: engine.pearDesktop
+                kdenliveValue: engine.kdenlive
 
                 diskValue: engine.selectedDisk
                 diskSizeValue: engine.selectedDiskSize

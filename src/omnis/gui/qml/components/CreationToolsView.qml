@@ -301,6 +301,14 @@ Item {
                     }
 
                     CheckCard {
+                        title: "Kdenlive"
+                        subtitle: qsTr("Éditeur de montage vidéo multi-pistes open-source puissant, fluide et complet pour vos créations.")
+                        iconText: "🎞️"
+                        checked: engine.kdenlive
+                        onToggled: engine.setKdenlive(!engine.kdenlive)
+                    }
+
+                    CheckCard {
                         title: "Godot Engine"
                         subtitle: qsTr("Moteur de jeu vidéo 2D et 3D open-source léger, idéal pour la création indépendante.")
                         iconText: "🤖"

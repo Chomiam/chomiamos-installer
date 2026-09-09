@@ -68,6 +68,7 @@ Item {
     property bool aiSuiteValue: false
     property bool antigravityValue: true
     property bool pearDesktopValue: true
+    property bool kdenliveValue: true
 
     // Stockage
     property string diskValue: ""
@@ -154,6 +155,7 @@ Item {
         if (aiSuiteValue) list.push("Suite IA Locale")
         if (antigravityValue) list.push("Antigravity IDE")
         if (pearDesktopValue) list.push("Pear Desktop")
+        if (kdenliveValue) list.push("Kdenlive")
         if (list.length === 0) return "Aucun outil sélectionné"
         return list.join(", ")
     }
@@ -243,7 +245,7 @@ Item {
 
                                 Text {
                                     text: qsTr("Environnement : %1 | Navigateur : %2")
-                                          .arg(desktopEnvironmentValue === "cosmic" ? "COSMIC Desktop" : "GNOME 48")
+                                          .arg(desktopEnvironmentValue === "cosmic" ? "COSMIC (Expérimental)" : "GNOME (Défaut)")
                                           .arg(formatBrowserLabel(browserValue))
                                     font.pixelSize: 13
                                     color: textMutedColor

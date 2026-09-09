@@ -257,6 +257,7 @@ class NixosJob(BaseJob):
         ai_suite = "true" if s.get("ai_suite", s.get("aiSuite", False)) else "false"
         antigravity = "true" if s.get("antigravity", True) else "false"
         pear_desktop = "true" if s.get("pear_desktop", s.get("pearDesktop", True)) else "false"
+        kdenlive = "true" if s.get("kdenlive", True) else "false"
 
         # Multimedia & Network selections
         stremio = "true" if s.get("stremio", True) else "false"
@@ -341,6 +342,7 @@ class NixosJob(BaseJob):
   # Productivité & Outils
   antigravity = {antigravity};
   pearDesktop = {pear_desktop};
+  kdenlive = {kdenlive};
 
   aiSuite = {{
     enable = {ai_suite};

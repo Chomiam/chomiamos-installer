@@ -1323,6 +1323,7 @@ class EngineBridge(QObject):
             "aiSuite": False,
             "antigravity": True,
             "pearDesktop": True,
+            "kdenlive": True,
             "userShell": "fish",
             # Granular Multimedia & Network
             "stremio": True,
@@ -3079,6 +3080,16 @@ class EngineBridge(QObject):
     def setPearDesktop(self, enabled: bool) -> None:
         if self._selections.get("pearDesktop") != enabled:
             self._selections["pearDesktop"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def kdenlive(self) -> bool:
+        return bool(self._selections.get("kdenlive", True))
+
+    @Slot(bool)
+    def setKdenlive(self, enabled: bool) -> None:
+        if self._selections.get("kdenlive") != enabled:
+            self._selections["kdenlive"] = enabled
             self.selectionsChanged.emit()
 
     # Multimedia & Network

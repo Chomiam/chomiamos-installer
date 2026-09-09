@@ -171,7 +171,7 @@ Item {
                         }
 
                         ChoiceCard {
-                            title: "GNOME 48"
+                            title: "GNOME (Défaut)"
                             subtitle: qsTr("Interface soignée, stable et productive avec Dash to Dock, Vitals et Blur My Shell.")
                             iconText: "🖥️"
                             selected: engine.desktopEnvironment === "gnome"
@@ -179,7 +179,7 @@ Item {
                         }
 
                         ChoiceCard {
-                            title: "COSMIC Desktop"
+                            title: "COSMIC (Expérimental)"
                             subtitle: qsTr("Le nouvel environnement ultra-rapide écrit en Rust par System76, conçu pour le multitâche et le jeu.")
                             iconText: "🚀"
                             selected: engine.desktopEnvironment === "cosmic"
