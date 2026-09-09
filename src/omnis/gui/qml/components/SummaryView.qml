@@ -57,12 +57,17 @@ Item {
     property bool tailscaleValue: true
     property bool motrixValue: true
 
+    // Utilisateur
+    property string userShellValue: "fish"
+
     // Création & Outils
     property string davinciResolveValue: "none"
     property bool blenderValue: true
     property bool godotValue: true
     property bool virtualisationValue: true
     property bool aiSuiteValue: false
+    property bool antigravityValue: true
+    property bool pearDesktopValue: true
 
     // Stockage
     property string diskValue: ""
@@ -147,6 +152,8 @@ Item {
         if (godotValue) list.push("Godot Engine")
         if (virtualisationValue) list.push("Virtualisation KVM")
         if (aiSuiteValue) list.push("Suite IA Locale")
+        if (antigravityValue) list.push("Antigravity IDE")
+        if (pearDesktopValue) list.push("Pear Desktop")
         if (list.length === 0) return "Aucun outil sélectionné"
         return list.join(", ")
     }
@@ -473,10 +480,11 @@ Item {
                                 }
 
                                 Text {
-                                    text: qsTr("Compte : %1 (%2) | Machine : %3")
+                                    text: qsTr("Compte : %1 (%2) | Machine : %3 | Shell : %4")
                                           .arg(usernameValue || "chomiam")
                                           .arg(fullNameValue || "ChomiamOS User")
                                           .arg(hostnameValue || "chomiamos")
+                                          .arg((userShellValue || "fish").toUpperCase())
                                     font.pixelSize: 13
                                     color: textMutedColor
                                 }

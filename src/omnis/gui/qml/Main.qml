@@ -519,11 +519,14 @@ ApplicationWindow {
                 tailscaleValue: engine.tailscale
                 motrixValue: engine.motrix
 
+                userShellValue: engine.userShell
                 davinciResolveValue: engine.davinciResolve
                 blenderValue: engine.blender
                 godotValue: engine.godot
                 virtualisationValue: engine.virtualisation
                 aiSuiteValue: engine.aiSuite
+                antigravityValue: engine.antigravity
+                pearDesktopValue: engine.pearDesktop
 
                 diskValue: engine.selectedDisk
                 diskSizeValue: engine.selectedDiskSize

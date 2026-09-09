@@ -225,12 +225,19 @@ class NixosJob(BaseJob):
         geforce_now = "true" if s.get("geforce_now", s.get("geforceNow", True)) else "false"
         steering_wheels = "true" if s.get("steering_wheels", s.get("steeringWheels", True)) else "false"
 
+        # User Shell
+        user_shell = str(s.get("shell") or s.get("userShell") or "fish").strip().lower()
+        if user_shell not in ("fish", "bash", "zsh"):
+            user_shell = "fish"
+
         # Creative & Pro tools selections
         davinci = str(s.get("davinci_resolve") or s.get("davinciResolve") or "none").strip().lower()
         blender = "true" if s.get("blender", True) else "false"
         godot = "true" if s.get("godot", True) else "false"
         virtualisation = "true" if s.get("virtualisation", True) else "false"
         ai_suite = "true" if s.get("ai_suite", s.get("aiSuite", False)) else "false"
+        antigravity = "true" if s.get("antigravity", True) else "false"
+        pear_desktop = "true" if s.get("pear_desktop", s.get("pearDesktop", True)) else "false"
 
         # Multimedia & Network selections
         stremio = "true" if s.get("stremio", True) else "false"
@@ -262,7 +269,7 @@ class NixosJob(BaseJob):
     username = "{username}";
     fullName = "{fullname}";
     homeDirectory = "/home/{username}";
-    shell = "fish";
+    shell = "{user_shell}";
     initialHashedPassword = {hashed_pwd};
     extraGroups = [
       "networkmanager"
@@ -311,6 +318,10 @@ class NixosJob(BaseJob):
   davinciResolve = "{davinci}";
   blender = {blender};
   godot = {godot};
+
+  # Productivité & Outils
+  antigravity = {antigravity};
+  pearDesktop = {pear_desktop};
 
   aiSuite = {{
     enable = {ai_suite};

@@ -323,6 +323,22 @@ Item {
                         checked: engine.aiSuite
                         onToggled: engine.setAiSuite(!engine.aiSuite)
                     }
+
+                    CheckCard {
+                        title: "Antigravity IDE"
+                        subtitle: qsTr("Environnement de développement moderne et assistant de programmation IA de nouvelle génération par Google DeepMind.")
+                        iconText: "🚀"
+                        checked: engine.antigravity
+                        onToggled: engine.setAntigravity(!engine.antigravity)
+                    }
+
+                    CheckCard {
+                        title: "Pear Desktop"
+                        subtitle: qsTr("Application de bureau et lecteur YouTube Music enrichi avec plugins, visualiseur audio et bloqueur intégré.")
+                        iconText: "🍐"
+                        checked: engine.pearDesktop
+                        onToggled: engine.setPearDesktop(!engine.pearDesktop)
+                    }
                 }
 
                 Item { Layout.preferredHeight: 16 }

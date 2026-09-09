@@ -1116,6 +1116,92 @@ Item {
                                     wrapMode: Text.WordWrap
                                 }
                             }
+
+                            // Shell de connexion
+                            Column {
+                                width: parent.width
+                                spacing: 6
+
+                                Text {
+                                    text: qsTr("Shell par défaut :")
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: textColor
+                                }
+
+                                Row {
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 100
+                                        height: 30
+                                        radius: 6
+                                        color: engine.userShell === "fish" ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.25) : "transparent"
+                                        border.color: engine.userShell === "fish" ? primaryColor : textMutedColor
+                                        border.width: engine.userShell === "fish" ? 2 : 1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Fish (Défaut)"
+                                            font.pixelSize: 12
+                                            font.bold: engine.userShell === "fish"
+                                            color: engine.userShell === "fish" ? primaryColor : textColor
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: engine.setUserShell("fish")
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 70
+                                        height: 30
+                                        radius: 6
+                                        color: engine.userShell === "zsh" ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.25) : "transparent"
+                                        border.color: engine.userShell === "zsh" ? primaryColor : textMutedColor
+                                        border.width: engine.userShell === "zsh" ? 2 : 1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Zsh"
+                                            font.pixelSize: 12
+                                            font.bold: engine.userShell === "zsh"
+                                            color: engine.userShell === "zsh" ? primaryColor : textColor
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: engine.setUserShell("zsh")
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 70
+                                        height: 30
+                                        radius: 6
+                                        color: engine.userShell === "bash" ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.25) : "transparent"
+                                        border.color: engine.userShell === "bash" ? primaryColor : textMutedColor
+                                        border.width: engine.userShell === "bash" ? 2 : 1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Bash"
+                                            font.pixelSize: 12
+                                            font.bold: engine.userShell === "bash"
+                                            color: engine.userShell === "bash" ? primaryColor : textColor
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: engine.setUserShell("bash")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

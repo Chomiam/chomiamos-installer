@@ -1321,6 +1321,9 @@ class EngineBridge(QObject):
             "godot": True,
             "virtualisation": True,
             "aiSuite": False,
+            "antigravity": True,
+            "pearDesktop": True,
+            "userShell": "fish",
             # Granular Multimedia & Network
             "stremio": True,
             "vlc": True,
@@ -3041,6 +3044,37 @@ class EngineBridge(QObject):
             self._selections["aiSuite"] = enabled
             self.selectionsChanged.emit()
 
+    # Shell & Productivity Tools
+    @Property(str, notify=selectionsChanged)
+    def userShell(self) -> str:
+        return str(self._selections.get("userShell", "fish"))
+
+    @Slot(str)
+    def setUserShell(self, shell: str) -> None:
+        if self._selections.get("userShell") != shell:
+            self._selections["userShell"] = shell
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def antigravity(self) -> bool:
+        return bool(self._selections.get("antigravity", True))
+
+    @Slot(bool)
+    def setAntigravity(self, enabled: bool) -> None:
+        if self._selections.get("antigravity") != enabled:
+            self._selections["antigravity"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def pearDesktop(self) -> bool:
+        return bool(self._selections.get("pearDesktop", True))
+
+    @Slot(bool)
+    def setPearDesktop(self, enabled: bool) -> None:
+        if self._selections.get("pearDesktop") != enabled:
+            self._selections["pearDesktop"] = enabled
+            self.selectionsChanged.emit()
+
     # Multimedia & Network
     @Property(bool, notify=selectionsChanged)
     def stremio(self) -> bool:
@@ -3305,6 +3339,10 @@ class EngineBridge(QObject):
             normalized["root_password"] = normalized.pop("rootPassword")
         if "rootSameAsUser" in normalized:
             normalized["root_same_as_user"] = normalized.pop("rootSameAsUser")
+        if "userShell" in normalized:
+            normalized["shell"] = normalized.pop("userShell")
+        if "pearDesktop" in normalized:
+            normalized["pear_desktop"] = normalized.get("pearDesktop")
         # Disk/partition camelCase -> snake_case (partition.py reads snake_case).
         if "partitionMode" in normalized:
             normalized["partition_mode"] = normalized.pop("partitionMode")
