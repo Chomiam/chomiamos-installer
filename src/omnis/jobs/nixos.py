@@ -157,6 +157,10 @@ class NixosJob(BaseJob):
     name = "nixos"
     description = "Génération de la configuration et déploiement de ChomiamOS"
 
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
+        super().__init__(config)
+        self._succeeded = False
+
     required_tools = (
         "nixos-generate-config",
         "nixos-install",
@@ -434,6 +438,7 @@ class NixosJob(BaseJob):
             if not result.success:
                 return result
 
+            self._succeeded = True
             context.report_progress(100, "Installation de ChomiamOS terminée avec succès !")
             return JobResult.ok(
                 f"ChomiamOS installé avec succès sur {target_root}",
@@ -700,12 +705,22 @@ class NixosJob(BaseJob):
     def cleanup(self, context: JobContext) -> None:
         if bool(context.selections.get("dry_run", True)):
             return
+        if self._succeeded:
+            # NixOS installation succeeded. The mounts must remain intact
+            # so the subsequent finished job can save installation logs
+            # to /mnt/target/var/log/omnis-installer/ and perform the final
+            # clean unmount and sync.
+            return
         target_root = context.target_root
         if not target_root:
             return
         try:
-            subprocess.run(["umount", "-R", target_root], check=False, capture_output=True, text=True)
-            logger.info("Démontage récursif de %s réussi", target_root)
+            subprocess.run(["sync"], check=False)
+            res = subprocess.run(["umount", "-R", target_root], check=False, capture_output=True, text=True)
+            if res.returncode == 0:
+                logger.info("Démontage d'urgence récursif de %s réussi", target_root)
+            else:
+                logger.debug("Échec démontage d'urgence %s: %s", target_root, res.stderr)
         except Exception as e:
             logger.debug("Erreur de démontage %s: %s", target_root, e)
 

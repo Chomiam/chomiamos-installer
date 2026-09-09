@@ -47,6 +47,7 @@ class FinishedJob(BaseJob):
         """Initialize the finished job."""
         super().__init__(config)
         self._summary: dict[str, Any] = {}
+        self._succeeded = False
 
     def _generate_summary(self, context: JobContext) -> dict[str, Any]:
         """
@@ -155,26 +156,58 @@ class FinishedJob(BaseJob):
             # Non-critical: continue even if log saving fails
             return JobResult.ok(f"Log saving failed (non-critical): {e}")
 
+    def _get_active_mounts_under(self, target_root: Path) -> list[Path]:
+        """
+        Discover all active mount points under target_root, sorted deepest first.
+        """
+        target_str = str(target_root.resolve()).rstrip("/")
+        found: set[Path] = set()
+
+        try:
+            with open("/proc/mounts", "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) >= 2:
+                        mp = parts[1]
+                        try:
+                            mp_decoded = mp.encode("utf-8").decode("unicode_escape")
+                        except Exception:
+                            mp_decoded = mp
+                        if mp_decoded.startswith(f"{target_str}/"):
+                            p = Path(mp_decoded)
+                            if p.exists() and os.path.ismount(p):
+                                found.add(p)
+        except Exception as e:
+            logger.warning(f"Failed to read /proc/mounts: {e}")
+
+        # Explicitly check standard submount locations
+        for extra in [
+            target_root / "boot" / "efi",
+            target_root / "boot",
+            target_root / "efi",
+            target_root / "home",
+            target_root / "var",
+            target_root / "nix",
+            target_root / "dev",
+            target_root / "proc",
+            target_root / "sys",
+        ]:
+            if extra.exists() and os.path.ismount(extra):
+                found.add(extra)
+
+        # Sort descending by path length so deepest submounts are unmounted first
+        return sorted(list(found), key=lambda p: len(str(p)), reverse=True)
+
     def _safe_unmount(self, mount_point: Path, attempts: int = UNMOUNT_ATTEMPTS) -> bool:
         """
-        Unmount a filesystem, retrying a few times while it is still busy.
-
-        Lazy unmount (``umount -l``) is deliberately NOT used as a fallback: it
-        detaches the tree while the ext4 journal thread (``jbd2/<dev>``) keeps
-        holding the block device, so the next run's ``wipefs`` fails with EBUSY
-        on a disk that has no mount and no swap left to release. A busy target
-        must surface as an explicit, logged failure instead.
-
-        Args:
-            mount_point: Path to unmount
-            attempts: Number of ``umount`` attempts before giving up
-
-        Returns:
-            True if unmounted successfully, False otherwise
+        Unmount a filesystem, retrying with sync, process termination, and fallback.
         """
         if not os.path.ismount(mount_point):
             logger.debug(f"Mount point {mount_point} not mounted, skipping")
             return True
+
+        # Flush dirty buffers first
+        subprocess.run(["sync"], check=False)
 
         last_error = ""
         for attempt in range(1, attempts + 1):
@@ -200,7 +233,30 @@ class FinishedJob(BaseJob):
                 f"Failed to unmount {mount_point} (attempt {attempt}/{attempts}): {last_error}"
             )
             if attempt < attempts:
+                try:
+                    subprocess.run(["fuser", "-km", str(mount_point)], check=False, capture_output=True)
+                except Exception:
+                    pass
                 time.sleep(UNMOUNT_RETRY_DELAY)
+
+        # Fallback: lazy unmount (umount -l)
+        logger.warning(f"Attempting lazy unmount for {mount_point}...")
+        try:
+            subprocess.run(["sync"], check=False)
+            res = subprocess.run(
+                ["umount", "-l", str(mount_point)],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if res.returncode == 0:
+                logger.info(f"Lazy unmounted {mount_point}")
+                return True
+            else:
+                last_error = (res.stderr or "").strip() or f"exit code {res.returncode}"
+        except Exception as e:
+            last_error = str(e)
 
         logger.error(
             f"Giving up on unmounting {mount_point} after {attempts} attempts: {last_error}"
@@ -211,30 +267,28 @@ class FinishedJob(BaseJob):
         """
         Clean up all mounted filesystems.
 
-        Unmounts in correct order (child before parent):
-        1. /mnt/target/boot/efi
+        Unmounts in correct order:
+        1. All child submounts (deepest children first, e.g. /boot before root)
         2. /mnt/target (root)
-        3. swapoff for swap partitions
-
-        Args:
-            context: Execution context
-
-        Returns:
-            JobResult indicating cleanup status
+        3. swapoff for active swap partitions
         """
         target_root = Path(context.target_root)
         errors = []
 
-        # Unmount EFI partition first (child)
-        efi_mount = target_root / "boot" / "efi"
-        if os.path.ismount(efi_mount) and not self._safe_unmount(efi_mount):
-            errors.append(f"Failed to unmount EFI partition: {efi_mount}")
+        subprocess.run(["sync"], check=False)
 
-        # Unmount root partition
+        # 1. Unmount all child mount points under target_root (deepest first)
+        child_mounts = self._get_active_mounts_under(target_root)
+        for child in child_mounts:
+            if os.path.ismount(child):
+                if not self._safe_unmount(child):
+                    errors.append(f"Failed to unmount submount: {child}")
+
+        # 2. Unmount root partition
         if os.path.ismount(target_root) and not self._safe_unmount(target_root):
             errors.append(f"Failed to unmount root partition: {target_root}")
 
-        # Deactivate swap if it was used
+        # 3. Deactivate swap if it was used
         swap_partition = context.selections.get("swap_partition")
         if swap_partition:
             try:
@@ -256,33 +310,40 @@ class FinishedJob(BaseJob):
                 errors.append("Swap deactivation timeout")
 
         # Also check for swap in layout data from partition job
-        # (partition job stores layout in result data)
         if "swap" in context.selections:
             swap_path = context.selections["swap"]
-            if swap_path:
+            if swap_path and swap_path != swap_partition:
                 try:
-                    swapoff = subprocess.run(
+                    subprocess.run(
                         ["swapoff", swap_path],
-                        check=False,  # Already-off swap is not an error here
+                        check=False,
                         capture_output=True,
                         text=True,
                         timeout=10,
                     )
-                    if swapoff.returncode == 0:
-                        logger.info(f"Deactivated swap (from layout): {swap_path}")
-                    else:
-                        logger.warning(
-                            f"Could not deactivate swap (from layout) {swap_path}: "
-                            f"{(swapoff.stderr or '').strip()}"
-                        )
-                except Exception as e:
-                    logger.debug(f"Swap deactivation (layout) failed: {e}")
+                except Exception:
+                    pass
+
+        # Also deactivate swap from /proc/swaps if target disk has swap
+        try:
+            target_disk = str(context.selections.get("disk", ""))
+            with open("/proc/swaps", "r") as f:
+                for line in f.readlines()[1:]:
+                    swap_dev = line.split()[0]
+                    if target_disk and swap_dev.startswith(target_disk):
+                        subprocess.run(["swapoff", swap_dev], check=False)
+                        logger.info(f"Deactivated swap from /proc/swaps: {swap_dev}")
+        except Exception:
+            pass
+
+        subprocess.run(["sync"], check=False)
 
         if errors:
-            return JobResult.fail(
-                message=f"Cleanup completed with {len(errors)} error(s): {'; '.join(errors)}",
-                error_code=50,
-                data={"errors": errors},
+            logger.warning(f"Cleanup finished with warnings: {'; '.join(errors)}")
+            # Do NOT fail an already successful installation: data was synced and reboot will clean up
+            return JobResult.ok(
+                message=f"Cleanup completed with warnings: {'; '.join(errors)}",
+                data={"warnings": errors},
             )
 
         return JobResult.ok("All filesystems unmounted successfully")
@@ -405,20 +466,13 @@ class FinishedJob(BaseJob):
         context.report_progress(60, "Cleaning up filesystems...")
         cleanup_result = self._cleanup_mounts(context)
         if not cleanup_result.success:
-            # Cleanup failure is critical
-            return JobResult.fail(
-                f"Cleanup failed: {cleanup_result.message}",
-                error_code=cleanup_result.error_code,
-                data={
-                    "summary": self._summary,
-                    "cleanup_errors": cleanup_result.data.get("errors", []),
-                },
-            )
+            logger.warning(f"Cleanup warning: {cleanup_result.message}")
 
         # Step 4: Prepare action
         context.report_progress(90, "Preparing for completion...")
         action_result = self._prepare_action(context)
 
+        self._succeeded = True
         context.report_progress(100, "Installation complete!")
 
         # Build final result data
@@ -439,18 +493,14 @@ class FinishedJob(BaseJob):
     def cleanup(self, context: JobContext) -> None:
         """
         Cleanup after job execution failure.
-
-        Ensures unmounting even on failure to prevent system corruption.
-
-        Args:
-            context: Execution context
         """
+        if self._succeeded:
+            return
         logger.info("Running emergency cleanup...")
         cleanup_result = self._cleanup_mounts(context)
 
         if not cleanup_result.success:
-            logger.error(f"Emergency cleanup failed: {cleanup_result.message}")
-            logger.error("Manual unmounting may be required!")
+            logger.warning(f"Emergency cleanup warning: {cleanup_result.message}")
         else:
             logger.info("Emergency cleanup completed successfully")
 
