@@ -179,6 +179,8 @@ Item {
                 // Two columns: Multimedia (left) and Network (right)
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: 850
+                    Layout.alignment: Qt.AlignHCenter
                     spacing: 24
 
                     // Left Column: Multimedia
@@ -199,7 +201,7 @@ Item {
                             title: "Stremio"
                             badge: "Streaming & VOD"
                             iconText: "📺"
-                            subtitle: qsTr("Plateforme moderne de streaming vidéo pour films, séries et vidéos avec support d'''extensions communautaires.")
+                            subtitle: qsTr("Plateforme moderne de streaming vidéo pour films, séries et vidéos avec support d'extensions communautaires.")
                             checked: engine.stremio
                             onToggled: engine.setStremio(!engine.stremio)
                         }

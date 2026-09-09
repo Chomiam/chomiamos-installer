@@ -438,11 +438,11 @@ ApplicationWindow {
                 }
             }
 
-            // Step 7: Creation & Tools
+            // Step 8: Creation & Tools
             CreationToolsView {
                 id: creationToolsView
                 anchors.fill: parent
-                visible: currentStep === 7
+                visible: currentStep === 8
                 opacity: visible ? 1 : 0
 
                 primaryColor: root.primaryColor

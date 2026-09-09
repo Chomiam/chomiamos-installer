@@ -14,5 +14,6 @@ FinishedView 1.0 FinishedView.qml
 DesktopBrowserView 1.0 DesktopBrowserView.qml
 CommunicationView 1.0 CommunicationView.qml
 GamingView 1.0 GamingView.qml
+EmulationView 1.0 EmulationView.qml
 CreationToolsView 1.0 CreationToolsView.qml
 MediaNetworkView 1.0 MediaNetworkView.qml

@@ -220,7 +220,7 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: qsTr("Résumé de l'''Installation")
+                        text: qsTr("Résumé de l'Installation")
                         font.pixelSize: 24
                         font.bold: true
                         color: textColor
@@ -228,7 +228,7 @@ Item {
                     }
 
                     Text {
-                        text: qsTr("Veuillez vérifier l'''ensemble des paramètres sélectionnés avant de lancer l'''installation")
+                        text: qsTr("Veuillez vérifier l'ensemble des paramètres sélectionnés avant de lancer l'installation")
                         font.pixelSize: 14
                         color: textMutedColor
                         Layout.alignment: Qt.AlignHCenter
