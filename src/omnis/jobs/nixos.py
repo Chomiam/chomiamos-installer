@@ -257,6 +257,7 @@ class NixosJob(BaseJob):
         emulation_enable = "true" if s.get("emulation_enable", s.get("emulationEnable", True)) else "false"
         emulation_frontend = str(s.get("emulation_frontend") or s.get("emulationFrontend") or "es-de").strip().lower()
         retroarch_enable = "true" if s.get("retroarch_enable", s.get("retroarchEnable", True)) else "false"
+        duckstation = "true" if s.get("duckstation", True) else "false"
         eden = "true" if s.get("eden", True) else "false"
         dolphin = "true" if s.get("dolphin", True) else "false"
         pcsx2 = "true" if s.get("pcsx2", True) else "false"
@@ -361,6 +362,7 @@ class NixosJob(BaseJob):
     }};
 
     standalone = {{
+      duckstation = {duckstation};
       eden = {eden};
       dolphin = {dolphin};
       pcsx2 = {pcsx2};

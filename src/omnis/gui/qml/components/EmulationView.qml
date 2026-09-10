@@ -240,6 +240,14 @@ Item {
                     }
 
                     CheckCard {
+                        title: "PlayStation 1 (DuckStation)"
+                        subtitle: qsTr("Émulateur PS1 de référence avec rendu Vulkan, upscaling 4K et correction PGXP.")
+                        iconText: "🦆"
+                        checked: engine.duckstation
+                        onToggled: engine.setDuckstation(!engine.duckstation)
+                    }
+
+                    CheckCard {
                         title: "PlayStation 2 (PCSX2)"
                         subtitle: qsTr("Version moderne 2.6.x Qt/Vulkan avec upscaling haute résolution et correctifs 60 FPS.")
                         iconText: "🎮"

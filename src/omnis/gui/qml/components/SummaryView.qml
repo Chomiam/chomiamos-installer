@@ -56,6 +56,7 @@ Item {
     property bool retroarchEnableValue: true
     property bool edenValue: true
     property bool dolphinValue: true
+    property bool duckstationValue: true
     property bool pcsx2Value: true
     property bool ppssppValue: true
     property bool melondsValue: true
@@ -150,6 +151,7 @@ Item {
         if (retroarchEnableValue) list.push("RetroArch (2D/PS1)")
         if (edenValue) list.push("Eden (Switch)")
         if (dolphinValue) list.push("Dolphin (GC/Wii)")
+        if (duckstationValue) list.push("DuckStation (PS1)")
         if (pcsx2Value) list.push("PCSX2 (PS2)")
         if (ppssppValue) list.push("PPSSPP (PSP)")
         if (melondsValue) list.push("melonDS (DS)")

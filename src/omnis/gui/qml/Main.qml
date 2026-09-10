@@ -537,6 +537,7 @@ ApplicationWindow {
                 retroarchEnableValue: engine.retroarchEnable
                 edenValue: engine.eden
                 dolphinValue: engine.dolphin
+                duckstationValue: engine.duckstation,
                 pcsx2Value: engine.pcsx2
                 ppssppValue: engine.ppsspp
                 melondsValue: engine.melonds

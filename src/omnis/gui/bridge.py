@@ -1330,6 +1330,7 @@ class EngineBridge(QObject):
             "emulationEnable": True,
             "emulationFrontend": "es-de",
             "retroarchEnable": True,
+            "duckstation": True,
             "eden": True,
             "dolphin": True,
             "pcsx2": True,
@@ -3148,6 +3149,16 @@ class EngineBridge(QObject):
     def setRetroarchEnable(self, enabled: bool) -> None:
         if self._selections.get("retroarchEnable") != enabled:
             self._selections["retroarchEnable"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def duckstation(self) -> bool:
+        return bool(self._selections.get("duckstation", True))
+
+    @Slot(bool)
+    def setDuckstation(self, enabled: bool) -> None:
+        if self._selections.get("duckstation") != enabled:
+            self._selections["duckstation"] = enabled
             self.selectionsChanged.emit()
 
     @Property(bool, notify=selectionsChanged)
