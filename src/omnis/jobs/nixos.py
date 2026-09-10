@@ -715,9 +715,37 @@ class NixosJob(BaseJob):
             vars_path.write_text(vars_cfg, encoding="utf-8")
             logger.info("Fichier vars.nix écrit avec succès sur %s", vars_path)
 
+            # 4b. Sauvegardes inviolables locales (protection utilisateur et matériel)
+            backup_vars = etc_nixos / ".vars.nix.backup"
+            backup_vars.write_text(vars_cfg, encoding="utf-8")
+            try:
+                os.chmod(backup_vars, 0o600)
+            except Exception:
+                pass
+
+            hw_orig = etc_nixos / "hosts" / "desktop" / "hardware-configuration.nix"
+            if hw_orig.exists():
+                backup_hw = etc_nixos / ".hardware-configuration.nix.backup"
+                backup_hw.write_text(hw_orig.read_text(encoding="utf-8"), encoding="utf-8")
+                try:
+                    os.chmod(backup_hw, 0o600)
+                except Exception:
+                    pass
+
+            # 4c. Configuration Git merge driver 'ours' et .gitattributes
+            gitattributes_path = etc_nixos / ".gitattributes"
+            gitattributes_path.write_text(
+                "# 🛡️ Protection des fichiers de configuration spécifiques à chaque machine\n"
+                "vars.nix merge=ours\n"
+                "hosts/desktop/hardware-configuration.nix merge=ours\n"
+                "hardware-configuration.nix merge=ours\n",
+                encoding="utf-8",
+            )
+
             # 5. Indexation Git (indispensable pour les Flakes Nix)
             if not (etc_nixos / ".git").is_dir():
                 subprocess.run(["git", "-C", str(etc_nixos), "init"], check=False)
+            subprocess.run(["git", "-C", str(etc_nixos), "config", "merge.ours.driver", "true"], check=False)
             subprocess.run(["git", "-C", str(etc_nixos), "add", "-A"], check=False)
 
             return JobResult.ok("Configuration et framework ChomiamOS déployés avec succès")
