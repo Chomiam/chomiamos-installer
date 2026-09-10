@@ -185,6 +185,14 @@ Item {
                             selected: engine.desktopEnvironment === "cosmic"
                             onClicked: engine.setDesktopEnvironment("cosmic")
                         }
+
+                        ChoiceCard {
+                            title: "Cinnamon"
+                            subtitle: qsTr("Interface traditionnelle, fluide et personnalisable avec barre des tâches classique.")
+                            iconText: "🌿"
+                            selected: engine.desktopEnvironment === "cinnamon"
+                            onClicked: engine.setDesktopEnvironment("cinnamon")
+                        }
                     }
 
                     ColumnLayout {

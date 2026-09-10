@@ -228,7 +228,7 @@ class NixosJob(BaseJob):
         username = str(s.get("username") or "chomiam")
         fullname = str(s.get("fullname") or "ChomiamOS User")
         de = str(s.get("desktop_environment") or "gnome").strip().lower()
-        desktop_env = "cosmic" if de == "cosmic" else "gnome"
+        desktop_env = "cosmic" if de == "cosmic" else "cinnamon" if de == "cinnamon" else "gnome"
         gpu = self._detect_gpu()
         state_ver = self._detect_state_version()
         browser = str(s.get("browser") or "chrome").strip().lower()

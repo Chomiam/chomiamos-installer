@@ -145,6 +145,10 @@ jobs:
           name: "COSMIC Desktop"
           description: "Le nouvel environnement moderne en Rust développé par System76 pour des performances accrues."
           icon: "environments/cosmic.png"
+        - id: cinnamon
+          name: "Cinnamon"
+          description: "Interface traditionnelle, fluide et personnalisable avec barre des tâches classique et menu démarrer."
+          icon: "environments/cinnamon.png"
       editions:
         - id: gaming
           name: "Gaming Edition"
