@@ -217,6 +217,14 @@ Item {
                         }
 
                         ChoiceCard {
+                            title: "Brave Browser"
+                            subtitle: qsTr("Navigateur rapide axé sur la confidentialité avec bloqueur de publicités et de traqueurs intégré.")
+                            iconText: "🦁"
+                            selected: engine.browser === "brave"
+                            onClicked: engine.setBrowser("brave")
+                        }
+
+                        ChoiceCard {
                             title: "Zen Browser (Flatpak)"
                             subtitle: qsTr("Navigateur basé sur Firefox avec onglets verticaux modernes et design soigné.")
                             iconText: "🧘"

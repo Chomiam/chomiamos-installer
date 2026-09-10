@@ -117,6 +117,7 @@ Item {
     function formatBrowserLabel(b) {
         if (b === "chrome") return "Google Chrome"
         if (b === "firefox") return "Mozilla Firefox"
+        if (b === "brave") return "Brave Browser"
         if (b === "zen") return "Zen Browser (Flatpak)"
         if (b === "librewolf") return "LibreWolf"
         if (b === "opera") return "Opera (Flatpak)"
