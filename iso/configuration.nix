@@ -214,7 +214,7 @@ in
   services.spice-vdagentd.enable = true;
   virtualisation.vmware.guest.enable = true;
   virtualisation.virtualbox.guest = {
-    enable = true;
+    enable = lib.mkForce true;
     dragAndDrop = true;
     clipboard = true;
   };
