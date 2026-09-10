@@ -399,6 +399,7 @@ class NixosJob(BaseJob):
     keepAlive = "0s";
     openWebUiPort = 8080;
     searxPort = 8888;
+    openFirewall = false;
   }};
 }}
 """
