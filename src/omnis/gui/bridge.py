@@ -1758,8 +1758,8 @@ class EngineBridge(QObject):
         if hasattr(os, "geteuid") and os.geteuid() != 0:
             return (
                 "not-root",
-                "Omnis must run as root to install. Relaunch it with administrator "
-                "privileges (the AppImage needs sudo/pkexec).",
+                "Omnis doit être exécuté avec les privilèges administrateur (root) pour installer ChomiamOS.\n"
+                "Veuillez relancer l'application avec la commande : sudo -E omnis",
             )
 
         preflight = self._engine.run_preflight()

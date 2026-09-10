@@ -421,6 +421,37 @@ def main() -> int:
     # acceleration. Set before any Qt object is created; override still honored.
     os.environ.setdefault("QT_QUICK_BACKEND", "software")
 
+    # Auto-elevation: disk operations, partitioning, filesystem creation, and nixos-install
+    # require root privileges (os.geteuid() == 0). When launched unprivileged (and not in
+    # dry-run or platform-info mode), automatically re-execute via sudo -E to preserve
+    # the Wayland/X11 display and session environment.
+    if hasattr(os, "geteuid") and os.geteuid() != 0 and not (args.dry_run or args.platform_info or args.engine):
+        import shutil
+        import subprocess
+
+        if shutil.which("sudo"):
+            can_elevate = False
+            try:
+                # Passwordless sudo check (standard for live ISO wheel user)
+                res = subprocess.run(["sudo", "-n", "true"], capture_output=True)
+                if res.returncode == 0:
+                    can_elevate = True
+            except Exception:
+                pass
+
+            if can_elevate or (sys.stdin.isatty() and sys.stdout.isatty()):
+                logger.info("Non-root UID detected (%d). Auto-elevating with sudo -E...", os.geteuid())
+                cmd = sys.argv[0]
+                exe = shutil.which(cmd) or cmd
+                if exe.endswith(".py"):
+                    full_cmd = ["sudo", "-E", sys.executable] + sys.argv
+                else:
+                    full_cmd = ["sudo", "-E", exe] + sys.argv[1:]
+                try:
+                    os.execvp("sudo", full_cmd)
+                except Exception as e:
+                    logger.warning("Auto sudo elevation failed: %s", e)
+
     # Configure logging
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,

@@ -193,9 +193,112 @@ Item {
         anchors.fill: parent
         color: "transparent"
 
+        // Pinned Confirmation Card at the bottom of the view
+        Rectangle {
+            id: confirmationCard
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottomMargin: 8
+            anchors.leftMargin: 20
+            anchors.rightMargin: 20
+            height: confirmRow.implicitHeight + 24
+            radius: 12
+            color: root.confirmed
+                   ? Qt.rgba(successColor.r, successColor.g, successColor.b, 0.15)
+                   : Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.12)
+            border.color: root.confirmed ? successColor : warningColor
+            border.width: 2
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 12
+                color: cardMouseArea.containsMouse
+                       ? (root.confirmed
+                          ? Qt.rgba(successColor.r, successColor.g, successColor.b, 0.08)
+                          : Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.08))
+                       : "transparent"
+            }
+
+            RowLayout {
+                id: confirmRow
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 14
+
+                // Custom Checkbox Indicator
+                Rectangle {
+                    id: checkIndicator
+                    Layout.preferredWidth: 26
+                    Layout.preferredHeight: 26
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 6
+                    color: root.confirmed ? successColor : surfaceColor
+                    border.color: root.confirmed ? successColor : warningColor
+                    border.width: 2
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "✓"
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: "#1e1e2e"
+                        visible: root.confirmed
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 3
+
+                    RowLayout {
+                        spacing: 8
+                        Text {
+                            text: root.confirmed ? "✅" : "⚠️"
+                            font.pixelSize: 15
+                        }
+                        Text {
+                            text: root.confirmed
+                                  ? qsTr("Confirmation validée — Cliquez sur « Installer » ci-dessous pour lancer l'installation")
+                                  : qsTr("Confirmation requise avant installation")
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: root.confirmed ? successColor : warningColor
+                        }
+                    }
+
+                    Text {
+                        text: qsTr("Je confirme vouloir installer ChomiamOS sur le disque (%1) et effacer son contenu.")
+                              .arg(diskValue || qsTr("disque sélectionné"))
+                        font.pixelSize: 13
+                        font.bold: true
+                        color: textColor
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            MouseArea {
+                id: cardMouseArea
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                hoverEnabled: true
+                onClicked: {
+                    var nextVal = !root.confirmed
+                    root.confirmed = nextVal
+                    root.confirmedToggled(nextVal)
+                }
+            }
+        }
+
         ScrollView {
             id: scrollView
-            anchors.fill: parent
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: confirmationCard.top
+            anchors.bottomMargin: 8
             contentWidth: availableWidth
             clip: true
 
@@ -637,62 +740,7 @@ Item {
                     }
                 }
 
-                // Final confirmation warning
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 800
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredHeight: finalWarningColumn.implicitHeight + 28
-                    radius: 12
-                    color: Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.15)
-                    border.color: warningColor
-                    border.width: 2
 
-                    ColumnLayout {
-                        id: finalWarningColumn
-                        anchors.fill: parent
-                        anchors.margins: 14
-                        spacing: 8
-
-                        RowLayout {
-                            spacing: 10
-                            Text {
-                                text: "⚠️"
-                                font.pixelSize: 20
-                            }
-                            Text {
-                                text: qsTr("Prêt à Installer ChomiamOS")
-                                font.pixelSize: 16
-                                font.bold: true
-                                color: textColor
-                            }
-                        }
-
-                        Text {
-                            text: qsTr("Le partitionnement et le déploiement vont débuter. Les données sur le disque sélectionné seront définitivement remplacées.")
-                            font.pixelSize: 13
-                            color: textColor
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-
-                        CheckBox {
-                            id: confirmCheckBox
-                            checked: root.confirmed
-                            onToggled: root.confirmedToggled(checked)
-
-                            contentItem: Text {
-                                text: qsTr("Je confirme vouloir installer ChomiamOS sur le disque (%1) et effacer son contenu.")
-                                      .arg(diskValue || qsTr("disque sélectionné"))
-                                font.pixelSize: 13
-                                font.bold: true
-                                color: textColor
-                                wrapMode: Text.WordWrap
-                                leftPadding: confirmCheckBox.indicator.width + 8
-                            }
-                        }
-                    }
-                }
 
                 Item { Layout.preferredHeight: 16 }
             }

@@ -579,6 +579,7 @@ ApplicationWindow {
                 textMutedColor: root.textMutedColor
                 accentColor: root.accentColor
                 warningColor: root.warningColor
+                successColor: root.successColor
 
                 onEditLocale: currentStep = 1
                 onEditUsers: currentStep = 2
