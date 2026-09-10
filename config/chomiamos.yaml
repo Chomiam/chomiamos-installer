@@ -149,6 +149,10 @@ jobs:
           name: "Cinnamon"
           description: "Interface traditionnelle, fluide et personnalisable avec barre des tâches classique et menu démarrer."
           icon: "environments/cinnamon.png"
+        - id: kde
+          name: "KDE Plasma 6"
+          description: "Bureau ultra-personnalisable, moderne et fluide, sublimé par le thème Catppuccin Mocha."
+          icon: "environments/kde.png"
       editions:
         - id: gaming
           name: "Gaming Edition"

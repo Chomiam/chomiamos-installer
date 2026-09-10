@@ -193,6 +193,14 @@ Item {
                             selected: engine.desktopEnvironment === "cinnamon"
                             onClicked: engine.setDesktopEnvironment("cinnamon")
                         }
+
+                        ChoiceCard {
+                            title: "KDE Plasma 6"
+                            subtitle: qsTr("Bureau ultra-personnalisable, moderne et fluide, sublimé par le thème Catppuccin Mocha.")
+                            iconText: "❄️"
+                            selected: engine.desktopEnvironment === "kde"
+                            onClicked: engine.setDesktopEnvironment("kde")
+                        }
                     }
 
                     ColumnLayout {

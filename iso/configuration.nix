@@ -209,6 +209,9 @@ in
   # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS GAMING EDITION
   # =========================================================================
 
+  # Thème GRUB Catppuccin Mocha pour le boot UEFI de l'ISO Live
+  isoImage.grubTheme = pkgs.catppuccin-grub;
+
   # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager, VMware, VirtualBox, Hyper-V)
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;

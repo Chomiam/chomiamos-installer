@@ -380,7 +380,7 @@ Item {
 
                                 Text {
                                     text: qsTr("Environnement : %1 | Navigateur : %2")
-                                          .arg(desktopEnvironmentValue === "cosmic" ? "COSMIC (Expérimental)" : desktopEnvironmentValue === "cinnamon" ? "Cinnamon" : "GNOME (Défaut)")
+                                          .arg(desktopEnvironmentValue === "cosmic" ? "COSMIC (Expérimental)" : desktopEnvironmentValue === "cinnamon" ? "Cinnamon" : desktopEnvironmentValue === "kde" ? "KDE Plasma 6" : "GNOME (Défaut)")
                                           .arg(formatBrowserLabel(browserValue))
                                     font.pixelSize: 13
                                     color: textMutedColor
