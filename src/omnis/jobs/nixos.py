@@ -199,6 +199,18 @@ class NixosJob(BaseJob):
             res = subprocess.run(["lspci"], capture_output=True, text=True, check=False)
             out = (res.stdout or "").lower()
 
+            # Détection des machines virtuelles (KVM, QEMU, VMware, VirtualBox, Hyper-V, Proxmox)
+            is_vm = (virt_out not in ("", "none")) or any(
+                k in out for k in ("virtio", "qemu", "vmware", "virtualbox", "innotek", "red hat, inc. virtio", "bochs", "hyper-v")
+            )
+
+            # Si c'est une VM, vérifier s'il y a un GPU dédié en passthrough direct (PCI passthrough)
+            has_passthrough_nvidia = ("nvidia" in out or "geforce" in out) and not any(k in out for k in ("virtualbox", "vmware"))
+            has_passthrough_amd = ("radeon" in out) and not any(k in out for k in ("virtualbox", "vmware"))
+
+            if is_vm and not (has_passthrough_nvidia or has_passthrough_amd):
+                return "vm"
+
             if "nvidia" in out or "geforce" in out:
                 return "nvidia"
             elif "radeon" in out or ("amd" in out and "advanced micro devices" in out):
@@ -206,10 +218,7 @@ class NixosJob(BaseJob):
             elif "arc" in out or "iris" in out:
                 return "intel"
 
-            # Virtual machine detection
-            if (virt_out not in ("", "none")) or any(
-                k in out for k in ("virtio", "qemu", "vmware", "virtualbox", "innotek", "red hat")
-            ):
+            if is_vm:
                 return "vm"
 
             if "intel" in out:

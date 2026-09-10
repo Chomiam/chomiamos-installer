@@ -209,9 +209,16 @@ in
   # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS GAMING EDITION
   # =========================================================================
 
-  # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager)
+  # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager, VMware, VirtualBox, Hyper-V)
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
+  virtualisation.vmware.guest.enable = true;
+  virtualisation.virtualbox.guest = {
+    enable = true;
+    dragAndDrop = true;
+    clipboard = true;
+  };
+  virtualisation.hypervGuest.enable = true;
 
   # Accélération graphique matérielle OpenGL/Vulkan (Mesa, VirtIO-GPU, VirGL)
   hardware.graphics = {
@@ -296,6 +303,8 @@ in
     curl
     wget
     whois # Fournit mkpasswd
+    spice-vdagent
+    xrandr
 
     # Navigateur Web
     firefox
