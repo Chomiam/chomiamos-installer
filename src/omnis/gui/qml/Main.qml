@@ -560,6 +560,7 @@ ApplicationWindow {
                 antigravityValue: engine.antigravity
                 pearDesktopValue: engine.pearDesktop
                 kdenliveValue: engine.kdenlive
+                obsStudioValue: engine.obsStudio
 
                 diskValue: engine.selectedDisk
                 diskSizeValue: engine.selectedDiskSize

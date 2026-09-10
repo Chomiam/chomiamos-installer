@@ -1324,6 +1324,7 @@ class EngineBridge(QObject):
             "antigravity": True,
             "pearDesktop": True,
             "kdenlive": True,
+            "obsStudio": True,
             "userShell": "fish",
                         # Granular Emulation
             "emulationEnable": True,
@@ -3102,6 +3103,16 @@ class EngineBridge(QObject):
     def setKdenlive(self, enabled: bool) -> None:
         if self._selections.get("kdenlive") != enabled:
             self._selections["kdenlive"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def obsStudio(self) -> bool:
+        return bool(self._selections.get("obsStudio", True))
+
+    @Slot(bool)
+    def setObsStudio(self, enabled: bool) -> None:
+        if self._selections.get("obsStudio") != enabled:
+            self._selections["obsStudio"] = enabled
             self.selectionsChanged.emit()
 
 

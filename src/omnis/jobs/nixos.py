@@ -271,6 +271,7 @@ class NixosJob(BaseJob):
         antigravity = "true" if s.get("antigravity", True) else "false"
         pear_desktop = "true" if s.get("pear_desktop", s.get("pearDesktop", True)) else "false"
         kdenlive = "true" if s.get("kdenlive", True) else "false"
+        obs_studio = "true" if s.get("obs_studio", s.get("obsStudio", True)) else "false"
 
         # Multimedia & Network selections
         stremio = "true" if s.get("stremio", True) else "false"
@@ -381,6 +382,7 @@ class NixosJob(BaseJob):
   antigravity = {antigravity};
   pearDesktop = {pear_desktop};
   kdenlive = {kdenlive};
+  obsStudio = {obs_studio};
 
   aiSuite = {{
     enable = {ai_suite};

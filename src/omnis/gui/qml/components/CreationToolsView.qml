@@ -309,6 +309,14 @@ Item {
                     }
 
                     CheckCard {
+                        title: "OBS Studio (Capture & Streaming)"
+                        subtitle: qsTr("Suite complète d'enregistrement et streaming vidéo avec plugins inclus (PipeWire, Vulkan vkcapture, VAAPI, détourage IA, transitions et caméra virtuelle).")
+                        iconText: "📹"
+                        checked: engine.obsStudio
+                        onToggled: engine.setObsStudio(!engine.obsStudio)
+                    }
+
+                    CheckCard {
                         title: "Godot Engine"
                         subtitle: qsTr("Moteur de jeu vidéo 2D et 3D open-source léger, idéal pour la création indépendante.")
                         iconText: "🤖"

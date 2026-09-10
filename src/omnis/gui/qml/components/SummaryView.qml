@@ -83,6 +83,7 @@ Item {
     property bool antigravityValue: true
     property bool pearDesktopValue: true
     property bool kdenliveValue: true
+    property bool obsStudioValue: true
 
     // Stockage
     property string diskValue: ""
@@ -185,6 +186,7 @@ Item {
         if (antigravityValue) list.push("Antigravity IDE")
         if (pearDesktopValue) list.push("Pear Desktop")
         if (kdenliveValue) list.push("Kdenlive")
+        if (obsStudioValue) list.push("OBS Studio (Plugins inclus)")
         if (list.length === 0) return "Aucun outil sélectionné"
         return list.join(", ")
     }
