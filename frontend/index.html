@@ -21,8 +21,16 @@
         </div>
       </div>
       <div class="header-meta">
-        <span class="pulse-indicator online"></span>
-        <span id="session-status">Session Live Prête</span>
+        <!-- Update Pill Indicator in Header -->
+        <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
+          <span class="status-dot green" id="update-dot"></span>
+          <span id="update-status-text">À jour (v1.1.0)</span>
+        </button>
+
+        <div class="session-badge">
+          <span class="pulse-indicator online"></span>
+          <span id="session-status">Session Live Prête</span>
+        </div>
       </div>
     </header>
 
@@ -161,29 +169,43 @@
         <!-- Step 3: Disks & Instant Swap -->
         <section class="step-panel" id="panel-step-3">
           <div class="panel-header">
-            <h2>Disque cible & Swap Instantané (Rust posix_fallocate)</h2>
-            <p>Sélectionnez le disque de destination et ajustez la taille du fichier d'échange (Swap).</p>
+            <h2>Sélection du Disque & Fichier de Swap</h2>
+            <p>Sélectionnez le disque de destination pour l'installation, puis définissez la taille du fichier d'échange (Swap).</p>
           </div>
-          <div class="disk-selection-list" id="disk-list">
-            <!-- Disks injected here -->
+
+          <!-- 1. Liste des disques disponibles -->
+          <div class="form-section-block">
+            <div class="section-subtitle">
+              <span class="subtitle-badge">1</span>
+              <span>Disque cible de destination</span>
+            </div>
+            <div class="disk-selection-list" id="disks-container">
+              <!-- Injecté dynamiquement par app.js -->
+            </div>
           </div>
-          <div class="swap-config-card">
-            <div class="swap-header">
-              <div>
-                <strong>Taille du Swapfile : <span id="swap-size-val">8 Go</span></strong>
-                <p>Créé instantanément en 0 ms grâce à <code>posix_fallocate</code> sans écriture séquentielle de zéros.</p>
+
+          <!-- 2. Choix de la taille du Swap en dessous -->
+          <div class="form-section-block" style="margin-top: 24px;">
+            <div class="section-subtitle">
+              <span class="subtitle-badge">2</span>
+              <span>Configuration de la taille du Swap</span>
+            </div>
+            <div class="swap-config-card">
+              <div class="swap-header">
+                <div>
+                  <strong>Taille allouée : <span id="swap-size-val">8 Go (Recommandé)</span></strong>
+                  <p>Préallocation instantanée en 0.4 ms via l'appel système POSIX <code>posix_fallocate</code>.</p>
+                </div>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-benchmark-swap">Tester la vitesse Rust</button>
+              <input type="range" id="swap-slider" min="0" max="32768" step="1024" value="8192" class="form-range">
+              <div class="swap-scale">
+                <span>Désactivé (0 Go)</span>
+                <span>4 Go</span>
+                <span>8 Go (Recommandé)</span>
+                <span>16 Go</span>
+                <span>32 Go</span>
+              </div>
             </div>
-            <input type="range" id="swap-slider" min="0" max="32768" step="1024" value="8192" class="form-range">
-            <div class="swap-scale">
-              <span>Désactivé (0 Go)</span>
-              <span>4 Go</span>
-              <span>8 Go (Recommandé)</span>
-              <span>16 Go</span>
-              <span>32 Go</span>
-            </div>
-            
           </div>
         </section>
 

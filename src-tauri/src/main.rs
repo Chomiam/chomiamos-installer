@@ -231,12 +231,8 @@ fn check_installer_update() -> UpdateInfo {
 }
 
 #[tauri::command]
-async fn apply_installer_update(download_url: String) -> Result<(), String> {
-    tokio::task::spawn_blocking(move || {
-        download_and_restart(&download_url)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+async fn apply_installer_update(app: tauri::AppHandle, download_url: String) -> Result<(), String> {
+    download_and_restart(app, &download_url).await
 }
 
 fn main() {

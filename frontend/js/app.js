@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSwapSlider();
   initSummaryTrigger();
   initConfirmationModal();
-  await checkForAppUpdates();
+  await initUpdateManager();
 });
 
 function initNavigation() {
@@ -301,20 +301,28 @@ async function loadTimezones() {
 async function loadDisks() {
   try {
     availableDisks = await invoke('get_disks');
-    const container = document.getElementById('disks-container');
+    const container = document.getElementById('disks-container') || document.getElementById('disk-list');
+    if (!container) return;
+
     if (availableDisks.length === 0) {
-      container.innerHTML = '<div class="alert alert-warn">Aucun disque fixe détecté. Mode simulation actif.</div>';
+      container.innerHTML = '<div class="alert alert-warn" style="padding: 14px; background: rgba(250, 179, 135, 0.1); border: 1px solid var(--mocha-peach); border-radius: 10px; color: var(--mocha-peach);">Aucun disque fixe détecté. Mode simulation actif.</div>';
       return;
     }
 
     container.innerHTML = availableDisks.map((d, idx) => `
       <div class="disk-card ${idx === 0 ? 'selected' : ''}" data-path="${d.path}">
-        <span class="disk-icon">💾</span>
-        <div class="disk-details">
-          <strong>${d.model || 'Disque Système'} (${d.path})</strong>
-          <small>${d.size_gb} Go • ${d.is_removable ? 'Amovible' : 'Fixe'}</small>
+        <div class="disk-meta">
+          <span class="disk-icon">${d.is_nvme ? '⚡' : (d.is_rotational ? '💽' : '💾')}</span>
+          <div class="disk-details">
+            <div style="font-weight: 600; color: var(--mocha-text); font-size: 1rem;">
+              ${d.model || 'Disque de Stockage'} <span style="color: var(--mocha-mauve); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">(${d.path})</span>
+            </div>
+            <div style="color: var(--mocha-subtext0); font-size: 0.82rem; margin-top: 2px;">
+              ${d.size_gb} Go • ${d.is_nvme ? 'NVMe SSD' : (d.is_rotational ? 'Disque Dur Mécanique (HDD)' : 'SATA SSD')}
+            </div>
+          </div>
         </div>
-        <span class="badge">${idx === 0 ? 'Sélectionné' : 'Cliquer pour choisir'}</span>
+        <span class="badge ${idx === 0 ? 'badge-primary' : 'badge-neutral'}">${idx === 0 ? '✓ Sélectionné' : 'Cliquer pour choisir'}</span>
       </div>
     `).join('');
 
@@ -322,10 +330,18 @@ async function loadDisks() {
       card.addEventListener('click', () => {
         document.querySelectorAll('.disk-card').forEach(c => {
           c.classList.remove('selected');
-          c.querySelector('.badge').textContent = 'Cliquer pour choisir';
+          const b = c.querySelector('.badge');
+          if (b) {
+            b.className = 'badge badge-neutral';
+            b.textContent = 'Cliquer pour choisir';
+          }
         });
         card.classList.add('selected');
-        card.querySelector('.badge').textContent = 'Sélectionné';
+        const b = card.querySelector('.badge');
+        if (b) {
+          b.className = 'badge badge-primary';
+          b.textContent = '✓ Sélectionné';
+        }
       });
     });
   } catch (e) {
@@ -336,11 +352,14 @@ async function loadDisks() {
 function initSwapSlider() {
   const slider = document.getElementById('swap-slider');
   const valSpan = document.getElementById('swap-size-val');
+  if (!slider || !valSpan) return;
 
   slider.addEventListener('input', () => {
     const val = parseInt(slider.value);
     if (val === 0) {
-      valSpan.textContent = "Désactivé";
+      valSpan.textContent = "Désactivé (0 Go)";
+    } else if (val === 8192) {
+      valSpan.textContent = "8 Go (Recommandé)";
     } else {
       valSpan.textContent = `${val / 1024} Go`;
     }
@@ -541,32 +560,145 @@ async function startInstallation(s) {
 }
 
 
-async function checkForAppUpdates() {
+let currentUpdateInfo = null;
+
+async function initUpdateManager() {
+  const pillBtn = document.getElementById('btn-update-pill');
+  const modal = document.getElementById('modal-update');
+  const btnClose = document.getElementById('btn-close-update-modal');
+  const btnStart = document.getElementById('btn-start-update');
+
+  if (pillBtn && modal) {
+    pillBtn.addEventListener('click', () => {
+      openUpdateModal();
+    });
+  }
+
+  if (btnClose && modal) {
+    btnClose.addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+  }
+
+  // Écoute de la progression en direct depuis Rust / Tauri v2
+  listen('update_progress', (event) => {
+    const p = event.payload;
+    if (!p) return;
+    const progSection = document.getElementById('update-progress-section');
+    const progBar = document.getElementById('update-progress-bar');
+    const progLabel = document.getElementById('update-progress-label');
+    const progPct = document.getElementById('update-progress-percent');
+    const progSub = document.getElementById('update-progress-subtext');
+
+    if (progSection) progSection.classList.remove('hidden');
+    if (progBar) progBar.style.width = `${p.percent}%`;
+    if (progPct) progPct.textContent = `${p.percent}%`;
+    if (progLabel) progLabel.textContent = p.message || `Téléchargement (${p.percent}%)...`;
+    if (progSub && p.percent >= 98) progSub.textContent = "Redémarrage de l'installateur dans quelques instants...";
+  });
+
+  if (btnStart) {
+    btnStart.addEventListener('click', async () => {
+      if (!currentUpdateInfo || !currentUpdateInfo.download_url) return;
+      btnStart.disabled = true;
+      btnStart.classList.add('hidden');
+
+      const progSection = document.getElementById('update-progress-section');
+      if (progSection) progSection.classList.remove('hidden');
+
+      try {
+        await invoke('apply_installer_update', { downloadUrl: currentUpdateInfo.download_url });
+      } catch (err) {
+        alert("Erreur lors de la mise à jour: " + err);
+        btnStart.disabled = false;
+        btnStart.classList.remove('hidden');
+      }
+    });
+  }
+
+  await checkAndUpdatePill();
+}
+
+async function checkAndUpdatePill() {
+  const dot = document.getElementById('update-dot');
+  const text = document.getElementById('update-status-text');
+  const pillBtn = document.getElementById('btn-update-pill');
+
   try {
     const info = await invoke('check_installer_update');
+    currentUpdateInfo = info;
+
     if (info && info.has_update) {
-      const banner = document.getElementById('update-notification');
-      const verLabel = document.getElementById('update-version-label');
-      const btnUpdate = document.getElementById('btn-apply-update');
-
-      if (banner && verLabel && btnUpdate) {
-        verLabel.textContent = `v${info.latest_version}`;
-        banner.classList.remove('hidden');
-
-        btnUpdate.addEventListener('click', async () => {
-          btnUpdate.disabled = true;
-          btnUpdate.textContent = "Téléchargement...";
-          try {
-            await invoke('apply_installer_update', { downloadUrl: info.download_url });
-          } catch (err) {
-            alert("Erreur lors de la mise à jour: " + err);
-            btnUpdate.disabled = false;
-            btnUpdate.textContent = "Mettre à jour";
-          }
-        });
+      if (dot) {
+        dot.className = 'status-dot orange';
+      }
+      if (text) {
+        text.textContent = `Mise à jour v${info.latest_version}`;
+      }
+      if (pillBtn) {
+        pillBtn.className = 'update-pill-btn update-available';
+        pillBtn.title = `Mise à jour v${info.latest_version} disponible ! Cliquez pour installer.`;
+      }
+    } else {
+      const curVer = info ? info.current_version : "1.1.0";
+      if (dot) {
+        dot.className = 'status-dot green';
+      }
+      if (text) {
+        text.textContent = `À jour (v${curVer})`;
+      }
+      if (pillBtn) {
+        pillBtn.className = 'update-pill-btn up-to-date';
+        pillBtn.title = `L'installateur est à jour (v${curVer}).`;
       }
     }
   } catch (err) {
-    console.debug("Check update error:", err);
+    console.warn("Check update error:", err);
   }
+}
+
+function openUpdateModal() {
+  const modal = document.getElementById('modal-update');
+  if (!modal) return;
+
+  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.1.0";
+  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.1.0";
+  const hasUpdate = currentUpdateInfo ? currentUpdateInfo.has_update : false;
+
+  const elCur = document.getElementById('modal-current-ver');
+  const elLat = document.getElementById('modal-latest-ver');
+  const elMsg = document.getElementById('update-status-message');
+  const elNotesWrap = document.getElementById('update-notes-container');
+  const elNotes = document.getElementById('update-notes-content');
+  const btnStart = document.getElementById('btn-start-update');
+  const progSection = document.getElementById('update-progress-section');
+
+  if (elCur) elCur.textContent = `v${curVer}`;
+  if (elLat) {
+    elLat.textContent = `v${latestVer}`;
+    elLat.className = `version-val latest ${hasUpdate ? 'has-update' : ''}`;
+  }
+
+  if (progSection) progSection.classList.add('hidden');
+
+  if (hasUpdate) {
+    if (elMsg) elMsg.textContent = `Une nouvelle version de l'installateur (v${latestVer}) est disponible avec les derniers correctifs.`;
+    if (btnStart) {
+      btnStart.classList.remove('hidden');
+      btnStart.disabled = false;
+      btnStart.textContent = `Mettre à jour vers v${latestVer}`;
+    }
+    if (currentUpdateInfo.notes && elNotes && elNotesWrap) {
+      elNotes.textContent = currentUpdateInfo.notes;
+      elNotesWrap.classList.remove('hidden');
+    } else if (elNotesWrap) {
+      elNotesWrap.classList.add('hidden');
+    }
+  } else {
+    if (elMsg) elMsg.textContent = "Votre installateur ChomiamOS est parfaitement à jour. Aucune mise à jour requise.";
+    if (btnStart) btnStart.classList.add('hidden');
+    if (elNotesWrap) elNotesWrap.classList.add('hidden');
+  }
+
+  modal.classList.remove('hidden');
 }
