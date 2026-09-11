@@ -3,7 +3,7 @@
 // ==========================================================================
 
 let currentStep = 1;
-const totalSteps = 9;
+const totalSteps = 10;
 let availableLayouts = [];
 let detectedGpuDriver = "amd";
 let availableDisks = [];
@@ -184,7 +184,7 @@ function validateStep(step) {
       return false;
     }
   }
-  if (step === 8) {
+  if (step === 9) {
     const username = document.getElementById('input-username')?.value.trim();
     if (!username) {
       alert("Veuillez saisir un nom d'utilisateur (login).");
@@ -683,6 +683,19 @@ function collectSelections() {
     swap_size_mb: getSwapSizeMb(),
     gpu_driver: detectedGpuDriver || "amd",
 
+    // Suite d'Émulation & Rétrogaming
+    emu_es_de: document.getElementById('chk-emu-es-de')?.checked ?? true,
+    emu_retroarch: document.getElementById('chk-emu-retroarch')?.checked ?? true,
+    emu_duckstation: document.getElementById('chk-emu-duckstation')?.checked ?? true,
+    emu_pcsx2: document.getElementById('chk-emu-pcsx2')?.checked ?? true,
+    emu_rpcs3: document.getElementById('chk-emu-rpcs3')?.checked ?? false,
+    emu_dolphin: document.getElementById('chk-emu-dolphin')?.checked ?? true,
+    emu_ppsspp: document.getElementById('chk-emu-ppsspp')?.checked ?? true,
+    emu_eden: document.getElementById('chk-emu-eden')?.checked ?? true,
+    emu_azahar: document.getElementById('chk-emu-azahar')?.checked ?? true,
+    emu_melonds: document.getElementById('chk-emu-melonds')?.checked ?? true,
+    emu_mgba: document.getElementById('chk-emu-mgba')?.checked ?? true,
+
     // Gaming
     steam: document.getElementById('chk-steam')?.checked ?? true,
     lutris: document.getElementById('chk-lutris')?.checked ?? true,
@@ -739,6 +752,19 @@ function updateSummary() {
     <div class="summary-item"><label>Pilote Graphique (GPU)</label><span>${(s.gpu_driver || 'amd').toUpperCase()}</span></div>
     <div class="summary-item"><label>Utilisateur / Hôte</label><span>${s.username} @ ${s.hostname}</span></div>
     <div class="summary-item"><label>Navigateur & Discord</label><span>${s.browser} • ${s.discord_client}</span></div>
+    <div class="summary-item"><label>Rétro Gaming & Émulation</label><span>${[
+      s.emu_es_de ? 'ES-DE' : null,
+      s.emu_retroarch ? 'RetroArch' : null,
+      s.emu_duckstation ? 'DuckStation (PS1)' : null,
+      s.emu_pcsx2 ? 'PCSX2 (PS2)' : null,
+      s.emu_dolphin ? 'Dolphin (GC/Wii)' : null,
+      s.emu_eden ? 'Eden (Switch)' : null,
+      s.emu_ppsspp ? 'PPSSPP (PSP)' : null,
+      s.emu_azahar ? 'Azahar (3DS)' : null,
+      s.emu_melonds ? 'melonDS (DS)' : null,
+      s.emu_mgba ? 'mGBA (GBA)' : null,
+      s.emu_rpcs3 ? 'RPCS3 (PS3)' : null,
+    ].filter(Boolean).join(', ') || 'Désactivé'}</span></div>
     <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null, s.davinci_resolve !== 'none'?'DaVinci ('+s.davinci_resolve+')':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Création & Outils</label><span>${[s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Impression 3D</label><span>${[s.slicer_orcaslicer?'OrcaSlicer':null, s.slicer_prusaslicer?'Prusa':null, s.slicer_bambustudio?'Bambu':null, s.slicer_cura?'Cura':null].filter(Boolean).join(', ') || 'Aucun'}</span></div>
@@ -892,7 +918,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.14 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.15 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -933,7 +959,7 @@ async function startInstallation(s) {
     const curPanel = document.getElementById(`panel-step-${currentStep}`);
     if (curPanel) curPanel.classList.remove('active');
 
-    const installPanel = document.getElementById('panel-step-10');
+    const installPanel = document.getElementById('panel-step-11') || document.getElementById('panel-step-10');
     if (installPanel) installPanel.classList.add('active');
 
     // Verrouillage du scroll sur le conteneur parent pour forcer le scroll uniquement dans le terminal

@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.14 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.15 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.14)</span>
+          <span id="update-status-text">À jour (v1.2.15)</span>
         </button>
 
         <div class="session-badge">
@@ -70,32 +70,39 @@
           <div class="step-num">5</div>
           <div class="step-info">
             <span class="step-label">Gaming</span>
-            <span class="step-desc">Steam, Sunshine, Rétro</span>
+            <span class="step-desc">Steam, Sunshine & Outils</span>
           </div>
         </div>
         <div class="step-item" data-step="6">
           <div class="step-num">6</div>
           <div class="step-info">
-            <span class="step-label">Multimédia</span>
-            <span class="step-desc">VLC, DaVinci & Audio</span>
+            <span class="step-label">Rétro Gaming</span>
+            <span class="step-desc">ES-DE & Émulateurs</span>
           </div>
         </div>
         <div class="step-item" data-step="7">
           <div class="step-num">7</div>
           <div class="step-info">
-            <span class="step-label">Productivité</span>
-            <span class="step-desc">OBS, 3D & Outils</span>
+            <span class="step-label">Multimédia</span>
+            <span class="step-desc">VLC, DaVinci & Audio</span>
           </div>
         </div>
         <div class="step-item" data-step="8">
           <div class="step-num">8</div>
           <div class="step-info">
-            <span class="step-label">Utilisateur</span>
-            <span class="step-desc">Compte & Sécurité</span>
+            <span class="step-label">Productivité</span>
+            <span class="step-desc">OBS, 3D & Outils</span>
           </div>
         </div>
         <div class="step-item" data-step="9">
           <div class="step-num">9</div>
+          <div class="step-info">
+            <span class="step-label">Utilisateur</span>
+            <span class="step-desc">Compte & Sécurité</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="10">
+          <div class="step-num">10</div>
           <div class="step-info">
             <span class="step-label">Résumé</span>
             <span class="step-desc">Validation & Déploiement</span>
@@ -431,8 +438,157 @@
           </div>
         </section>
 
-        <!-- Step 6: Multimédia -->
+        <!-- Step 6: Rétro Gaming -->
         <section class="step-panel" id="panel-step-6">
+          <div class="panel-header">
+            <h2>Suite d'Émulation & Rétrogaming</h2>
+            <p>Configurez l'interface universelle ES-DE et les émulateurs dédiés pour l'ensemble de vos consoles de jeux rétro.</p>
+          </div>
+
+          <div class="section-subtitle">🕹️ Frontend & Multi-Systèmes</div>
+          <div class="toggles-grid">
+            <label class="toggle-card highlight-card">
+              <input type="checkbox" id="chk-emu-es-de" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎮</span>
+                <div class="toggle-text">
+                  <strong>ES-DE (EmulationStation Desktop Edition)</strong>
+                  <small>Frontend universel moderne avec thèmes graphiques, scraping des jaquettes et lanceur automatique</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card highlight-card">
+              <input type="checkbox" id="chk-emu-retroarch" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">👾</span>
+                <div class="toggle-text">
+                  <strong>RetroArch & Cœurs Libretro</strong>
+                  <small>Pack multi-consoles 8/16-bit (NES, SNES, Genesis), Arcade/Neo-Geo, N64, Saturn & SwanStation</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+
+          <div class="section-subtitle">💿 Émulateurs Sony PlayStation</div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-duckstation" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🕹️</span>
+                <div class="toggle-text">
+                  <strong>DuckStation (PlayStation 1)</strong>
+                  <small>Émulateur PS1 de haute précision avec upscaling 4K, Widescreen hack et PGXP</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-pcsx2" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">📀</span>
+                <div class="toggle-text">
+                  <strong>PCSX2 (PlayStation 2)</strong>
+                  <small>Émulateur PS2 de référence avec backend Vulkan optimisé et patchs 60 FPS</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-ppsspp" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">📱</span>
+                <div class="toggle-text">
+                  <strong>PPSSPP (PlayStation Portable)</strong>
+                  <small>Émulateur PSP ultra-rapide avec filtres de textures HD et support manette</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-rpcs3">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎯</span>
+                <div class="toggle-text">
+                  <strong>RPCS3 (PlayStation 3)</strong>
+                  <small>Émulateur PS3 haute performance (recommandé pour processeurs récents 8 cœurs+)</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+
+          <div class="section-subtitle">🍄 Émulateurs Nintendo</div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-dolphin" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🐬</span>
+                <div class="toggle-text">
+                  <strong>Dolphin (GameCube & Wii)</strong>
+                  <small>Émulateur GameCube et Wii haute fidélité avec support des Wiimotes et adaptateurs natifs</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-eden" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🔴</span>
+                <div class="toggle-text">
+                  <strong>Eden (Nintendo Switch)</strong>
+                  <small>Émulateur Nintendo Switch moderne et optimisé sous Linux</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-azahar" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">✨</span>
+                <div class="toggle-text">
+                  <strong>Azahar (Nintendo 3DS)</strong>
+                  <small>Émulateur Nintendo 3DS avec rendu haute résolution et disposition double écran</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-melonds" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">📟</span>
+                <div class="toggle-text">
+                  <strong>melonDS (Nintendo DS)</strong>
+                  <small>Émulateur Nintendo DS rapide et fidèle avec support écran tactile et microphone</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-emu-mgba" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎮</span>
+                <div class="toggle-text">
+                  <strong>mGBA (Game Boy / Color / Advance)</strong>
+                  <small>Émulateur portable Game Boy, Game Boy Color et Advance réputé pour sa précision</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Step 7: Multimédia -->
+        <section class="step-panel" id="panel-step-7">
           <div class="panel-header">
             <h2>Multimédia & Audio</h2>
             <p>Sélectionnez les lecteurs, outils de streaming et suites de production audiovisuelle.</p>
@@ -515,7 +671,7 @@
         </section>
 
         <!-- Step 7: Productivité & Création -->
-        <section class="step-panel" id="panel-step-7">
+        <section class="step-panel" id="panel-step-8">
           <div class="panel-header">
             <h2>Productivité & Création</h2>
             <p>Outils de capture, création graphique, impression 3D, réseau et intelligence artificielle.</p>
@@ -715,7 +871,7 @@
         </section>
 
         <!-- Step 8: User -->
-        <section class="step-panel" id="panel-step-8">
+        <section class="step-panel" id="panel-step-9">
           <div class="panel-header">
             <h2>Compte Utilisateur & Sécurité</h2>
             <p>Configurez le profil administrateur principal du système avec authentification sécurisée.</p>
@@ -819,8 +975,8 @@
           </div>
         </section>
 
-        <!-- Step 9: Summary & Install -->
-        <section class="step-panel" id="panel-step-9">
+        <!-- Step 10: Summary & Install -->
+        <section class="step-panel" id="panel-step-10">
           <div class="panel-header">
             <h2>Résumé de l'Installation</h2>
             <p>Vérifiez vos sélections avant de lancer le déploiement sur le disque.</p>
@@ -835,8 +991,8 @@
         </section>
 
         
-        <!-- Step 10: Installation in progress -->
-        <section class="step-panel" id="panel-step-10">
+        <!-- Step 11: Installation in progress -->
+        <section class="step-panel" id="panel-step-11">
           <div class="panel-header">
             <h2 id="install-heading">Installation de ChomiamOS</h2>
             <p id="install-subheading">Veuillez patienter pendant le déploiement sur votre disque...</p>

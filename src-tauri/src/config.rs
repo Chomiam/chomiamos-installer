@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct InstallerSelections {
     pub hostname: String,
     pub username: String,
@@ -15,6 +16,19 @@ pub struct InstallerSelections {
     pub target_disk: String,
     pub swap_size_mb: u64,
     pub gpu_driver: Option<String>,
+
+    // Suite d'Émulation & Rétrogaming
+    pub emu_es_de: bool,
+    pub emu_retroarch: bool,
+    pub emu_duckstation: bool,
+    pub emu_pcsx2: bool,
+    pub emu_rpcs3: bool,
+    pub emu_dolphin: bool,
+    pub emu_ppsspp: bool,
+    pub emu_eden: bool,
+    pub emu_azahar: bool,
+    pub emu_melonds: bool,
+    pub emu_mgba: bool,
 
     // Gaming
     pub steam: bool,
@@ -76,6 +90,17 @@ impl Default for InstallerSelections {
             target_disk: "".into(),
             swap_size_mb: 8192,
             gpu_driver: None,
+            emu_es_de: true,
+            emu_retroarch: true,
+            emu_duckstation: true,
+            emu_pcsx2: true,
+            emu_rpcs3: false,
+            emu_dolphin: true,
+            emu_ppsspp: true,
+            emu_eden: true,
+            emu_azahar: true,
+            emu_melonds: true,
+            emu_mgba: true,
             steam: true,
             lutris: true,
             heroic: true,
@@ -123,6 +148,19 @@ pub fn generate_vars_nix(s: &InstallerSelections, hashed_password: Option<&str>,
     } else {
         "true"
     };
+
+    let emu_enable = s.emu_es_de
+        || s.emu_retroarch
+        || s.emu_duckstation
+        || s.emu_pcsx2
+        || s.emu_rpcs3
+        || s.emu_dolphin
+        || s.emu_ppsspp
+        || s.emu_eden
+        || s.emu_azahar
+        || s.emu_melonds
+        || s.emu_mgba;
+    let emu_frontend = if s.emu_es_de { "es-de" } else { "none" };
 
     format!(
 r#"{{
@@ -204,22 +242,22 @@ r#"{{
 
   # Suite d'Émulation & Rétrogaming
   emulation = {{
-    enable = true;
-    frontend = "es-de";
+    enable = {emu_enable};
+    frontend = "{emu_frontend}";
     autoCheckUpdates = true;
     retroarch = {{
-      enable = true;
+      enable = {emu_retroarch};
     }};
     standalone = {{
-      duckstation = true;
-      eden = true;
-      dolphin = true;
-      pcsx2 = true;
-      ppsspp = true;
-      melonds = true;
-      mgba = true;
-      azahar = true;
-      rpcs3 = false;
+      duckstation = {emu_duckstation};
+      eden = {emu_eden};
+      dolphin = {emu_dolphin};
+      pcsx2 = {emu_pcsx2};
+      ppsspp = {emu_ppsspp};
+      melonds = {emu_melonds};
+      mgba = {emu_mgba};
+      azahar = {emu_azahar};
+      rpcs3 = {emu_rpcs3};
     }};
   }};
 
@@ -294,6 +332,18 @@ r#"{{
         desktop_env = s.desktop_env,
         gpu_driver = active_gpu,
         gamescope_session = gamescope_session,
+        emu_enable = emu_enable,
+        emu_frontend = emu_frontend,
+        emu_retroarch = s.emu_retroarch,
+        emu_duckstation = s.emu_duckstation,
+        emu_eden = s.emu_eden,
+        emu_dolphin = s.emu_dolphin,
+        emu_pcsx2 = s.emu_pcsx2,
+        emu_ppsspp = s.emu_ppsspp,
+        emu_melonds = s.emu_melonds,
+        emu_mgba = s.emu_mgba,
+        emu_azahar = s.emu_azahar,
+        emu_rpcs3 = s.emu_rpcs3,
         steam = s.steam,
         lutris = s.lutris,
         heroic = s.heroic,
@@ -326,4 +376,36 @@ r#"{{
         slicer_bambustudio = s.slicer_bambustudio,
         ai_suite_enable = s.ai_suite_enable,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_vars_nix_emulation() {
+        let mut selections = InstallerSelections::default();
+        selections.emu_es_de = true;
+        selections.emu_duckstation = true;
+        selections.emu_pcsx2 = true;
+        selections.emu_rpcs3 = false;
+        let out = generate_vars_nix(&selections, None, "amd");
+        assert!(out.contains("frontend = \"es-de\";"));
+        assert!(out.contains("duckstation = true;"));
+        assert!(out.contains("rpcs3 = false;"));
+
+        selections.emu_es_de = false;
+        selections.emu_retroarch = false;
+        selections.emu_duckstation = false;
+        selections.emu_pcsx2 = false;
+        selections.emu_rpcs3 = false;
+        selections.emu_dolphin = false;
+        selections.emu_ppsspp = false;
+        selections.emu_eden = false;
+        selections.emu_azahar = false;
+        selections.emu_melonds = false;
+        selections.emu_mgba = false;
+        let out2 = generate_vars_nix(&selections, None, "amd");
+        assert!(out2.contains("frontend = \"none\";"));
+    }
 }

@@ -235,6 +235,7 @@ body {
 
 /* Verrouillage strict du défilement lors de l'installation : la page ne bouge jamais */
 .step-content-area.no-scroll,
+.step-content-area:has(#panel-step-11.active),
 .step-content-area:has(#panel-step-10.active) {
   overflow: hidden !important;
 }
@@ -251,6 +252,7 @@ body {
 }
 
 /* Panel d'installation plein écran adaptatif */
+#panel-step-11,
 #panel-step-10 {
   display: none;
   flex: 1;
@@ -260,6 +262,7 @@ body {
   overflow: hidden;
 }
 
+#panel-step-11.active,
 #panel-step-10.active {
   display: flex;
 }
