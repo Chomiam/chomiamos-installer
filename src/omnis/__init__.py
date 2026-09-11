@@ -6,4 +6,4 @@ built with Python and Qt6/QML.
 """
 
 __version__ = "0.6.3"
-__author__ = "GLF Team"
+__author__ = "Chomiam (based on Omnis by N3oTraX & GLF Team)"

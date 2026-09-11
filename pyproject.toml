@@ -6,7 +6,8 @@ readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.11"
 authors = [
-    { name = "GLF Team" }
+    { name = "Chomiam", email = "chomiam@users.noreply.github.com" },
+    { name = "N3oTraX & GLF Team (Original Omnis Authors)" }
 ]
 keywords = ["linux", "installer", "qt6", "pyside6", "calamares-alternative"]
 classifiers = [

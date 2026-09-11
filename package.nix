@@ -135,8 +135,8 @@ ENTRY
   '';
 
   meta = {
-    description = "Omnis - modular GLF-OS installer (Calamares alternative)";
-    homepage = "https://github.com/N3oTraX/Omnis";
+    description = "ChomiamOS Installer - installateur graphique modulaire (basé sur Omnis par N3oTraX)";
+    homepage = "https://github.com/Chomiam/chomiamos-installer";
     license = lib.licenses.gpl3Plus;
     mainProgram = "omnis";
     platforms = lib.platforms.linux;
