@@ -5,6 +5,7 @@
 let currentStep = 1;
 const totalSteps = 7;
 let availableLayouts = [];
+let detectedGpuDriver = "amd";
 let availableDisks = [];
 let availableDesktops = [];
 
@@ -53,10 +54,165 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadTimezones();
   await loadDisks();
   initSwapSlider();
+  initPasswordSecurity();
   initSummaryTrigger();
   initConfirmationModal();
   await initUpdateManager();
 });
+
+
+function initPasswordSecurity() {
+  const pwdInput = document.getElementById('input-password');
+  const confirmInput = document.getElementById('input-password-confirm');
+  const chkStrong = document.getElementById('chk-strong-password');
+  const barFill = document.getElementById('password-strength-bar');
+  const badge = document.getElementById('password-strength-badge');
+  const matchFeedback = document.getElementById('password-match-feedback');
+
+  const critLength = document.getElementById('crit-length');
+  const critUpper = document.getElementById('crit-upper');
+  const critDigit = document.getElementById('crit-digit');
+  const critSpecial = document.getElementById('crit-special');
+
+  function evaluatePassword() {
+    const pwd = pwdInput ? pwdInput.value : '';
+    const confirm = confirmInput ? confirmInput.value : '';
+
+    if (!pwd) {
+      if (barFill) {
+        barFill.style.width = '0%';
+        barFill.className = 'strength-bar-fill';
+      }
+      if (badge) {
+        badge.textContent = 'Non renseigné';
+        badge.className = 'strength-badge none';
+      }
+      [critLength, critUpper, critDigit, critSpecial].forEach(el => {
+        if (el) {
+          el.classList.remove('valid');
+          const icon = el.querySelector('.crit-icon');
+          if (icon) icon.textContent = '○';
+        }
+      });
+    } else {
+      const hasLength = pwd.length >= 8;
+      const hasUpper = /[A-Z]/.test(pwd);
+      const hasDigit = /[0-9]/.test(pwd);
+      const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+
+      updateCrit(critLength, hasLength);
+      updateCrit(critUpper, hasUpper);
+      updateCrit(critDigit, hasDigit);
+      updateCrit(critSpecial, hasSpecial);
+
+      let score = 0;
+      if (hasLength) score++;
+      if (hasUpper) score++;
+      if (hasDigit) score++;
+      if (hasSpecial) score++;
+
+      if (barFill && badge) {
+        barFill.className = 'strength-bar-fill';
+        if (score <= 1) {
+          barFill.style.width = '25%';
+          barFill.classList.add('weak');
+          badge.textContent = 'Très faible';
+          badge.className = 'strength-badge weak';
+        } else if (score === 2) {
+          barFill.style.width = '50%';
+          barFill.classList.add('medium');
+          badge.textContent = 'Faible';
+          badge.className = 'strength-badge medium';
+        } else if (score === 3) {
+          barFill.style.width = '75%';
+          barFill.classList.add('good');
+          badge.textContent = 'Moyen';
+          badge.className = 'strength-badge good';
+        } else {
+          barFill.style.width = '100%';
+          barFill.classList.add('strong');
+          badge.textContent = 'Fort (Sécurisé)';
+          badge.className = 'strength-badge strong';
+        }
+      }
+    }
+
+    // Concordance
+    if (!confirm) {
+      if (matchFeedback) {
+        matchFeedback.textContent = '';
+        matchFeedback.className = 'password-feedback';
+      }
+    } else if (pwd === confirm) {
+      if (matchFeedback) {
+        matchFeedback.textContent = '✓ Les mots de passe correspondent';
+        matchFeedback.className = 'password-feedback match';
+      }
+    } else {
+      if (matchFeedback) {
+        matchFeedback.textContent = '✗ Les mots de passe ne correspondent pas';
+        matchFeedback.className = 'password-feedback mismatch';
+      }
+    }
+  }
+
+  function updateCrit(el, isValid) {
+    if (!el) return;
+    const icon = el.querySelector('.crit-icon');
+    if (isValid) {
+      el.classList.add('valid');
+      if (icon) icon.textContent = '✓';
+    } else {
+      el.classList.remove('valid');
+      if (icon) icon.textContent = '○';
+    }
+  }
+
+  if (pwdInput) pwdInput.addEventListener('input', evaluatePassword);
+  if (confirmInput) confirmInput.addEventListener('input', evaluatePassword);
+  if (chkStrong) chkStrong.addEventListener('change', evaluatePassword);
+}
+
+function validateStep(step) {
+  if (step === 3) {
+    const selectedDisk = document.querySelector('.disk-card.selected');
+    if (!selectedDisk && availableDisks.length === 0) {
+      alert("Aucun disque disponible sélectionné pour l'installation.");
+      return false;
+    }
+  }
+  if (step === 6) {
+    const username = document.getElementById('input-username')?.value.trim();
+    if (!username) {
+      alert("Veuillez saisir un nom d'utilisateur (login).");
+      return false;
+    }
+    const pwd = document.getElementById('input-password')?.value || '';
+    const confirm = document.getElementById('input-password-confirm')?.value || '';
+
+    if (!pwd) {
+      alert("Veuillez définir un mot de passe pour le compte administrateur.");
+      return false;
+    }
+    if (pwd !== confirm) {
+      alert("Les mots de passe saisis ne correspondent pas.");
+      return false;
+    }
+    const chkStrong = document.getElementById('chk-strong-password');
+    if (chkStrong && chkStrong.checked) {
+      const hasLength = pwd.length >= 8;
+      const hasUpper = /[A-Z]/.test(pwd);
+      const hasDigit = /[0-9]/.test(pwd);
+      const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+
+      if (!hasLength || !hasUpper || !hasDigit || !hasSpecial) {
+        alert("Le mot de passe fort est exigé. Il doit comporter au moins 8 caractères, une majuscule, un chiffre et un caractère spécial.");
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 function initNavigation() {
   const btnPrev = document.getElementById('btn-prev');
@@ -68,6 +224,7 @@ function initNavigation() {
   });
 
   btnNext.addEventListener('click', () => {
+    if (!validateStep(currentStep)) return;
     if (currentStep < totalSteps) goToStep(currentStep + 1);
   });
 
@@ -120,31 +277,86 @@ function goToStep(step) {
   }
 }
 
+function setPrereqStatus(id, level, statusText, detailText) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  card.classList.remove('loading', 'status-ok', 'status-warn', 'status-error');
+
+  if (level === 'optimal' || level === 'ok' || level === true) {
+    card.classList.add('status-ok');
+  } else if (level === 'warning' || level === 'warn') {
+    card.classList.add('status-warn');
+  } else {
+    card.classList.add('status-error');
+  }
+
+  const statusEl = card.querySelector('.prereq-status');
+  const detailEl = card.querySelector('.prereq-detail');
+  if (statusEl) statusEl.textContent = statusText;
+  if (detailEl && detailText) detailEl.textContent = detailText;
+}
+
 async function loadPrerequisites() {
   try {
     const pre = await invoke('get_prerequisites');
-    updatePrereqCard('prereq-efi', pre.is_efi, pre.is_efi ? 'Mode UEFI Détecté' : 'Mode BIOS Legacy Détecté');
-    updatePrereqCard('prereq-ram', pre.has_sufficient_ram, `${pre.ram_gb} Go de RAM détectés`);
-    updatePrereqCard('prereq-disk', pre.has_sufficient_disk, `${pre.disk_gb} Go d'espace disponible`);
-    updatePrereqCard('prereq-net', pre.has_internet, pre.has_internet ? 'Connecté à Internet' : 'Connexion Internet Absente');
+
+    // 1. Espace disque : au moins un disque >= 80 Go pour pavé vert
+    if (pre.has_80gb_disk) {
+      setPrereqStatus('prereq-disk', 'optimal', '✓ Conforme (≥ 80 Go)', pre.disk_message);
+    } else {
+      setPrereqStatus('prereq-disk', 'error', '✗ Insuffisant (< 80 Go)', pre.disk_message);
+    }
+
+    // 2. RAM : > 8 Go vert, 4-8 Go orange, < 4 Go rouge
+    if (pre.ram_level === 'optimal') {
+      setPrereqStatus('prereq-ram', 'optimal', '✓ Optimal (> 8 Go)', pre.ram_message);
+    } else if (pre.ram_level === 'warning') {
+      setPrereqStatus('prereq-ram', 'warning', '⚠ Minimum atteint (4-8 Go)', pre.ram_message);
+    } else {
+      setPrereqStatus('prereq-ram', 'error', '✗ Insuffisant (< 4 Go)', pre.ram_message);
+    }
+
+    // 3. CPU : >= 8 cœurs conseillés vert, 4-7 orange, < 4 rouge
+    if (pre.cpu_level === 'optimal') {
+      setPrereqStatus('prereq-cpu', 'optimal', '✓ Recommandé (≥ 8 cœurs)', pre.cpu_message);
+    } else if (pre.cpu_level === 'warning') {
+      setPrereqStatus('prereq-cpu', 'warning', '⚠ Minimum atteint (4-7 cœurs)', pre.cpu_message);
+    } else {
+      setPrereqStatus('prereq-cpu', 'error', '✗ Insuffisant (< 4 cœurs)', pre.cpu_message);
+    }
+
+    // 4. GPU : VM, Intel, Nvidia Moderne, Nvidia Legacy, AMD
+    if (pre.gpu) {
+      detectedGpuDriver = pre.gpu.driver_type || "amd";
+      const driverLabels = {
+        'vm': 'Machine Virtuelle (VM)',
+        'nvidia': 'NVIDIA Moderne (Propriétaire)',
+        'nvidia-legacy': 'NVIDIA Legacy 470',
+        'amd': 'AMD Radeon (amdgpu)',
+        'intel': 'Intel Graphics (Media Driver)'
+      };
+      const label = driverLabels[pre.gpu.driver_type] || pre.gpu.driver_type;
+      setPrereqStatus('prereq-gpu', 'optimal', `✓ ${label}`, `${pre.gpu.name} — ${pre.gpu.detail}`);
+    }
+
+    // 5. Démarrage UEFI
+    setPrereqStatus(
+      'prereq-efi',
+      pre.is_efi ? 'optimal' : 'warning',
+      pre.is_efi ? '✓ Mode UEFI Détecté' : '⚠ Mode BIOS Legacy Détecté',
+      pre.is_efi ? 'Amorçage sécurisé GPT / ESP supporté' : 'Attention : le mode UEFI est vivement recommandé'
+    );
+
+    // 6. Connexion Internet
+    setPrereqStatus(
+      'prereq-internet',
+      pre.has_internet ? 'optimal' : 'warning',
+      pre.has_internet ? '✓ Connecté à Internet' : '⚠ Mode Hors-Ligne',
+      pre.has_internet ? 'Accès dépôts NixOS et mises à jour en ligne' : 'Installation locale sans téléchargements externes'
+    );
   } catch (e) {
     console.error("Prerequisites error:", e);
   }
-}
-
-function updatePrereqCard(id, passed, detail) {
-  const card = document.getElementById(id);
-  if (!card) return;
-  const statusEl = card.querySelector('.prereq-status');
-  const detailEl = card.querySelector('.prereq-detail');
-  if (passed) {
-    statusEl.textContent = '✓ Conforme';
-    statusEl.className = 'prereq-status status-ok';
-  } else {
-    statusEl.textContent = '✗ Attention';
-    statusEl.className = 'prereq-status status-warn';
-  }
-  if (detailEl && detail) detailEl.textContent = detail;
 }
 
 async function loadDesktops() {
@@ -383,6 +595,7 @@ function collectSelections() {
     timezone: document.getElementById('timezone-select')?.value || "Europe/Paris",
     target_disk: diskPath,
     swap_size_mb: parseInt(document.getElementById('swap-slider').value) || 8192,
+    gpu_driver: detectedGpuDriver || "amd",
     steam: document.getElementById('chk-steam').checked,
     lutris: document.getElementById('chk-lutris').checked,
     heroic: document.getElementById('chk-heroic').checked,
@@ -405,6 +618,7 @@ function updateSummary() {
     <div class="summary-item"><label>Disposition Clavier</label><span>${s.keyboard_layout.toUpperCase()} ${s.keyboard_variant ? '(' + s.keyboard_variant + ')' : ''}</span></div>
     <div class="summary-item"><label>Fuseau Horaire</label><span>${s.timezone}</span></div>
     <div class="summary-item"><label>Bureau Choisi</label><span>${s.desktop_env.toUpperCase()}</span></div>
+    <div class="summary-item"><label>Pilote Graphique (GPU)</label><span>${(s.gpu_driver || 'amd').toUpperCase()}</span></div>
     <div class="summary-item"><label>Utilisateur / Hôte</label><span>${s.username} @ ${s.hostname}</span></div>
     <div class="summary-item"><label>Serveur Sunshine</label><span>${s.sunshine ? 'Activé' : 'Désactivé'}</span></div>
     <div class="summary-item"><label>Sober (Roblox)</label><span>${s.sober ? 'Activé' : 'Désactivé'}</span></div>

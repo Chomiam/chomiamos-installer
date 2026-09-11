@@ -7,13 +7,18 @@ mod config;
 mod install;
 mod updater;
 
-use system::{check_prerequisites, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo, TimezoneInfo};
+use system::{check_prerequisites, detect_gpu, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, GpuInfo, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo, TimezoneInfo};
 use config::{InstallerSelections, generate_vars_nix};
 use install::{execute_installation, InstallStateSnapshot, SharedInstallState};
 use updater::{check_update, download_and_restart, UpdateInfo};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::process::Command;
+
+#[tauri::command]
+fn get_gpu() -> GpuInfo {
+    detect_gpu()
+}
 
 #[tauri::command]
 fn get_prerequisites() -> SystemPrerequisites {
@@ -260,6 +265,7 @@ fn main() {
         .manage(install_state)
         .invoke_handler(tauri::generate_handler![
             get_prerequisites,
+            get_gpu,
             get_disks,
             get_layouts,
             get_desktops,

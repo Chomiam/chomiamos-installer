@@ -340,11 +340,17 @@ pub async fn execute_installation(
         None
     };
 
-    let gpu_driver = if Path::new("/proc/driver/nvidia").exists() {
-        "nvidia"
+    let detected_gpu = crate::system::detect_gpu();
+    let gpu_driver = if let Some(ref selected) = s.gpu_driver {
+        if !selected.is_empty() {
+            selected.as_str()
+        } else {
+            &detected_gpu.driver_type
+        }
     } else {
-        "amd"
+        &detected_gpu.driver_type
     };
+    emit_log(&format!("Pilote graphique sélectionné pour le système : {} ({})", gpu_driver, detected_gpu.name));
 
     let vars_content = generate_vars_nix(&s, hashed_pw.as_deref(), gpu_driver);
     let vars_file = target_nixos.join("vars.nix");

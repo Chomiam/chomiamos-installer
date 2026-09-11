@@ -5,11 +5,39 @@ use std::path::Path;
 use sysinfo::System;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GpuInfo {
+    pub name: String,
+    pub vendor: String,
+    pub driver_type: String, // "vm", "nvidia", "nvidia-legacy", "amd", "intel"
+    pub is_supported: bool,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemPrerequisites {
     pub is_efi: bool,
+
+    // RAM
     pub total_ram_gb: f64,
-    pub ram_ok: bool,
+    pub ram_level: String, // "optimal" (>8GB, vert), "warning" (4-8GB, orange), "error" (<4GB, rouge)
+    pub ram_message: String,
+
+    // CPU
     pub cpu_cores: usize,
+    pub cpu_model: String,
+    pub cpu_level: String, // "optimal" (>=8, vert), "warning" (4-7, orange), "error" (<4, rouge)
+    pub cpu_message: String,
+
+    // Disk
+    pub max_disk_gb: f64,
+    pub has_80gb_disk: bool,
+    pub disk_level: String, // "optimal" (>=80GB, vert), "error" (<80GB, rouge)
+    pub disk_message: String,
+
+    // GPU
+    pub gpu: GpuInfo,
+
+    // Network & Laptop
     pub has_internet: bool,
     pub disks_count: usize,
     pub is_laptop: bool,
@@ -47,22 +75,315 @@ pub struct TimezoneInfo {
     pub region: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DesktopEnvInfo {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub icon: String,
+}
+
+fn check_is_vm() -> Option<String> {
+    // 1. Check systemd-detect-virt
+    if let Ok(output) = Command::new("systemd-detect-virt").output() {
+        if output.status.success() {
+            let virt = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !virt.is_empty() && virt != "none" {
+                return Some(virt);
+            }
+        }
+    }
+
+    // 2. Check DMI sysfs
+    let dmi_paths = [
+        "/sys/class/dmi/id/sys_vendor",
+        "/sys/class/dmi/id/product_name",
+        "/sys/class/dmi/id/bios_vendor",
+    ];
+    for p in &dmi_paths {
+        if let Ok(val) = fs::read_to_string(p) {
+            let lower = val.to_lowercase();
+            if lower.contains("qemu")
+                || lower.contains("kvm")
+                || lower.contains("virtualbox")
+                || lower.contains("vmware")
+                || lower.contains("innotek")
+                || lower.contains("bochs")
+                || lower.contains("xen")
+                || lower.contains("hyper-v")
+            {
+                return Some(val.trim().to_string());
+            }
+        }
+    }
+    None
+}
+
+fn clean_gpu_name(line: &str) -> String {
+    if let Some(pos) = line.find(": ") {
+        let part = &line[pos + 2..];
+        let cleaned = if let Some(rev_pos) = part.rfind(" (rev ") {
+            &part[..rev_pos]
+        } else {
+            part
+        };
+        cleaned.trim().to_string()
+    } else {
+        line.trim().to_string()
+    }
+}
+
+fn is_nvidia_legacy(line: &str) -> bool {
+    let lower = line.to_lowercase();
+    // Modern RTX or GTX 16xx (Turing or newer)
+    if lower.contains("rtx") || lower.contains("1650") || lower.contains("1660") || lower.contains("titan rtx") {
+        return false;
+    }
+    // Older generations: Pascal (10xx), Maxwell (9xx), Kepler (7xx, 6xx), Fermi, Tesla
+    if lower.contains("gtx 10")
+        || lower.contains("gtx 9")
+        || lower.contains("gtx 7")
+        || lower.contains("gtx 6")
+        || lower.contains("gt 7")
+        || lower.contains("gt 6")
+        || lower.contains("gt 10")
+        || lower.contains("quadro k")
+        || lower.contains("quadro m")
+        || lower.contains("quadro p")
+    {
+        return true;
+    }
+    // Check PCI ID [10de:xxxx]
+    if let Some(pos) = lower.find("[10de:") {
+        let sub = &lower[pos + 6..];
+        if let Some(end) = sub.find(']') {
+            let hex_str = &sub[..end];
+            if let Ok(dev_id) = u32::from_str_radix(hex_str, 16) {
+                // Turing starts around 0x1e00 (TU102/TU104/TU106)
+                return dev_id < 0x1e00;
+            }
+        }
+    }
+    false
+}
+
+pub fn detect_gpu() -> GpuInfo {
+    // 1. Virtual machine check
+    if let Some(vm_name) = check_is_vm() {
+        return GpuInfo {
+            name: format!("Machine Virtuelle ({})", vm_name),
+            vendor: "Virtual Machine".into(),
+            driver_type: "vm".into(),
+            is_supported: true,
+            detail: "Pilotes invités & accélération 3D Mesa VirtIO / SVGA".into(),
+        };
+    }
+
+    // 2. lspci check
+    if let Ok(output) = Command::new("lspci").args(&["-nn"]).output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut detected = Vec::new();
+            for line in stdout.lines() {
+                let lower = line.to_lowercase();
+                if lower.contains("vga compatible controller")
+                    || lower.contains("3d controller")
+                    || lower.contains("display controller")
+                {
+                    detected.push(line.to_string());
+                }
+            }
+
+            if !detected.is_empty() {
+                // Prioritize NVIDIA dGPU for proper driver selection
+                for line in &detected {
+                    let lower = line.to_lowercase();
+                    if lower.contains("nvidia") || lower.contains("[10de:") {
+                        let legacy = is_nvidia_legacy(line);
+                        let driver = if legacy { "nvidia-legacy" } else { "nvidia" };
+                        let name = clean_gpu_name(line);
+                        let detail = if legacy {
+                            "Pilote propriétaire NVIDIA Legacy 470 (cartes < GTX 1650)".into()
+                        } else {
+                            "Pilote propriétaire NVIDIA moderne officiel (RTX / GTX 16xx)".into()
+                        };
+                        return GpuInfo {
+                            name,
+                            vendor: "NVIDIA".into(),
+                            driver_type: driver.into(),
+                            is_supported: true,
+                            detail,
+                        };
+                    }
+                }
+
+                // AMD Radeon
+                for line in &detected {
+                    let lower = line.to_lowercase();
+                    if lower.contains("amd")
+                        || lower.contains("radeon")
+                        || lower.contains("advanced micro devices")
+                        || lower.contains("[1002:")
+                    {
+                        let name = clean_gpu_name(line);
+                        return GpuInfo {
+                            name,
+                            vendor: "AMD".into(),
+                            driver_type: "amd".into(),
+                            is_supported: true,
+                            detail: "Pilote haute performance open-source amdgpu & ROCm".into(),
+                        };
+                    }
+                }
+
+                // Intel
+                for line in &detected {
+                    let lower = line.to_lowercase();
+                    if lower.contains("intel") || lower.contains("[8086:") {
+                        let name = clean_gpu_name(line);
+                        return GpuInfo {
+                            name,
+                            vendor: "Intel".into(),
+                            driver_type: "intel".into(),
+                            is_supported: true,
+                            detail: "Pilote Intel Media Driver / Arc & UHD Graphics".into(),
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Sysfs fallback: /sys/bus/pci/devices/
+    if let Ok(entries) = fs::read_dir("/sys/bus/pci/devices") {
+        for entry in entries.flatten() {
+            let class_path = entry.path().join("class");
+            if let Ok(class_str) = fs::read_to_string(class_path) {
+                let class_trim = class_str.trim();
+                if class_trim.starts_with("0x0300")
+                    || class_trim.starts_with("0x0302")
+                    || class_trim.starts_with("0x0380")
+                {
+                    let vendor_path = entry.path().join("vendor");
+                    let vendor = fs::read_to_string(vendor_path).unwrap_or_default().trim().to_lowercase();
+                    let device_path = entry.path().join("device");
+                    let device_str = fs::read_to_string(device_path).unwrap_or_default().trim().to_lowercase();
+
+                    if vendor == "0x10de" {
+                        let dev_id = u32::from_str_radix(device_str.trim_start_matches("0x"), 16).unwrap_or(0);
+                        let legacy = dev_id < 0x1e00;
+                        let driver = if legacy { "nvidia-legacy" } else { "nvidia" };
+                        return GpuInfo {
+                            name: format!("NVIDIA Graphics Card ({})", device_str),
+                            vendor: "NVIDIA".into(),
+                            driver_type: driver.into(),
+                            is_supported: true,
+                            detail: if legacy { "Pilote NVIDIA Legacy 470".into() } else { "Pilote NVIDIA Moderne".into() },
+                        };
+                    } else if vendor == "0x1002" {
+                        return GpuInfo {
+                            name: format!("AMD Radeon Graphics ({})", device_str),
+                            vendor: "AMD".into(),
+                            driver_type: "amd".into(),
+                            is_supported: true,
+                            detail: "Pilote amdgpu / ROCm".into(),
+                        };
+                    } else if vendor == "0x8086" {
+                        return GpuInfo {
+                            name: format!("Intel Graphics ({})", device_str),
+                            vendor: "Intel".into(),
+                            driver_type: "intel".into(),
+                            is_supported: true,
+                            detail: "Pilote Intel Media".into(),
+                        };
+                    } else if vendor == "0x1af4" || vendor == "0x15ad" || vendor == "0x80ee" || vendor == "0x1234" {
+                        return GpuInfo {
+                            name: "Machine Virtuelle (VM Graphics)".into(),
+                            vendor: "Virtual Machine".into(),
+                            driver_type: "vm".into(),
+                            is_supported: true,
+                            detail: "Pilote invité VM / Mesa".into(),
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    // Default fallback
+    GpuInfo {
+        name: "Carte Graphique Standard".into(),
+        vendor: "Standard".into(),
+        driver_type: "amd".into(),
+        is_supported: true,
+        detail: "Pilote standard Mesa / Gallium".into(),
+    }
+}
+
 pub fn check_prerequisites() -> SystemPrerequisites {
     let mut sys = System::new_all();
     sys.refresh_all();
 
     let is_efi = Path::new("/sys/firmware/efi").exists();
-    let total_ram_gb = (sys.total_memory() as f64) / (1024.0 * 1024.0 * 1024.0);
-    let ram_ok = total_ram_gb >= 3.5;
-    let cpu_cores = sys.cpus().len();
 
-    // Internet check (DNS socket or ping check)
+    // 1. RAM check: > 8 GB vert, 4-8 GB orange, < 4 GB rouge
+    let total_ram_gb = (sys.total_memory() as f64) / (1024.0 * 1024.0 * 1024.0);
+    let total_ram_gb_rounded = (total_ram_gb * 10.0).round() / 10.0;
+    let (ram_level, ram_message) = if total_ram_gb > 8.0 {
+        ("optimal".to_string(), format!("{:.1} Go installés (Optimal, > 8 Go)", total_ram_gb_rounded))
+    } else if total_ram_gb >= 4.0 {
+        ("warning".to_string(), format!("{:.1} Go installés (Minimum atteint, 8 Go recommandés)", total_ram_gb_rounded))
+    } else {
+        ("error".to_string(), format!("{:.1} Go installés (Insuffisant, minimum 4 Go requis)", total_ram_gb_rounded))
+    };
+
+    // 2. CPU check: >= 8 cores vert (conseillé), 4-7 cores orange (mini), < 4 cores rouge
+    let cpu_cores = sys.cpus().len();
+    let cpu_model = sys
+        .cpus()
+        .first()
+        .map(|c| c.brand().trim().to_string())
+        .unwrap_or_else(|| "Processeur x86_64".to_string());
+
+    let (cpu_level, cpu_message) = if cpu_cores >= 8 {
+        ("optimal".to_string(), format!("{} cœurs (Optimal, ≥ 8 cœurs conseillés)", cpu_cores))
+    } else if cpu_cores >= 4 {
+        ("warning".to_string(), format!("{} cœurs (Minimum 4 cœurs atteint, 8 conseillés)", cpu_cores))
+    } else {
+        ("error".to_string(), format!("{} cœurs (Insuffisant, 4 cœurs minimum requis)", cpu_cores))
+    };
+
+    // 3. Disk check: au moins un disque >= 80 Go pour pavé vert
+    let disks = list_disks();
+    let mut max_disk_gb: f64 = 0.0;
+    let mut max_disk_model = String::new();
+    for d in &disks {
+        if d.size_gb > max_disk_gb {
+            max_disk_gb = d.size_gb;
+            max_disk_model = if d.model.is_empty() { d.name.clone() } else { d.model.clone() };
+        }
+    }
+    let has_80gb_disk = max_disk_gb >= 80.0;
+    let (disk_level, disk_message) = if has_80gb_disk {
+        ("optimal".to_string(), format!("{:.0} Go disponibles sur {} (≥ 80 Go requis)", max_disk_gb, max_disk_model))
+    } else if max_disk_gb > 0.0 {
+        ("error".to_string(), format!("Disque max de {:.0} Go insuffisant (minimum 80 Go requis)", max_disk_gb))
+    } else {
+        ("error".to_string(), "Aucun disque de stockage détecté".to_string())
+    };
+
+    // 4. GPU check
+    let gpu = detect_gpu();
+
+    // 5. Internet check
     let has_internet = std::net::TcpStream::connect_timeout(
         &"1.1.1.1:53".parse().unwrap(),
         std::time::Duration::from_millis(1500),
-    ).is_ok();
+    )
+    .is_ok();
 
-    // Check battery / laptop
+    // 6. Battery / Laptop
     let power_supply = Path::new("/sys/class/power_supply");
     let mut is_laptop = false;
     let mut battery_ok = true;
@@ -73,7 +394,6 @@ pub fn check_prerequisites() -> SystemPrerequisites {
                 let name = entry.file_name().to_string_lossy().to_string();
                 if name.starts_with("BAT") {
                     is_laptop = true;
-                    // Check if charging or > 20%
                     let capacity_path = entry.path().join("capacity");
                     if let Ok(cap_str) = fs::read_to_string(capacity_path) {
                         if let Ok(cap) = cap_str.trim().parse::<u32>() {
@@ -87,13 +407,20 @@ pub fn check_prerequisites() -> SystemPrerequisites {
         }
     }
 
-    let disks = list_disks();
-
     SystemPrerequisites {
         is_efi,
-        total_ram_gb: (total_ram_gb * 10.0).round() / 10.0,
-        ram_ok,
+        total_ram_gb: total_ram_gb_rounded,
+        ram_level,
+        ram_message,
         cpu_cores,
+        cpu_model,
+        cpu_level,
+        cpu_message,
+        max_disk_gb: (max_disk_gb * 10.0).round() / 10.0,
+        has_80gb_disk,
+        disk_level,
+        disk_message,
+        gpu,
         has_internet,
         disks_count: disks.len(),
         is_laptop,
@@ -128,7 +455,7 @@ pub fn list_disks() -> Vec<DiskInfo> {
             };
 
             if size_gb < 1.0 {
-                continue; // Ignore drives < 1GB (likely USB installer or pseudo block)
+                continue;
             }
 
             let model_path = entry.path().join("device/model");
@@ -348,27 +675,29 @@ pub fn get_timezones() -> Vec<TimezoneInfo> {
         TimezoneInfo { id: "Asia/Shanghai".into(), name: "Asia/Shanghai (Chine, UTC+8)".into(), region: "Asie".into() },
         TimezoneInfo { id: "Asia/Hong_Kong".into(), name: "Asia/Hong_Kong (Hong Kong, UTC+8)".into(), region: "Asie".into() },
         TimezoneInfo { id: "Asia/Singapore".into(), name: "Asia/Singapore (Singapour, UTC+8)".into(), region: "Asie".into() },
-        TimezoneInfo { id: "Asia/Bangkok".into(), name: "Asia/Bangkok (Thaïlande, UTC+7)".into(), region: "Asie".into() },
-        TimezoneInfo { id: "Asia/Dubai".into(), name: "Asia/Dubai (Émirats arabes unis, UTC+4)".into(), region: "Asie".into() },
-        TimezoneInfo { id: "Asia/Jerusalem".into(), name: "Asia/Jerusalem (Israël, UTC+2 / UTC+3)".into(), region: "Asie".into() },
-
-        // Standard UTC
-        TimezoneInfo { id: "UTC".into(), name: "UTC (Temps universel coordonné)".into(), region: "Monde".into() },
     ]
 }
 
 pub fn get_current_timezone() -> String {
-    // 1. Essai via timedatectl
-    if let Ok(output) = Command::new("timedatectl").args(["show", "--property=Timezone", "--value"]).output() {
-        let val = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !val.is_empty() {
-            return val;
+    if let Ok(output) = Command::new("timedatectl").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if line.contains("Time zone:") {
+                    let parts: Vec<&str> = line.split(':').collect();
+                    if parts.len() >= 2 {
+                        let tz = parts[1].split_whitespace().next().unwrap_or("").trim();
+                        if !tz.is_empty() {
+                            return tz.to_string();
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // 2. Essai via lien symbolique /etc/localtime
-    if let Ok(target) = std::fs::read_link("/etc/localtime") {
-        let path_str = target.to_string_lossy();
+    if let Ok(target) = fs::read_link("/etc/localtime") {
+        let path_str = target.to_string_lossy().to_string();
         if let Some(pos) = path_str.find("zoneinfo/") {
             let tz = &path_str[pos + 9..];
             if !tz.is_empty() {
@@ -377,32 +706,12 @@ pub fn get_current_timezone() -> String {
         }
     }
 
-    // 3. Essai via /etc/timezone
-    if let Ok(content) = std::fs::read_to_string("/etc/timezone") {
-        let val = content.trim().to_string();
-        if !val.is_empty() {
-            return val;
-        }
-    }
-
     "Europe/Paris".to_string()
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DesktopEnvInfo {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    pub description: String,
-    pub icon: String,
-}
-
 pub fn get_desktop_environments() -> Vec<DesktopEnvInfo> {
-    // 1. Détection dynamique de la version réelle de GNOME
     let gnome_ver_str = if let Ok(output) = Command::new("gnome-shell").arg("--version").output() {
         let text = String::from_utf8_lossy(&output.stdout);
-        // Ex: "GNOME Shell 50.4"
         let parts: Vec<&str> = text.split_whitespace().collect();
         if parts.len() >= 3 {
             let ver = parts[2].split('.').next().unwrap_or("50");

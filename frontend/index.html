@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.1.0 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.0 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.1.0)</span>
+          <span id="update-status-text">À jour (v1.2.0)</span>
         </button>
 
         <div class="session-badge">
@@ -98,32 +98,63 @@
             <p>Vérification de la compatibilité matérielle et des prérequis système pour une expérience optimale.</p>
           </div>
           <div class="prereq-grid" id="prereq-grid">
-            <div class="prereq-card loading" id="prereq-efi">
-              <span class="prereq-icon">⚡</span>
-              <div>
-                <strong>Démarrage UEFI</strong>
-                <span class="prereq-status">Détection...</span>
-              </div>
-            </div>
-            <div class="prereq-card loading" id="prereq-ram">
-              <span class="prereq-icon">🧠</span>
-              <div>
-                <strong>Mémoire RAM (≥ 4 Go)</strong>
-                <span class="prereq-status">Détection...</span>
-              </div>
-            </div>
-            <div class="prereq-card loading" id="prereq-internet">
-              <span class="prereq-icon">🌐</span>
-              <div>
-                <strong>Connexion Internet</strong>
-                <span class="prereq-status">Vérification...</span>
-              </div>
-            </div>
+            <!-- 1. Espace disque (≥ 80 Go pour pavé vert) -->
             <div class="prereq-card loading" id="prereq-disk">
               <span class="prereq-icon">💾</span>
-              <div>
-                <strong>Disque de stockage</strong>
-                <span class="prereq-status">Scan NVMe/SSD...</span>
+              <div class="prereq-content">
+                <strong>Espace Disque (≥ 80 Go)</strong>
+                <span class="prereq-status">Scan du stockage...</span>
+                <span class="prereq-detail">Analyse des disques disponibles</span>
+              </div>
+            </div>
+
+            <!-- 2. Mémoire RAM (> 8 Go vert, 4-8 Go orange, < 4 Go rouge) -->
+            <div class="prereq-card loading" id="prereq-ram">
+              <span class="prereq-icon">🧠</span>
+              <div class="prereq-content">
+                <strong>Mémoire RAM</strong>
+                <span class="prereq-status">Détection de la RAM...</span>
+                <span class="prereq-detail">> 8 Go recommandé, 4 Go min</span>
+              </div>
+            </div>
+
+            <!-- 3. Processeur (CPU) : ≥ 8 cœurs conseillés vert, 4-7 orange, < 4 rouge -->
+            <div class="prereq-card loading" id="prereq-cpu">
+              <span class="prereq-icon">⚡</span>
+              <div class="prereq-content">
+                <strong>Processeur (CPU)</strong>
+                <span class="prereq-status">Détection des cœurs...</span>
+                <span class="prereq-detail">8 cœurs conseillés, 4 min</span>
+              </div>
+            </div>
+
+            <!-- 4. Carte Graphique (GPU) : VM, Intel, Nvidia, Nvidia Legacy, AMD -->
+            <div class="prereq-card loading" id="prereq-gpu">
+              <span class="prereq-icon">🎮</span>
+              <div class="prereq-content">
+                <strong>Carte Graphique (GPU)</strong>
+                <span class="prereq-status">Détection GPU...</span>
+                <span class="prereq-detail">VM, Intel, NVIDIA, AMD</span>
+              </div>
+            </div>
+
+            <!-- 5. Démarrage UEFI -->
+            <div class="prereq-card loading" id="prereq-efi">
+              <span class="prereq-icon">🛡️</span>
+              <div class="prereq-content">
+                <strong>Démarrage Système</strong>
+                <span class="prereq-status">Vérification UEFI...</span>
+                <span class="prereq-detail">Mode UEFI 64-bit</span>
+              </div>
+            </div>
+
+            <!-- 6. Connexion Internet -->
+            <div class="prereq-card loading" id="prereq-internet">
+              <span class="prereq-icon">🌐</span>
+              <div class="prereq-content">
+                <strong>Connexion Internet</strong>
+                <span class="prereq-status">Test de liaison...</span>
+                <span class="prereq-detail">Accès dépôts & mises à jour</span>
               </div>
             </div>
           </div>
@@ -370,8 +401,8 @@
         <!-- Step 6: User -->
         <section class="step-panel" id="panel-step-6">
           <div class="panel-header">
-            <h2>Compte Utilisateur & Machine</h2>
-            <p>Configurez le profil administrateur principal du système.</p>
+            <h2>Compte Utilisateur & Sécurité</h2>
+            <p>Configurez le profil administrateur principal du système avec authentification sécurisée.</p>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -383,13 +414,74 @@
               <input type="text" id="input-username" class="form-input" value="chomiam">
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="input-password">Mot de passe</label>
-              <input type="password" id="input-password" class="form-input" placeholder="Entrez un mot de passe sécurisé...">
+
+          <!-- Section Mot de passe sécurisé -->
+          <div class="password-box-card">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-password">Mot de passe</label>
+                <div class="password-input-wrap">
+                  <input type="password" id="input-password" class="form-input" placeholder="Entrez votre mot de passe...">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="input-password-confirm">Confirmer le mot de passe</label>
+                <div class="password-input-wrap">
+                  <input type="password" id="input-password-confirm" class="form-input" placeholder="Confirmez le mot de passe...">
+                </div>
+              </div>
             </div>
-            <div class="form-group">
-              <label for="input-hostname">Nom de la machine (Hostname)</label>
+
+            <!-- Barre de force du mot de passe -->
+            <div class="password-strength-container">
+              <div class="strength-header">
+                <span class="strength-title">Force du mot de passe :</span>
+                <span id="password-strength-badge" class="strength-badge none">Non renseigné</span>
+              </div>
+              <div class="strength-track">
+                <div id="password-strength-bar" class="strength-bar-fill"></div>
+              </div>
+
+              <!-- Puces indicatrices de critères requis -->
+              <div class="strength-criteria-list">
+                <div class="criterion-item" id="crit-length">
+                  <span class="crit-icon">○</span>
+                  <span>Min. 8 caractères</span>
+                </div>
+                <div class="criterion-item" id="crit-upper">
+                  <span class="crit-icon">○</span>
+                  <span>1 Majuscule (A-Z)</span>
+                </div>
+                <div class="criterion-item" id="crit-digit">
+                  <span class="crit-icon">○</span>
+                  <span>1 Chiffre (0-9)</span>
+                </div>
+                <div class="criterion-item" id="crit-special">
+                  <span class="crit-icon">○</span>
+                  <span>1 Caractère spécial</span>
+                </div>
+              </div>
+
+              <!-- Message en direct de correspondance des mots de passe -->
+              <div id="password-match-feedback" class="password-feedback"></div>
+            </div>
+
+            <!-- Option Mot de passe fort activable/désactivable -->
+            <div class="strong-password-toggle">
+              <label class="toggle-container" for="chk-strong-password">
+                <input type="checkbox" id="chk-strong-password" checked>
+                <span class="toggle-custom-checkbox"></span>
+                <div class="toggle-info">
+                  <strong>Exiger un mot de passe fort (Recommandé)</strong>
+                  <p>Valide obligatoirement les 4 critères de sécurité (majuscule, chiffre, caractère spécial, ≥ 8 car.) pour créer la session.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top: 18px;">
+            <div class="form-group" style="width: 100%;">
+              <label for="input-hostname">Nom de la machine (Hostname réseau)</label>
               <input type="text" id="input-hostname" class="form-input" value="chomiamos">
             </div>
           </div>

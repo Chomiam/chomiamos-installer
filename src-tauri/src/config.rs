@@ -14,6 +14,7 @@ pub struct InstallerSelections {
     pub timezone: String,
     pub target_disk: String,
     pub swap_size_mb: u64,
+    pub gpu_driver: Option<String>,
     // Gaming
     pub steam: bool,
     pub lutris: bool,
@@ -41,6 +42,7 @@ impl Default for InstallerSelections {
             timezone: "Europe/Paris".into(),
             target_disk: "".into(),
             swap_size_mb: 8192,
+            gpu_driver: None,
             steam: true,
             lutris: true,
             heroic: true,
@@ -60,7 +62,8 @@ pub fn generate_vars_nix(s: &InstallerSelections, hashed_password: Option<&str>,
         None => "null".to_string(),
     };
 
-    let gamescope_session = if gpu_driver == "nvidia" || gpu_driver == "nvidia-legacy" {
+    let active_gpu = s.gpu_driver.as_deref().unwrap_or(gpu_driver);
+    let gamescope_session = if active_gpu == "nvidia" || active_gpu == "nvidia-legacy" {
         "false"
     } else {
         "true"
@@ -176,7 +179,7 @@ r#"{{
         browser = s.browser,
         discord_client = s.discord_client,
         desktop_env = s.desktop_env,
-        gpu_driver = gpu_driver,
+        gpu_driver = active_gpu,
         gamescope_session = gamescope_session,
         steam = s.steam,
         lutris = s.lutris,
