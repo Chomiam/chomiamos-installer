@@ -776,44 +776,85 @@ async function startInstallation(s) {
 
 let currentUpdateInfo = null;
 
-async function initUpdateManager() {
-  const pillBtn = document.getElementById('btn-update-pill');
-  const modal = document.getElementById('modal-update');
-  const btnClose = document.getElementById('btn-close-update-modal');
-  const btnStart = document.getElementById('btn-start-update');
-
-  if (pillBtn && modal) {
-    pillBtn.addEventListener('click', () => {
-      openUpdateModal();
-    });
+function ensureUpdateModalExists() {
+  let modal = document.getElementById('modal-update');
+  if (!modal) {
+    console.log("Injecting modal-update dynamically into DOM...");
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = `
+      <div class="modal-backdrop hidden" id="modal-update">
+        <div class="modal-card update-modal">
+          <div class="modal-header">
+            <div class="modal-icon-badge update-icon-badge">🔄</div>
+            <h3>Mise à jour de l'Installateur</h3>
+          </div>
+          <div class="modal-body">
+            <p id="update-status-message">Recherche des dernières mises à jour...</p>
+            <div class="version-comparison-card">
+              <div class="version-row">
+                <span class="version-label">Version actuelle :</span>
+                <span class="version-val current" id="modal-current-ver">v1.1.0</span>
+              </div>
+              <div class="version-row">
+                <span class="version-label">Nouvelle version disponible :</span>
+                <span class="version-val latest" id="modal-latest-ver">v1.2.0</span>
+              </div>
+            </div>
+            <div class="update-notes-container hidden" id="update-notes-container" style="margin-top: 14px;">
+              <div class="update-notes-title">Notes de mise à jour :</div>
+              <div id="update-notes-content" style="white-space: pre-wrap; font-family: inherit;"></div>
+            </div>
+            <div class="update-progress-wrap hidden" id="update-progress-section">
+              <div class="update-progress-header">
+                <span id="update-progress-label">Téléchargement en cours...</span>
+                <span id="update-progress-percent">0%</span>
+              </div>
+              <div class="update-progress-track">
+                <div class="update-progress-bar" id="update-progress-bar" style="width: 0%;"></div>
+              </div>
+              <p class="update-progress-subtext" id="update-progress-subtext">L'installateur redémarrera automatiquement dès la fin du téléchargement.</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btn-close-update-modal">Fermer</button>
+            <button type="button" class="btn btn-primary" id="btn-start-update">Mettre à jour maintenant</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(wrapper.firstElementChild);
+    modal = document.getElementById('modal-update');
   }
 
-  if (btnClose && modal) {
-    btnClose.addEventListener('click', () => {
+  // Bind close buttons
+  const btnClose = document.getElementById('btn-close-update-modal');
+  if (btnClose && !btnClose.dataset.bound) {
+    btnClose.dataset.bound = "true";
+    btnClose.addEventListener('click', (e) => {
+      e.preventDefault();
       modal.classList.add('hidden');
     });
   }
 
-  // Écoute de la progression en direct depuis Rust / Tauri v2
-  listen('update_progress', (event) => {
-    const p = event.payload;
-    if (!p) return;
-    const progSection = document.getElementById('update-progress-section');
-    const progBar = document.getElementById('update-progress-bar');
-    const progLabel = document.getElementById('update-progress-label');
-    const progPct = document.getElementById('update-progress-percent');
-    const progSub = document.getElementById('update-progress-subtext');
+  if (modal && !modal.dataset.bound) {
+    modal.dataset.bound = "true";
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+      }
+    });
+  }
 
-    if (progSection) progSection.classList.remove('hidden');
-    if (progBar) progBar.style.width = `${p.percent}%`;
-    if (progPct) progPct.textContent = `${p.percent}%`;
-    if (progLabel) progLabel.textContent = p.message || `Téléchargement (${p.percent}%)...`;
-    if (progSub && p.percent >= 98) progSub.textContent = "Redémarrage de l'installateur dans quelques instants...";
-  });
-
-  if (btnStart) {
-    btnStart.addEventListener('click', async () => {
-      if (!currentUpdateInfo || !currentUpdateInfo.download_url) return;
+  // Bind start update button
+  const btnStart = document.getElementById('btn-start-update');
+  if (btnStart && !btnStart.dataset.bound) {
+    btnStart.dataset.bound = "true";
+    btnStart.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!currentUpdateInfo || !currentUpdateInfo.download_url) {
+        alert("Aucun lien de téléchargement disponible.");
+        return;
+      }
       btnStart.disabled = true;
       btnStart.classList.add('hidden');
 
@@ -829,6 +870,40 @@ async function initUpdateManager() {
       }
     });
   }
+
+  return modal;
+}
+
+async function initUpdateManager() {
+  const pillBtn = document.getElementById('btn-update-pill');
+
+  if (pillBtn && !pillBtn.dataset.bound) {
+    pillBtn.dataset.bound = "true";
+    pillBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openUpdateModal();
+    });
+  }
+
+  // Initialise le modal dans le DOM
+  ensureUpdateModalExists();
+
+  // Écoute des événements de progression en direct depuis Rust
+  listen('update_progress', (event) => {
+    const p = event.payload;
+    if (!p) return;
+    const progSection = document.getElementById('update-progress-section');
+    const progBar = document.getElementById('update-progress-bar');
+    const progLabel = document.getElementById('update-progress-label');
+    const progPct = document.getElementById('update-progress-percent');
+    const progSub = document.getElementById('update-progress-subtext');
+
+    if (progSection) progSection.classList.remove('hidden');
+    if (progBar) progBar.style.width = `${p.percent}%`;
+    if (progPct) progPct.textContent = `${p.percent}%`;
+    if (progLabel) progLabel.textContent = p.message || `Téléchargement (${p.percent}%)...`;
+    if (progSub && p.percent >= 98) progSub.textContent = "Redémarrage de l'installateur dans quelques instants...";
+  });
 
   await checkAndUpdatePill();
 }
@@ -854,7 +929,7 @@ async function checkAndUpdatePill() {
         pillBtn.title = `Mise à jour v${info.latest_version} disponible ! Cliquez pour installer.`;
       }
     } else {
-      const curVer = info ? info.current_version : "1.1.0";
+      const curVer = info ? info.current_version : "1.2.0";
       if (dot) {
         dot.className = 'status-dot green';
       }
@@ -872,11 +947,11 @@ async function checkAndUpdatePill() {
 }
 
 function openUpdateModal() {
-  const modal = document.getElementById('modal-update');
+  const modal = ensureUpdateModalExists();
   if (!modal) return;
 
-  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.1.0";
-  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.1.0";
+  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.0";
+  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.0";
   const hasUpdate = currentUpdateInfo ? currentUpdateInfo.has_update : false;
 
   const elCur = document.getElementById('modal-current-ver');

@@ -558,6 +558,53 @@
 
   <script src="js/app.js"></script>
 
+  <!-- Catppuccin Mocha Update Modal Window -->
+  <div class="modal-backdrop hidden" id="modal-update">
+    <div class="modal-card update-modal">
+      <div class="modal-header">
+        <div class="modal-icon-badge update-icon-badge">🔄</div>
+        <h3>Mise à jour de l'Installateur</h3>
+      </div>
+      <div class="modal-body">
+        <p id="update-status-message">Recherche des dernières mises à jour...</p>
+
+        <!-- Version Comparison Card -->
+        <div class="version-comparison-card">
+          <div class="version-row">
+            <span class="version-label">Version actuelle :</span>
+            <span class="version-val current" id="modal-current-ver">v1.1.0</span>
+          </div>
+          <div class="version-row">
+            <span class="version-label">Nouvelle version disponible :</span>
+            <span class="version-val latest" id="modal-latest-ver">v1.2.0</span>
+          </div>
+        </div>
+
+        <!-- Release Notes Container -->
+        <div class="update-notes-container hidden" id="update-notes-container" style="margin-top: 14px;">
+          <div class="update-notes-title">Notes de mise à jour :</div>
+          <div id="update-notes-content" style="white-space: pre-wrap; font-family: inherit;"></div>
+        </div>
+
+        <!-- Progress Bar Section -->
+        <div class="update-progress-wrap hidden" id="update-progress-section">
+          <div class="update-progress-header">
+            <span id="update-progress-label">Téléchargement en cours...</span>
+            <span id="update-progress-percent">0%</span>
+          </div>
+          <div class="update-progress-track">
+            <div class="update-progress-bar" id="update-progress-bar" style="width: 0%;"></div>
+          </div>
+          <p class="update-progress-subtext" id="update-progress-subtext">L'installateur redémarrera automatiquement dès la fin du téléchargement.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-close-update-modal">Fermer</button>
+        <button type="button" class="btn btn-primary" id="btn-start-update">Mettre à jour maintenant</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Catppuccin Mocha Confirmation Modal -->
   <div class="modal-backdrop hidden" id="modal-confirm-install">
     <div class="modal-card">
