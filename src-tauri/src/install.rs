@@ -215,26 +215,41 @@ pub async fn execute_installation(
         let parted_gpt = Command::new("parted")
             .args(["-s", &s.target_disk, "--", "mklabel", "gpt"])
             .status();
-        if parted_gpt.map_or(false, |st| !st.success()) {
-            let err = format!("Échec de création du label GPT sur {}", s.target_disk);
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            let mut st = state.lock().await;
-            st.is_running = false;
-            st.is_finished = true;
-            st.success = false;
-            st.error = Some(err.clone());
-            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
-            return Err(err);
+        // Vérification robuste : Err (commande introuvable) ET code de sortie non nul
+        match parted_gpt {
+            Ok(st) if st.success() => {},
+            other => {
+                let detail = match other {
+                    Ok(st) => format!("code de sortie: {:?}", st.code()),
+                    Err(e) => format!("erreur d'exécution: {}", e),
+                };
+                let err = format!("Échec de création du label GPT sur {} ({})", s.target_disk, detail);
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                let mut st = state.lock().await;
+                st.is_running = false;
+                st.is_finished = true;
+                st.success = false;
+                st.error = Some(err.clone());
+                let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+                return Err(err);
+            }
         }
 
         emit_log("[INFO] Création de la partition EFI (1024 Mo - ESP/FAT32)...");
         let parted_esp = Command::new("parted")
             .args(["-s", &s.target_disk, "--", "mkpart", "ESP", "fat32", "1MiB", "1025MiB"])
             .status();
-        if parted_esp.map_or(false, |st| !st.success()) {
-            let err = "Échec de création de la partition ESP".into();
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            return Err(err);
+        match parted_esp {
+            Ok(st) if st.success() => {},
+            other => {
+                let detail = match other {
+                    Ok(st) => format!("code de sortie: {:?}", st.code()),
+                    Err(e) => format!("erreur d'exécution: {}", e),
+                };
+                let err = format!("Échec de création de la partition ESP ({})", detail);
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
         }
         let _ = Command::new("parted").args(["-s", &s.target_disk, "--", "set", "1", "esp", "on"]).status();
 
@@ -242,10 +257,17 @@ pub async fn execute_installation(
         let parted_root = Command::new("parted")
             .args(["-s", &s.target_disk, "--", "mkpart", "root", "ext4", "1025MiB", "100%"])
             .status();
-        if parted_root.map_or(false, |st| !st.success()) {
-            let err = "Échec de création de la partition Root".into();
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            return Err(err);
+        match parted_root {
+            Ok(st) if st.success() => {},
+            other => {
+                let detail = match other {
+                    Ok(st) => format!("code de sortie: {:?}", st.code()),
+                    Err(e) => format!("erreur d'exécution: {}", e),
+                };
+                let err = format!("Échec de création de la partition Root ({})", detail);
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
         }
 
         emit_log("[INFO] Notification au noyau et synchronisation udev (partprobe & udevadm settle)...");
@@ -282,24 +304,47 @@ pub async fn execute_installation(
     if !effective_dry_run {
         emit_log(&format!("[INFO] Formatage de la partition EFI en FAT32 ({}) avec le label BOOT...", efi_part));
         let mkfs_fat = Command::new("mkfs.vfat").args(["-F", "32", "-n", "BOOT", &efi_part]).status();
-        if mkfs_fat.map_or(false, |st| !st.success()) {
-            let fallback_fat = Command::new("mkfs.fat").args(["-F", "32", "-n", "BOOT", &efi_part]).status();
-            if fallback_fat.map_or(false, |st| !st.success()) {
-                let err = format!("Échec du formatage FAT32 de {}", efi_part);
-                emit_log(&format!("[ERREUR FATALE] {}", err));
-                return Err(err);
+        let fat_ok = match mkfs_fat {
+            Ok(st) if st.success() => true,
+            _ => {
+                emit_log("[WARN] mkfs.vfat a échoué, tentative avec mkfs.fat...");
+                match Command::new("mkfs.fat").args(["-F", "32", "-n", "BOOT", &efi_part]).status() {
+                    Ok(st) if st.success() => true,
+                    _ => false,
+                }
             }
+        };
+        if !fat_ok {
+            let err = format!("Échec du formatage FAT32 de {}", efi_part);
+            emit_log(&format!("[ERREUR FATALE] {}", err));
+            return Err(err);
         }
         emit_log("[OK] Partition EFI formatée avec succès en FAT32.");
 
         emit_log(&format!("[INFO] Formatage de la partition racine en ext4 ({}) avec le label nixos...", root_part));
         let mkfs_ext4 = Command::new("mkfs.ext4").args(["-F", "-L", "nixos", &root_part]).status();
-        if mkfs_ext4.map_or(false, |st| !st.success()) {
-            let err = format!("Échec du formatage ext4 de {}", root_part);
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            return Err(err);
+        match mkfs_ext4 {
+            Ok(st) if st.success() => {},
+            other => {
+                let detail = match other {
+                    Ok(st) => format!("code de sortie: {:?}", st.code()),
+                    Err(e) => format!("erreur d'exécution: {}", e),
+                };
+                let err = format!("Échec du formatage ext4 de {} ({})", root_part, detail);
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
         }
         emit_log("[OK] Partition racine formatée avec succès en ext4.");
+
+        // ── Synchronisation udev obligatoire après formatage ──
+        // Le noyau peut mettre un instant à exposer les métadonnées du FS
+        // fraîchement formaté. Sans cette synchronisation, le mount échoue.
+        emit_log("[INFO] Synchronisation udev post-formatage (udevadm settle + sync)...");
+        let _ = Command::new("udevadm").args(["settle", "--timeout=10"]).status();
+        let _ = Command::new("sync").status();
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        emit_log("[OK] Synchronisation noyau/udev terminée, partitions prêtes pour le montage.");
     } else {
         tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
         emit_log("[SIMULATION] Systèmes de fichiers FAT32 et ext4 initialisés.");
@@ -313,32 +358,83 @@ pub async fn execute_installation(
 
     if !effective_dry_run {
         let _ = std::fs::create_dir_all("/mnt");
+
+        // ── Montage de la partition racine avec mécanisme de retry ──
+        // Après un formatage récent, le noyau peut mettre un instant à
+        // rendre le système de fichiers disponible pour le montage.
         emit_log(&format!("[INFO] Montage de la partition racine {} sur /mnt...", root_part));
-        let mnt_root = Command::new("mount").args([&root_part, "/mnt"]).status();
-        if mnt_root.map_or(false, |st| !st.success()) {
-            let err = format!("Échec du montage de la partition racine {} sur /mnt", root_part);
+        let mut root_mounted = false;
+        for attempt in 1..=3 {
+            match Command::new("mount").args([&root_part, "/mnt"]).status() {
+                Ok(st) if st.success() => {
+                    root_mounted = true;
+                    break;
+                }
+                other => {
+                    let detail = match other {
+                        Ok(st) => format!("code de sortie: {:?}", st.code()),
+                        Err(e) => format!("erreur d'exécution: {}", e),
+                    };
+                    emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, root_part, detail));
+                    if attempt < 3 {
+                        emit_log("[INFO] Attente de 2s avant la prochaine tentative de montage...");
+                        let _ = Command::new("udevadm").args(["settle", "--timeout=5"]).status();
+                        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                    }
+                }
+            }
+        }
+        if !root_mounted {
+            let err = format!("Échec du montage de la partition racine {} sur /mnt après 3 tentatives", root_part);
             emit_log(&format!("[ERREUR FATALE] {}", err));
             return Err(err);
         }
         emit_log("[OK] /mnt monté avec succès.");
 
+        // ── Montage de la partition EFI avec retry ──
         let _ = std::fs::create_dir_all("/mnt/boot");
         emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
-        let mnt_boot = Command::new("mount").args([&efi_part, "/mnt/boot"]).status();
-        if mnt_boot.map_or(false, |st| !st.success()) {
-            let err = format!("Échec du montage de la partition EFI {} sur /mnt/boot", efi_part);
+        let mut boot_mounted = false;
+        for attempt in 1..=3 {
+            match Command::new("mount").args([&efi_part, "/mnt/boot"]).status() {
+                Ok(st) if st.success() => {
+                    boot_mounted = true;
+                    break;
+                }
+                other => {
+                    let detail = match other {
+                        Ok(st) => format!("code de sortie: {:?}", st.code()),
+                        Err(e) => format!("erreur d'exécution: {}", e),
+                    };
+                    emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, efi_part, detail));
+                    if attempt < 3 {
+                        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                    }
+                }
+            }
+        }
+        if !boot_mounted {
+            let err = format!("Échec du montage de la partition EFI {} sur /mnt/boot après 3 tentatives", efi_part);
             emit_log(&format!("[ERREUR FATALE] {}", err));
             return Err(err);
         }
         emit_log("[OK] /mnt/boot monté avec succès.");
 
-        // Vérification de validation des points de montage
-        if !Path::new("/mnt/boot").exists() {
-            let err = "Vérification d'accès à /mnt/boot échouée.".into();
+        // ── Vérification réelle des points de montage via /proc/mounts ──
+        // Plus fiable que Path::exists() qui retourne true même sans montage
+        let mounts_content = std::fs::read_to_string("/proc/mounts").unwrap_or_default();
+        let root_verified = mounts_content.lines().any(|l| l.contains(" /mnt "));
+        let boot_verified = mounts_content.lines().any(|l| l.contains(" /mnt/boot "));
+        if !root_verified || !boot_verified {
+            let err = format!(
+                "Vérification /proc/mounts échouée : /mnt={}, /mnt/boot={}",
+                if root_verified { "OK" } else { "ABSENT" },
+                if boot_verified { "OK" } else { "ABSENT" }
+            );
             emit_log(&format!("[ERREUR FATALE] {}", err));
             return Err(err);
         }
-        emit_log("[OK] Hiérarchie des points de montage validée.");
+        emit_log("[OK] Vérification /proc/mounts confirmée : /mnt et /mnt/boot sont correctement montés.");
     } else {
         tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
         emit_log("[SIMULATION] Volumes montés sous /mnt et /mnt/boot.");
@@ -390,8 +486,9 @@ pub async fn execute_installation(
         let gen_status = Command::new("nixos-generate-config")
             .args(["--root", "/mnt", "--dir", "/tmp/nixos-hw"])
             .status();
-        if gen_status.map_or(false, |st| !st.success()) {
-            emit_log("[WARN] nixos-generate-config a signalé un avertissement. Poursuite...");
+        match gen_status {
+            Ok(st) if st.success() => emit_log("[OK] nixos-generate-config terminé avec succès."),
+            _ => emit_log("[WARN] nixos-generate-config a signalé un avertissement. Poursuite..."),
         }
 
         // 1. Déploiement intégral de l'arborescence ChomiamOS
