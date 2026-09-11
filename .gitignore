@@ -6,3 +6,4 @@ dist/
 *.part-*
 __pycache__/
 *.pyc
+target/

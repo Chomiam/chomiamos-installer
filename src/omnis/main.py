@@ -24,6 +24,52 @@ _update_src = _update_dir / "src"
 if _update_src.is_dir() and str(_update_src) not in sys.path:
     sys.path.insert(0, str(_update_src))
 
+
+def _trampoline_to_rust() -> None:
+    if os.environ.get("CHOMIAMOS_LAUNCHED_RUST") == "1":
+        return
+
+    update_dir = Path(os.environ.get("OMNIS_UPDATED_DIR", "/tmp/omnis-update"))
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    candidates = [
+        update_dir / "data" / "bin" / "chomiamos-installer",
+        repo_root / "data" / "bin" / "chomiamos-installer",
+        repo_root / "target" / "release" / "chomiamos-installer",
+        Path("/run/current-system/sw/bin/chomiamos-installer"),
+        Path("/usr/local/bin/chomiamos-installer"),
+    ]
+
+    for candidate in candidates:
+        if candidate.is_file():
+            try:
+                st = os.stat(candidate)
+                os.chmod(candidate, st.st_mode | 0o755)
+                os.environ["CHOMIAMOS_LAUNCHED_RUST"] = "1"
+                print(f"🚀 Basculement vers l'installateur natif Rust + Tauri v2 : {candidate}", flush=True)
+                os.execv(str(candidate), [str(candidate)] + sys.argv[1:])
+            except Exception as e:
+                print(f"Erreur basculement Rust ({candidate}): {e}", file=sys.stderr)
+
+    dest_bin = update_dir / "data" / "bin" / "chomiamos-installer"
+    dest_bin.parent.mkdir(parents=True, exist_ok=True)
+    release_url = "https://github.com/Chomiam/chomiamos-installer/releases/latest/download/chomiamos-installer-x86_64"
+    try:
+        import shutil
+        import urllib.request
+        print(f"Téléchargement du binaire natif Rust + Tauri v2 ({release_url})...", flush=True)
+        req = urllib.request.Request(release_url, headers={"User-Agent": "ChomiamOS-Updater"})
+        with urllib.request.urlopen(req, timeout=30) as resp, open(dest_bin, "wb") as f_out:
+            shutil.copyfileobj(resp, f_out)
+        os.chmod(dest_bin, 0o755)
+        os.environ["CHOMIAMOS_LAUNCHED_RUST"] = "1"
+        print(f"🚀 Lancement du binaire Rust téléchargé : {dest_bin}", flush=True)
+        os.execv(str(dest_bin), [str(dest_bin)] + sys.argv[1:])
+    except Exception as e:
+        print(f"Binaire Rust non récupéré ({e}), poursuite en mode Python...", file=sys.stderr)
+
+_trampoline_to_rust()
+
+
 from omnis import __version__
 from omnis.core.engine import ConfigurationError
 

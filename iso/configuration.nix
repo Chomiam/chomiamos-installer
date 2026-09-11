@@ -164,7 +164,7 @@ let
     set -euo pipefail
 
     # Éviter les lancements concurrents
-    if ${pkgs.procps}/bin/pgrep -x omnis >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -f "python.*omnis" >/dev/null 2>&1; then
+    if ${pkgs.procps}/bin/pgrep -x omnis >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -x chomiamos-installer >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -f "python.*omnis" >/dev/null 2>&1; then
       exit 0
     fi
 

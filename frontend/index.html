@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installation de ChomiamOS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="catppuccin-mocha">
+  <div class="app-layout">
+    <!-- Header / Titlebar -->
+    <header class="app-header">
+      <div class="header-branding">
+        <div class="header-logo-badge">🚀</div>
+        <div>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v2 (Rust)</span></h1>
+          <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="pulse-indicator online"></span>
+        <span id="session-status">Session Live Prête</span>
+      </div>
+    </header>
+
+    <!-- Main Container with Stepper -->
+    <div class="wizard-container">
+      <!-- Stepper Nav Sidebar -->
+      <aside class="stepper-sidebar">
+        <div class="step-item active" data-step="1">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <span class="step-label">Prérequis</span>
+            <span class="step-desc">Vérification système</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="2">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <span class="step-label">Clavier & Langue</span>
+            <span class="step-desc">Disposition XKB multi-DE</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="3">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <span class="step-label">Disque & Swap</span>
+            <span class="step-desc">Allocation posix_fallocate</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="4">
+          <div class="step-num">4</div>
+          <div class="step-info">
+            <span class="step-label">Bureau & Web</span>
+            <span class="step-desc">GNOME, Cinnamon, KDE, COSMIC</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="5">
+          <div class="step-num">5</div>
+          <div class="step-info">
+            <span class="step-label">Gaming</span>
+            <span class="step-desc">Lanceurs, Sunshine & Sober</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="6">
+          <div class="step-num">6</div>
+          <div class="step-info">
+            <span class="step-label">Utilisateur</span>
+            <span class="step-desc">Compte & Sécurité</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="7">
+          <div class="step-num">7</div>
+          <div class="step-info">
+            <span class="step-label">Installation</span>
+            <span class="step-desc">Déploiement NixOS</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Step Content Area -->
+      <main class="step-content-area">
+        <!-- Step 1: Prerequisites -->
+        <section class="step-panel active" id="panel-step-1">
+          <div class="panel-header">
+            <h2>Bienvenue dans l'installateur ChomiamOS</h2>
+            <p>Vérification de la compatibilité matérielle et des prérequis système pour une expérience optimale.</p>
+          </div>
+          <div class="prereq-grid" id="prereq-grid">
+            <div class="prereq-card loading" id="prereq-efi">
+              <span class="prereq-icon">⚡</span>
+              <div>
+                <strong>Démarrage UEFI</strong>
+                <span class="prereq-status">Détection...</span>
+              </div>
+            </div>
+            <div class="prereq-card loading" id="prereq-ram">
+              <span class="prereq-icon">🧠</span>
+              <div>
+                <strong>Mémoire RAM (≥ 4 Go)</strong>
+                <span class="prereq-status">Détection...</span>
+              </div>
+            </div>
+            <div class="prereq-card loading" id="prereq-internet">
+              <span class="prereq-icon">🌐</span>
+              <div>
+                <strong>Connexion Internet</strong>
+                <span class="prereq-status">Vérification...</span>
+              </div>
+            </div>
+            <div class="prereq-card loading" id="prereq-disk">
+              <span class="prereq-icon">💾</span>
+              <div>
+                <strong>Disque de stockage</strong>
+                <span class="prereq-status">Scan NVMe/SSD...</span>
+              </div>
+            </div>
+          </div>
+          <div class="callout-card tip">
+            <span class="callout-icon">💡</span>
+            <div>
+              <strong>Optimisation Rust native</strong>
+              <p>Cet installateur utilise des appels système Linux directs pour partitionner et allouer le swap de manière instantanée, réduisant le temps d'installation de plus de 40%.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 2: Keyboard -->
+        <section class="step-panel" id="panel-step-2">
+          <div class="panel-header">
+            <h2>Disposition du Clavier</h2>
+            <p>La disposition sélectionnée sera automatiquement synchronisée sur GNOME, Cinnamon, KDE Plasma, COSMIC et la console TTY.</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="keyboard-layout-select">Disposition principale</label>
+              <select id="keyboard-layout-select" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label for="keyboard-variant-select">Variante</label>
+              <select id="keyboard-variant-select" class="form-select"></select>
+            </div>
+          </div>
+          <div class="keyboard-tester">
+            <label for="keyboard-test-input">Testez votre clavier en direct (AZERTY, QWERTY, accents, chiffres) :</label>
+            <input type="text" id="keyboard-test-input" class="form-input" placeholder="Tapez ici pour tester la disposition active immédiatement...">
+            <span class="live-applied-badge">✓ Appliqué en direct à la session live</span>
+          </div>
+        </section>
+
+        <!-- Step 3: Disks & Instant Swap -->
+        <section class="step-panel" id="panel-step-3">
+          <div class="panel-header">
+            <h2>Disque cible & Swap Instantané (Rust posix_fallocate)</h2>
+            <p>Sélectionnez le disque de destination et ajustez la taille du fichier d'échange (Swap).</p>
+          </div>
+          <div class="disk-selection-list" id="disk-list">
+            <!-- Disks injected here -->
+          </div>
+          <div class="swap-config-card">
+            <div class="swap-header">
+              <div>
+                <strong>Taille du Swapfile : <span id="swap-size-val">8 Go</span></strong>
+                <p>Créé instantanément en 0 ms grâce à <code>posix_fallocate</code> sans écriture séquentielle de zéros.</p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-benchmark-swap">Tester la vitesse Rust</button>
+            </div>
+            <input type="range" id="swap-slider" min="0" max="32768" step="1024" value="8192" class="form-range">
+            <div class="swap-scale">
+              <span>Désactivé (0 Go)</span>
+              <span>4 Go</span>
+              <span>8 Go (Recommandé)</span>
+              <span>16 Go</span>
+              <span>32 Go</span>
+            </div>
+            <div id="swap-bench-result" class="bench-result hidden"></div>
+          </div>
+        </section>
+
+        <!-- Step 4: Desktop Environment -->
+        <section class="step-panel" id="panel-step-4">
+          <div class="panel-header">
+            <h2>Environnement de Bureau & Navigateur</h2>
+            <p>Choisissez votre environnement initial. Grâce à l'architecture modulaire ChomiamOS, vous pourrez changer de bureau à tout moment.</p>
+          </div>
+          <div class="cards-grid de-grid">
+            <label class="selection-card active">
+              <input type="radio" name="desktop_env" value="gnome" checked>
+              <div class="card-inner">
+                <span class="card-icon">🔵</span>
+                <span class="card-title">GNOME 48</span>
+                <span class="card-desc">Thème Catppuccin Mocha, extensions Blur & Dash-to-Dock préconfigurées.</span>
+              </div>
+            </label>
+            <label class="selection-card">
+              <input type="radio" name="desktop_env" value="cinnamon">
+              <div class="card-inner">
+                <span class="card-icon">🌿</span>
+                <span class="card-title">Cinnamon</span>
+                <span class="card-desc">Bureau traditionnel ultra-rapide avec fonds d'écran officiels intégrés.</span>
+              </div>
+            </label>
+            <label class="selection-card">
+              <input type="radio" name="desktop_env" value="kde">
+              <div class="card-inner">
+                <span class="card-icon">❄️</span>
+                <span class="card-title">KDE Plasma 6</span>
+                <span class="card-desc">Personnalisation extrême, Catppuccin Lavender et Wayland HDR.</span>
+              </div>
+            </label>
+            <label class="selection-card">
+              <input type="radio" name="desktop_env" value="cosmic">
+              <div class="card-inner">
+                <span class="card-icon">🚀</span>
+                <span class="card-title">COSMIC Desktop</span>
+                <span class="card-desc">Nouvelle génération écrite en Rust par System76 avec fenêtrage dynamique.</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="form-group" style="margin-top: 24px;">
+            <label for="browser-select">Navigateur Web principal</label>
+            <select id="browser-select" class="form-select">
+              <option value="chrome">Google Chrome (Recommandé)</option>
+              <option value="firefox">Mozilla Firefox</option>
+              <option value="brave">Brave Browser</option>
+              <option value="zen">Zen Browser</option>
+              <option value="librewolf">LibreWolf</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Step 5: Gaming -->
+        <section class="step-panel" id="panel-step-5">
+          <div class="panel-header">
+            <h2>Suite Gaming & Lanceurs</h2>
+            <p>Activez les plateformes et outils que vous souhaitez retrouver sur votre machine.</p>
+          </div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-steam" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">💨</span>
+                <div class="toggle-text">
+                  <strong>Steam & Proton</strong>
+                  <small>Plateforme Valve avec MangoHud & GameMode</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-lutris" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🍷</span>
+                <div class="toggle-text">
+                  <strong>Lutris</strong>
+                  <small>Gestionnaire universel de jeux Windows et runners</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-heroic" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">⚔️</span>
+                <div class="toggle-text">
+                  <strong>Heroic Games Launcher</strong>
+                  <small>Epic Games, GOG & Prime Gaming</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-faugus" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🦅</span>
+                <div class="toggle-text">
+                  <strong>Faugus Launcher</strong>
+                  <small>Lanceur rapide intégré Steam</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card highlight-card">
+              <input type="checkbox" id="chk-sunshine">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">☀️</span>
+                <div class="toggle-text">
+                  <strong>Serveur Sunshine (Optionnel)</strong>
+                  <small>Streaming local de jeux ultra-faible latence vers Moonlight (HDR/4K)</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card highlight-card">
+              <input type="checkbox" id="chk-sober">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🧱</span>
+                <div class="toggle-text">
+                  <strong>Sober (Roblox - Optionnel)</strong>
+                  <small>Client Roblox natif et optimisé Linux via Flatpak</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-geforce" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">☁️</span>
+                <div class="toggle-text">
+                  <strong>NVIDIA GeForce NOW</strong>
+                  <small>Client cloud gaming officiel</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-wheels" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🏎️</span>
+                <div class="toggle-text">
+                  <strong>Volants & Simracing (Oversteer)</strong>
+                  <small>Pilotes Logitech, Thrustmaster, Fanatec + FFB</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Step 6: User -->
+        <section class="step-panel" id="panel-step-6">
+          <div class="panel-header">
+            <h2>Compte Utilisateur & Machine</h2>
+            <p>Configurez le profil administrateur principal du système.</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="input-fullname">Nom complet</label>
+              <input type="text" id="input-fullname" class="form-input" value="ChomiamOS User">
+            </div>
+            <div class="form-group">
+              <label for="input-username">Nom d'utilisateur (login)</label>
+              <input type="text" id="input-username" class="form-input" value="chomiam">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="input-password">Mot de passe</label>
+              <input type="password" id="input-password" class="form-input" placeholder="Entrez un mot de passe sécurisé...">
+            </div>
+            <div class="form-group">
+              <label for="input-hostname">Nom de la machine (Hostname)</label>
+              <input type="text" id="input-hostname" class="form-input" value="chomiamos">
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 7: Summary & Install -->
+        <section class="step-panel" id="panel-step-7">
+          <div class="panel-header">
+            <h2>Résumé de l'Installation</h2>
+            <p>Vérifiez vos sélections avant de lancer le déploiement sur le disque.</p>
+          </div>
+          <div class="summary-box" id="summary-box">
+            <!-- Dynamic summary -->
+          </div>
+          <div class="preview-section">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-nix-preview">Voir le vars.nix généré</button>
+            <pre id="vars-preview-code" class="code-preview hidden"></pre>
+          </div>
+        </section>
+
+        
+        <!-- Step 8: Installation in progress -->
+        <section class="step-panel" id="panel-step-8">
+          <div class="panel-header">
+            <h2 id="install-heading">Installation de ChomiamOS</h2>
+            <p id="install-subheading">Veuillez patienter pendant le déploiement sur votre disque...</p>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-info-row">
+              <span class="progress-step-title" id="install-step-title">Initialisation...</span>
+              <span class="progress-percent-val" id="install-percent-val">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar-fill" id="install-bar-fill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="terminal-wrapper">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <span class="terminal-title">Journal d'installation en direct</span>
+            </div>
+            <div class="terminal-log" id="install-terminal-log">
+              <div class="log-line text-muted">> Prêt pour le démarrage...</div>
+            </div>
+          </div>
+
+          <div class="install-complete-card hidden" id="install-complete-card">
+            <div class="complete-icon">🎉</div>
+            <h3>Installation Terminée avec Succès !</h3>
+            <p>ChomiamOS Gaming Edition est maintenant installé sur votre disque. Vous pouvez redémarrer immédiatement pour découvrir votre nouveau système.</p>
+            <div class="complete-actions">
+              <button type="button" class="btn btn-primary" id="btn-reboot-now">🔄 Redémarrer le système</button>
+              <button type="button" class="btn btn-secondary" id="btn-poweroff">⏻ Éteindre</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bottom Action Bar -->
+        <footer class="wizard-actions">
+          <button type="button" class="btn btn-secondary" id="btn-prev" disabled>← Précédent</button>
+          <div class="action-spacer"></div>
+          <button type="button" class="btn btn-primary" id="btn-next">Suivant →</button>
+          <button type="button" class="btn btn-accent hidden" id="btn-install">🚀 Lancer l'Installation</button>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
