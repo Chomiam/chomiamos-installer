@@ -561,21 +561,54 @@ async function loadDisks() {
   }
 }
 
+const SWAP_STEPS = [0, 4096, 8192, 16384, 32768];
+const SWAP_LABELS = [
+  "Désactivé (0 Go)",
+  "4 Go",
+  "8 Go (Recommandé)",
+  "16 Go",
+  "32 Go"
+];
+
+function getSwapSizeMb() {
+  const slider = document.getElementById('swap-slider');
+  if (!slider) return 8192;
+  const idx = parseInt(slider.value, 10);
+  return SWAP_STEPS[idx] !== undefined ? SWAP_STEPS[idx] : 8192;
+}
+
 function initSwapSlider() {
   const slider = document.getElementById('swap-slider');
   const valSpan = document.getElementById('swap-size-val');
   if (!slider || !valSpan) return;
 
-  slider.addEventListener('input', () => {
-    const val = parseInt(slider.value);
-    if (val === 0) {
-      valSpan.textContent = "Désactivé (0 Go)";
-    } else if (val === 8192) {
-      valSpan.textContent = "8 Go (Recommandé)";
-    } else {
-      valSpan.textContent = `${val / 1024} Go`;
-    }
+  function updateSwapDisplay() {
+    const idx = parseInt(slider.value, 10);
+    valSpan.textContent = SWAP_LABELS[idx] || "8 Go (Recommandé)";
+
+    document.querySelectorAll('.swap-scale span').forEach((el) => {
+      const elVal = parseInt(el.dataset.val, 10);
+      if (elVal === idx) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+  }
+
+  slider.addEventListener('input', updateSwapDisplay);
+
+  document.querySelectorAll('.swap-scale span').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.val, 10);
+      if (!isNaN(idx)) {
+        slider.value = idx;
+        updateSwapDisplay();
+      }
+    });
   });
+
+  updateSwapDisplay();
 }
 
 function collectSelections() {
@@ -594,7 +627,7 @@ function collectSelections() {
     keyboard_variant: document.getElementById('keyboard-variant-select')?.value || "",
     timezone: document.getElementById('timezone-select')?.value || "Europe/Paris",
     target_disk: diskPath,
-    swap_size_mb: parseInt(document.getElementById('swap-slider').value) || 8192,
+    swap_size_mb: getSwapSizeMb(),
     gpu_driver: detectedGpuDriver || "amd",
     steam: document.getElementById('chk-steam').checked,
     lutris: document.getElementById('chk-lutris').checked,
@@ -703,74 +736,90 @@ function appendLog(text) {
 }
 
 async function startInstallation(s) {
-  // Basculer vers l'écran d'installation (Panel 8)
-  document.getElementById(`panel-step-${currentStep}`).classList.remove('active');
-  document.getElementById('panel-step-8').classList.add('active');
-  document.querySelector('.wizard-actions').classList.add('hidden');
-  document.querySelector('.wizard-nav').classList.add('hidden');
-
-  appendLog("🚀 Démarrage du processus d'installation...");
-  appendLog(`Disque cible configuré : ${s.target_disk}`);
-
   try {
+    // Basculer vers l'écran d'installation (Panel 8)
+    const curPanel = document.getElementById(`panel-step-${currentStep}`);
+    if (curPanel) curPanel.classList.remove('active');
+
+    const installPanel = document.getElementById('panel-step-8');
+    if (installPanel) installPanel.classList.add('active');
+
+    document.querySelector('.wizard-actions')?.classList.add('hidden');
+    document.querySelector('.stepper-sidebar')?.classList.add('hidden');
+
+    appendLog("🚀 Démarrage du processus d'installation...");
+    appendLog(`Disque cible configuré : ${s.target_disk}`);
+    appendLog(`Taille de Swap sélectionnée : ${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}`);
+    appendLog(`Environnement de bureau : ${s.desktop_env} | Pilote GPU : ${s.gpu_driver || 'amd'}`);
+
     await invoke('start_installation', { selections: s, dryRun: false });
+
+    // Écoute directe des événements si disponible
+    listen('install_progress', (e) => {
+      const p = e.payload || e;
+      if (p.percent !== undefined) {
+        const bar = document.getElementById('install-bar-fill');
+        const pct = document.getElementById('install-percent-val');
+        if (bar) bar.style.width = `${p.percent}%`;
+        if (pct) pct.textContent = `${p.percent}%`;
+      }
+      if (p.step) {
+        const title = document.getElementById('install-step-title');
+        if (title) title.textContent = p.step;
+      }
+    });
+
+    listen('install_log', (e) => {
+      const line = e.payload || e;
+      appendLog(line);
+    });
+
+    // Boucle de polling (200ms) pour garantir la réception de tous les logs et états
+    let lastLogCount = 0;
+    const pollInterval = setInterval(async () => {
+      try {
+        const snap = await invoke('get_install_state', { sinceLogIdx: lastLogCount });
+
+        if (snap.new_logs && snap.new_logs.length > 0) {
+          for (const line of snap.new_logs) {
+            appendLog(line);
+          }
+          lastLogCount = snap.total_logs_count;
+        }
+
+        if (snap.percent !== undefined) {
+          const bar = document.getElementById('install-bar-fill');
+          const pct = document.getElementById('install-percent-val');
+          if (bar) bar.style.width = `${snap.percent}%`;
+          if (pct) pct.textContent = `${snap.percent}%`;
+        }
+        if (snap.step) {
+          const title = document.getElementById('install-step-title');
+          if (title) title.textContent = snap.step;
+        }
+
+        if (snap.is_finished) {
+          clearInterval(pollInterval);
+          if (snap.success) {
+            document.getElementById('install-complete-card')?.classList.remove('hidden');
+            const h = document.getElementById('install-heading');
+            if (h) h.textContent = "Installation Terminée !";
+            const sub = document.getElementById('install-subheading');
+            if (sub) sub.textContent = "ChomiamOS Gaming Edition est prêt.";
+          } else {
+            appendLog(`[ERREUR FATALE] ${snap.error || 'Erreur inconnue'}`);
+            alert(`Erreur d'installation: ${snap.error}`);
+          }
+        }
+      } catch (err) {
+        console.error("Polling install state error:", err);
+      }
+    }, 200);
   } catch (err) {
-    appendLog(`[ERREUR LANCEMENT] ${err}`);
-    alert(`Erreur: ${err}`);
-    return;
+    console.error("Fatal startInstallation error:", err);
+    appendLog(`[ERREUR FATALE LANCEMENT] ${err}`);
+    alert(`Erreur lors du lancement de l'installation: ${err}`);
   }
-
-  // Écoute directe des événements si disponible
-  listen('install_progress', (e) => {
-    const p = e.payload || e;
-    if (p.percent !== undefined) {
-      document.getElementById('install-bar-fill').style.width = `${p.percent}%`;
-      document.getElementById('install-percent-val').textContent = `${p.percent}%`;
-    }
-    if (p.step) document.getElementById('install-step-title').textContent = p.step;
-  });
-
-  listen('install_log', (e) => {
-    const line = e.payload || e;
-    appendLog(line);
-  });
-
-  // Boucle de polling (200ms) pour garantir la réception de tous les logs et états
-  let lastLogCount = 0;
-  const pollInterval = setInterval(async () => {
-    try {
-      const snap = await invoke('get_install_state', { sinceLogIdx: lastLogCount });
-
-      if (snap.new_logs && snap.new_logs.length > 0) {
-        for (const line of snap.new_logs) {
-          appendLog(line);
-        }
-        lastLogCount = snap.total_logs_count;
-      }
-
-      if (snap.percent !== undefined) {
-        document.getElementById('install-bar-fill').style.width = `${snap.percent}%`;
-        document.getElementById('install-percent-val').textContent = `${snap.percent}%`;
-      }
-      if (snap.step) {
-        document.getElementById('install-step-title').textContent = snap.step;
-      }
-
-      if (snap.is_finished) {
-        clearInterval(pollInterval);
-        if (snap.success) {
-          document.getElementById('install-complete-card').classList.remove('hidden');
-          document.getElementById('install-heading').textContent = "Installation Terminée !";
-          document.getElementById('install-subheading').textContent = "ChomiamOS Gaming Edition est prêt.";
-        } else {
-          appendLog(`[ERREUR FATALE] ${snap.error || 'Erreur inconnue'}`);
-          alert(`Erreur d'installation: ${snap.error}`);
-        }
-      }
-    } catch (err) {
-      console.error("Polling install state error:", err);
-    }
-  }, 200);
 }
 
 
@@ -929,7 +978,7 @@ async function checkAndUpdatePill() {
         pillBtn.title = `Mise à jour v${info.latest_version} disponible ! Cliquez pour installer.`;
       }
     } else {
-      const curVer = info ? info.current_version : "1.2.0";
+      const curVer = info ? info.current_version : "1.2.1";
       if (dot) {
         dot.className = 'status-dot green';
       }
@@ -950,8 +999,8 @@ function openUpdateModal() {
   const modal = ensureUpdateModalExists();
   if (!modal) return;
 
-  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.0";
-  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.0";
+  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.1";
+  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.1";
   const hasUpdate = currentUpdateInfo ? currentUpdateInfo.has_update : false;
 
   const elCur = document.getElementById('modal-current-ver');

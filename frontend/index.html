@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.0 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.1 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.0)</span>
+          <span id="update-status-text">À jour (v1.2.1)</span>
         </button>
 
         <div class="session-badge">
@@ -228,13 +228,22 @@
                   <p>Préallocation instantanée en 0.4 ms via l'appel système POSIX <code>posix_fallocate</code>.</p>
                 </div>
               </div>
-              <input type="range" id="swap-slider" min="0" max="32768" step="1024" value="8192" class="form-range">
-              <div class="swap-scale">
-                <span>Désactivé (0 Go)</span>
-                <span>4 Go</span>
-                <span>8 Go (Recommandé)</span>
-                <span>16 Go</span>
-                <span>32 Go</span>
+              <div class="swap-slider-wrapper">
+                <input type="range" id="swap-slider" min="0" max="4" step="1" value="2" class="form-range stepped-range" list="swap-ticks">
+                <datalist id="swap-ticks">
+                  <option value="0"></option>
+                  <option value="1"></option>
+                  <option value="2"></option>
+                  <option value="3"></option>
+                  <option value="4"></option>
+                </datalist>
+                <div class="swap-scale">
+                  <span data-val="0">Désactivé (0 Go)</span>
+                  <span data-val="1">4 Go</span>
+                  <span data-val="2" class="active">8 Go (Recommandé)</span>
+                  <span data-val="3">16 Go</span>
+                  <span data-val="4">32 Go</span>
+                </div>
               </div>
             </div>
           </div>

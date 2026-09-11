@@ -417,11 +417,38 @@ body {
   cursor: pointer;
 }
 
+.swap-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
 .swap-scale {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--mocha-subtext0);
+  padding: 0 4px;
+}
+
+.swap-scale span {
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.swap-scale span:hover {
+  color: var(--mocha-text);
+  background: var(--mocha-surface1);
+}
+
+.swap-scale span.active {
+  color: var(--mocha-mauve);
+  font-weight: 700;
+  background: rgba(203, 166, 247, 0.15);
 }
 
 .bench-result {
