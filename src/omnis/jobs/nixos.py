@@ -743,20 +743,24 @@ class NixosJob(BaseJob):
                 "hosts/desktop/mount.nix merge=ours\n"
                 "mount.nix merge=ours\n"
                 "custom-packages.nix merge=ours\n"
-                "modules/core/firewall.nix merge=ours\n"
-                "firewall.nix merge=ours\n",
+                "firewall-user.nix merge=ours\n"
+                "modules/core/firewall-user.nix merge=ours\n",
                 encoding="utf-8",
             )
 
-            # Sauvegarde préventive pare-feu
-            fw_orig = etc_nixos / "modules" / "core" / "firewall.nix"
-            if fw_orig.exists():
-                backup_fw = etc_nixos / "modules" / "core" / ".firewall.nix.backup"
-                backup_fw.write_text(fw_orig.read_text(encoding="utf-8"), encoding="utf-8")
-                try:
-                    os.chmod(backup_fw, 0o600)
-                except Exception:
-                    pass
+            # Écriture initiale et sauvegarde de firewall-user.nix
+            user_fw = etc_nixos / "firewall-user.nix"
+            if not user_fw.exists():
+                user_fw.write_text(
+                    "{\n  networking.firewall = {\n    allowedTCPPorts = [];\n    allowedUDPPorts = [];\n    allowedTCPPortRanges = [];\n    allowedUDPPortRanges = [];\n  };\n}\n",
+                    encoding="utf-8"
+                )
+            backup_fw = etc_nixos / ".firewall-user.nix.backup"
+            backup_fw.write_text(user_fw.read_text(encoding="utf-8"), encoding="utf-8")
+            try:
+                os.chmod(backup_fw, 0o600)
+            except Exception:
+                pass
 
             # 5. Indexation Git (indispensable pour les Flakes Nix)
             if not (etc_nixos / ".git").is_dir():
