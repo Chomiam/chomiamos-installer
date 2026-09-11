@@ -1528,3 +1528,66 @@ select option:checked, .form-select option:checked {
   color: var(--mocha-subtext0);
   margin: 2px 0 0 0;
 }
+
+/* ── Update Error Box ── */
+.update-error-box {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: rgba(243, 139, 168, 0.08);
+  border: 1px solid rgba(243, 139, 168, 0.35);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 16px;
+  animation: errorSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.update-error-box.hidden {
+  display: none;
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.update-error-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.update-error-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-error-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #f38ba8;
+  margin-bottom: 6px;
+}
+
+.update-error-detail {
+  font-size: 0.85rem;
+  color: #cdd6f4;
+  line-height: 1.45;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.update-error-suggestion {
+  font-size: 0.82rem;
+  color: #a6e3a1;
+  background: rgba(166, 227, 161, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  line-height: 1.4;
+}

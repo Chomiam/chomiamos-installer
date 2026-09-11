@@ -916,7 +916,7 @@ function ensureUpdateModalExists() {
     btnStart.addEventListener('click', async (e) => {
       e.preventDefault();
       if (!currentUpdateInfo || !currentUpdateInfo.download_url) {
-        alert("Aucun lien de téléchargement disponible.");
+        showUpdateError("Aucun lien de téléchargement disponible. Veuillez vérifier votre connexion Internet.");
         return;
       }
       btnStart.disabled = true;
@@ -928,7 +928,7 @@ function ensureUpdateModalExists() {
       try {
         await invoke('apply_installer_update', { downloadUrl: currentUpdateInfo.download_url });
       } catch (err) {
-        alert("Erreur lors de la mise à jour: " + err);
+        showUpdateError(err);
         btnStart.disabled = false;
         btnStart.classList.remove('hidden');
       }
@@ -936,6 +936,53 @@ function ensureUpdateModalExists() {
   }
 
   return modal;
+}
+
+// ── Affichage d'erreur stylisé dans la modale de mise à jour ──
+function showUpdateError(errorMessage) {
+  const progSection = document.getElementById('update-progress-section');
+  if (progSection) progSection.classList.add('hidden');
+
+  // Créer ou réutiliser le container d'erreur
+  let errorBox = document.getElementById('update-error-box');
+  if (!errorBox) {
+    errorBox = document.createElement('div');
+    errorBox.id = 'update-error-box';
+    errorBox.className = 'update-error-box';
+    // Insérer après le progress section ou dans le modal-body
+    const modalBody = document.querySelector('#modal-update .modal-body');
+    if (modalBody) modalBody.appendChild(errorBox);
+  }
+
+  // Analyser l'erreur pour donner un message humain
+  let title = "Échec de la mise à jour";
+  let detail = String(errorMessage);
+  let suggestion = "Veuillez réessayer ultérieurement.";
+
+  if (detail.includes("os error 2") || detail.includes("No such file")) {
+    title = "Outil de téléchargement introuvable";
+    detail = "La commande nécessaire au téléchargement (curl) n'a pas été trouvée sur votre système.";
+    suggestion = "Vérifiez que curl est installé dans votre environnement NixOS.";
+  } else if (detail.includes("curl") && detail.includes("code")) {
+    title = "Erreur de téléchargement";
+    suggestion = "Vérifiez votre connexion Internet et que les serveurs GitHub sont accessibles.";
+  } else if (detail.includes("trop petit") || detail.includes("corrompu")) {
+    title = "Fichier corrompu";
+    suggestion = "Le fichier téléchargé est invalide. Réessayez ou téléchargez manuellement depuis GitHub.";
+  } else if (detail.includes("timeout") || detail.includes("Timeout")) {
+    title = "Délai d'attente dépassé";
+    suggestion = "La connexion est trop lente ou le serveur ne répond pas. Réessayez plus tard.";
+  }
+
+  errorBox.innerHTML = `
+    <div class="update-error-icon">⚠️</div>
+    <div class="update-error-content">
+      <div class="update-error-title">${title}</div>
+      <div class="update-error-detail">${detail}</div>
+      <div class="update-error-suggestion">💡 ${suggestion}</div>
+    </div>
+  `;
+  errorBox.classList.remove('hidden');
 }
 
 async function initUpdateManager() {

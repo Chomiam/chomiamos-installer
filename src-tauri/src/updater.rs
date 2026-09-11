@@ -115,92 +115,90 @@ pub async fn download_and_restart<R: tauri::Runtime>(
         let _ = std::fs::remove_file(temp_dest);
     }
 
-    let python_script = format!(
-r#"
-import urllib.request, sys, os
+    // Téléchargement via curl avec suivi de progression
+    // curl est toujours disponible sur NixOS (contrairement à python3)
+    let _ = app.emit("update_progress", UpdateProgress {
+        percent: 10,
+        message: "Téléchargement de la mise à jour en cours...".into(),
+    });
 
-url = "{url}"
-target = "{target}"
-
-req = urllib.request.Request(url, headers={{"User-Agent": "ChomiamOS-Installer-Updater"}})
-with urllib.request.urlopen(req, timeout=120) as resp:
-    total = int(resp.headers.get("Content-Length", 0))
-    downloaded = 0
-    chunk_size = 128 * 1024
-    with open(target, "wb") as f:
-        while True:
-            chunk = resp.read(chunk_size)
-            if not chunk:
-                break
-            f.write(chunk)
-            downloaded += len(chunk)
-            if total > 0:
-                pct = int((downloaded / total) * 88) + 5
-                print(f"PROGRESS:{{pct}}", flush=True)
-print("PROGRESS:95", flush=True)
-"#,
-        url = download_url,
-        target = temp_dest.to_str().unwrap()
-    );
-
-    let mut child = tokio::process::Command::new("python3")
-        .args(["-c", &python_script])
+    let mut child = tokio::process::Command::new("curl")
+        .args([
+            "-L",                       // Suivre les redirections GitHub
+            "--fail",                    // Échouer proprement sur les erreurs HTTP
+            "--max-time", "180",         // Timeout de 3 minutes
+            "-#",                        // Barre de progression sur stderr
+            "-o", temp_dest.to_str().unwrap(),
+            "-H", "User-Agent: ChomiamOS-Installer-Updater",
+            download_url,
+        ])
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Impossible de démarrer le téléchargement: {}", e))?;
+        .map_err(|e| format!("Impossible de lancer curl pour le téléchargement: {}", e))?;
 
-    if let Some(stdout) = child.stdout.take() {
-        use tokio::io::{AsyncBufReadExt, BufReader};
-        let mut reader = BufReader::new(stdout).lines();
-        let mut last_pct = 5;
-        while let Ok(Some(line)) = reader.next_line().await {
-            if let Some(pct_str) = line.strip_prefix("PROGRESS:") {
-                if let Ok(pct) = pct_str.trim().parse::<u32>() {
-                    if pct > last_pct {
-                        last_pct = pct;
-                        let msg = if pct < 90 {
-                            format!("Téléchargement de la mise à jour ({}%)...", pct)
-                        } else if pct < 95 {
-                            "Vérification du binaire téléchargé...".to_string()
-                        } else {
-                            "Finalisation des permissions d'exécution...".to_string()
-                        };
-                        let _ = app.emit("update_progress", UpdateProgress {
-                            percent: pct,
-                            message: msg,
-                        });
+    // Lire stderr de curl pour la progression (le -# envoie une barre de progression)
+    if let Some(stderr) = child.stderr.take() {
+        use tokio::io::{AsyncReadExt};
+        let app_clone = app.clone();
+        tokio::spawn(async move {
+            let mut reader = stderr;
+            let mut buf = [0u8; 256];
+            let mut last_pct = 10u32;
+            loop {
+                match reader.read(&mut buf).await {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        let text = String::from_utf8_lossy(&buf[..n]);
+                        // curl -# affiche des lignes avec ###... et des %
+                        // On cherche des pourcentages dans la sortie
+                        for part in text.split_whitespace() {
+                            let cleaned = part.trim_end_matches('%');
+                            if let Ok(pct_f) = cleaned.parse::<f64>() {
+                                let pct = ((pct_f * 0.83) as u32 + 10).min(93);
+                                if pct > last_pct {
+                                    last_pct = pct;
+                                    let _ = app_clone.emit("update_progress", UpdateProgress {
+                                        percent: pct,
+                                        message: format!("Téléchargement de la mise à jour ({}%)...", pct),
+                                    });
+                                }
+                            }
+                        }
                     }
+                    Err(_) => break,
                 }
             }
-        }
+        });
     }
 
-    let status = child.wait().await.map_err(|e| format!("Erreur téléchargement: {}", e))?;
+    let status = child.wait().await.map_err(|e| format!("Erreur lors du téléchargement: {}", e))?;
     if !status.success() {
-        // Fallback avec curl
-        let _ = app.emit("update_progress", UpdateProgress {
-            percent: 50,
-            message: "Téléchargement direct de secours via curl...".into(),
-        });
-        let cstatus = tokio::process::Command::new("curl")
-            .args(["-L", "--max-time", "180", "-o", temp_dest.to_str().unwrap(), download_url])
-            .status()
-            .await
-            .map_err(|e| format!("Curl de secours échoué: {}", e))?;
-        if !cstatus.success() {
-            return Err("Échec du téléchargement de la mise à jour".into());
-        }
+        return Err(format!(
+            "Le téléchargement a échoué (curl code {:?}). Vérifiez votre connexion Internet et réessayez.",
+            status.code()
+        ));
     }
+
+    // Vérifier que le fichier a bien été téléchargé et n'est pas vide
+    let meta = std::fs::metadata(temp_dest)
+        .map_err(|e| format!("Le fichier téléchargé est introuvable: {}", e))?;
+    if meta.len() < 1024 {
+        let _ = std::fs::remove_file(temp_dest);
+        return Err("Le fichier téléchargé est trop petit ou corrompu. La mise à jour a été annulée.".into());
+    }
+
+    let _ = app.emit("update_progress", UpdateProgress {
+        percent: 95,
+        message: "Vérification du binaire téléchargé...".into(),
+    });
 
     let _ = app.emit("update_progress", UpdateProgress {
         percent: 98,
         message: "Attribution des droits d'exécution (chmod +x)...".into(),
     });
 
-    let mut perms = std::fs::metadata(temp_dest)
-        .map_err(|e| e.to_string())?
-        .permissions();
+    let mut perms = meta.permissions();
     perms.set_mode(0o755);
     std::fs::set_permissions(temp_dest, perms).map_err(|e| e.to_string())?;
 
