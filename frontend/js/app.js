@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPasswordSecurity();
   initSummaryTrigger();
   initConfirmationModal();
+  initTerminalActions();
   await initUpdateManager();
 });
 
@@ -725,14 +726,21 @@ function initConfirmationModal() {
   });
 }
 
+let autoScrollEnabled = true;
+const rawInstallationLogs = [];
+
 function appendLog(text) {
   const term = document.getElementById('install-terminal-log');
+  rawInstallationLogs.push(`[${new Date().toLocaleTimeString()}] ${text}`);
+
   if (!term) return;
   const line = document.createElement('div');
   line.className = 'log-line';
 
   if (text.includes('[ÉTAPE') || text.includes('=== ÉTAPE') || text.startsWith('=== ')) {
     line.classList.add('log-step');
+  } else if (text.includes('[VALIDATION-CLÉ]') || text.includes('[SÉCURITÉ]') || text.includes('[SUCCÈS SÉCURITÉ]')) {
+    line.classList.add('log-security');
   } else if (text.includes('[OK]') || text.includes('[SUCCESS]') || text.includes('✓') || text.includes('avec succès')) {
     line.classList.add('log-success');
   } else if (text.includes('[ERREUR') || text.includes('[ERR]') || text.includes('FATAL') || text.includes('Échec')) {
@@ -747,7 +755,74 @@ function appendLog(text) {
 
   line.textContent = `> ${text}`;
   term.appendChild(line);
-  term.scrollTop = term.scrollHeight;
+
+  if (autoScrollEnabled) {
+    term.scrollTop = term.scrollHeight;
+  }
+}
+
+function initTerminalActions() {
+  const btnToggleAutoScroll = document.getElementById('btn-toggle-autoscroll');
+  const autoscrollText = document.getElementById('autoscroll-text');
+  const autoscrollIcon = document.getElementById('autoscroll-icon');
+  const btnExportLogs = document.getElementById('btn-export-logs');
+  const term = document.getElementById('install-terminal-log');
+
+  if (btnToggleAutoScroll) {
+    btnToggleAutoScroll.addEventListener('click', () => {
+      autoScrollEnabled = !autoScrollEnabled;
+      if (autoScrollEnabled) {
+        btnToggleAutoScroll.classList.add('active');
+        if (autoscrollIcon) autoscrollIcon.textContent = '⬇';
+        if (autoscrollText) autoscrollText.textContent = 'Défilement auto : ON';
+        if (term) term.scrollTop = term.scrollHeight;
+      } else {
+        btnToggleAutoScroll.classList.remove('active');
+        if (autoscrollIcon) autoscrollIcon.textContent = '⏸';
+        if (autoscrollText) autoscrollText.textContent = 'Défilement auto : OFF';
+      }
+    });
+  }
+
+  if (btnExportLogs) {
+    btnExportLogs.addEventListener('click', async () => {
+      const header = [
+        "==================================================================",
+        "  ChomiamOS Gaming Edition — Journal d'installation",
+        `  Date : ${new Date().toLocaleString()}`,
+        "  Version Installateur : v1.2.5 (Rust + Tauri v2)",
+        "==================================================================",
+        "",
+      ].join("\n");
+
+      const logBody = rawInstallationLogs.length > 0
+        ? rawInstallationLogs.join("\n")
+        : (term ? Array.from(term.children).map(c => c.textContent).join("\n") : "");
+      const fullContent = `${header}\n${logBody}\n`;
+
+      try {
+        const savedPath = await invoke('save_installation_logs', { content: fullContent });
+        alert(`✅ Journal d'installation enregistré avec succès :\n${savedPath}`);
+      } catch (err) {
+        if (err && String(err).includes("Annulé")) {
+          return;
+        }
+        try {
+          const blob = new Blob([fullContent], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `chomiamos-installation-${Date.now()}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (blobErr) {
+          alert("Erreur lors de l'enregistrement des logs : " + err);
+        }
+      }
+    });
+  }
 }
 
 async function startInstallation(s) {

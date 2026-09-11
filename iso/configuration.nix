@@ -209,8 +209,36 @@ in
   # 💿 CONFIGURATION DU SYSTÈME LIVE-CD ISO CHOMIAMOS GAMING EDITION
   # =========================================================================
 
+  # =========================================================================
+  # 🎨 BRANDING DU LIVE-CD : BOOTLOADER GRUB & SPLASH PLYMOUTH
+  # =========================================================================
+
+  # Nommage personnalisé du menu de boot GRUB / Syslinux
+  system.nixos.distroName = "ChomiamOS";
+  system.nixos.label = "Installer";
+  isoImage.appendToMenuLabel = "";
+
   # Thème GRUB Catppuccin Mocha pour le boot UEFI de l'ISO Live
   isoImage.grubTheme = pkgs.catppuccin-grub;
+
+  # Thème Plymouth Catppuccin Mocha identique à la configuration système installée
+  boot.plymouth = {
+    enable = true;
+    theme = "catppuccin-mocha";
+    themePackages = [ (pkgs.catppuccin-plymouth.override { variant = "mocha"; }) ];
+  };
+
+  # Paramètres noyau pour un démarrage silencieux avec splash screen animé
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "loglevel=3"
+    "rd.systemd.show_status=false"
+    "rd.udev.log_level=3"
+    "udev.log_priority=3"
+  ];
+  boot.consoleLogLevel = 0;
+  boot.initrd.verbose = false;
 
   # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager, VMware, VirtualBox, Hyper-V)
   services.qemuGuest.enable = true;
@@ -238,7 +266,28 @@ in
   nixpkgs.config.allowUnfree = true;
 
   # Fonctionnalités Flakes activées par défaut dans l'environnement Live
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    substituters = [
+      "https://cache.nixos.org"
+      "https://cosmic.cachix.org"
+      "https://chomiamos-dashboard.cachix.org"
+      "https://duckstation.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE="
+      "chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w="
+      "duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4="
+    ];
+    trusted-substituters = [
+      "https://cache.nixos.org"
+      "https://cosmic.cachix.org"
+      "https://chomiamos-dashboard.cachix.org"
+      "https://duckstation.cachix.org"
+    ];
+    trusted-users = [ "root" "@wheel" ];
+  };
 
   # Environnement graphique GNOME pour le Live-CD
   services.xserver.enable = true;
@@ -303,6 +352,7 @@ in
     pciutils
     usbutils
     git
+    zenity
     curl
     wget
     whois # Fournit mkpasswd
@@ -409,12 +459,12 @@ in
     {
       settings = {
         "org/gnome/desktop/background" = {
-          picture-uri = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper.jpeg";
-          picture-uri-dark = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper.jpeg";
+          picture-uri = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper_0007.png";
+          picture-uri-dark = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper_0007.png";
           picture-options = "zoom";
         };
         "org/gnome/desktop/screensaver" = {
-          picture-uri = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper.jpeg";
+          picture-uri = "file://${omnis}/share/omnis/config/themes/chomiamos/wallpapers/wallpaper_0007.png";
           picture-options = "zoom";
         };
         "org/gnome/desktop/interface" = {

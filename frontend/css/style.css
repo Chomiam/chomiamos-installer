@@ -739,14 +739,19 @@ body {
 .terminal-wrapper {
   background: var(--mocha-crust);
   border: 1px solid var(--mocha-surface0);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   margin-top: 15px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 420px;
+  transition: all 0.2s ease;
 }
 .terminal-header {
   background: var(--mocha-mantle);
-  padding: 8px 12px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -765,20 +770,61 @@ body {
 .dot-yellow { background: var(--mocha-yellow); }
 .dot-green { background: var(--mocha-green); }
 .terminal-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--mocha-subtext0);
   font-family: var(--font-mono);
+  letter-spacing: 0.2px;
+}
+.terminal-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.terminal-action-btn {
+  background: var(--mocha-surface0);
+  color: var(--mocha-subtext1);
+  border: 1px solid var(--mocha-surface1);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+}
+.terminal-action-btn:hover {
+  background: var(--mocha-surface1);
+  color: var(--mocha-text);
+  border-color: var(--mocha-mauve);
+  transform: translateY(-1px);
+}
+.terminal-action-btn.active {
+  background: rgba(166, 227, 161, 0.15);
+  color: var(--mocha-green);
+  border-color: rgba(166, 227, 161, 0.4);
+}
+.terminal-action-btn:active {
+  transform: translateY(0);
 }
 .terminal-log {
-  padding: 12px;
+  padding: 14px;
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 0.83rem;
   color: var(--mocha-text);
-  max-height: 240px;
+  flex: 1;
+  min-height: 360px;
+  max-height: none;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mocha-surface1) var(--mocha-crust);
 }
 .log-line {
   word-break: break-all;
@@ -798,6 +844,17 @@ body {
   margin: 6px 0 2px 0;
   border-radius: 4px;
   letter-spacing: 0.2px;
+}
+
+.log-line.log-security {
+  color: var(--mocha-teal);
+  background: rgba(148, 226, 213, 0.12);
+  border-left: 3px solid var(--mocha-teal);
+  padding: 4px 10px;
+  margin: 2px 0;
+  font-weight: 600;
+  font-size: 0.83rem;
+  border-radius: 4px;
 }
 
 .log-line.log-success {

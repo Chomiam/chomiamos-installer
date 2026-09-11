@@ -240,6 +240,77 @@ async fn apply_installer_update(app: tauri::AppHandle, download_url: String) -> 
     download_and_restart(app, &download_url).await
 }
 
+#[tauri::command]
+async fn save_installation_logs(content: String) -> Result<String, String> {
+    let (user, _uid, env) = get_session_context();
+    let is_root = Command::new("id")
+        .arg("-u")
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "0")
+        .unwrap_or(false);
+
+    let mut zenity_cmd = if is_root {
+        let mut full = Command::new("runuser");
+        full.arg("-u").arg(&user).arg("--").arg("env");
+        for (k, v) in &env {
+            full.arg(format!("{}={}", k, v));
+        }
+        full.args([
+            "zenity",
+            "--file-selection",
+            "--save",
+            "--confirm-overwrite",
+            "--title=Enregistrer les logs d'installation",
+            "--filename=chomiamos-installation.txt",
+            "--file-filter=Fichiers texte (*.txt *.log) | *.txt *.log",
+        ]);
+        full
+    } else {
+        let mut c = Command::new("zenity");
+        for (k, v) in &env {
+            c.env(k, v);
+        }
+        c.args([
+            "--file-selection",
+            "--save",
+            "--confirm-overwrite",
+            "--title=Enregistrer les logs d'installation",
+            "--filename=chomiamos-installation.txt",
+            "--file-filter=Fichiers texte (*.txt *.log) | *.txt *.log",
+        ]);
+        c
+    };
+
+    let target_path = match zenity_cmd.output() {
+        Ok(out) if out.status.success() => {
+            let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if p.is_empty() {
+                return Err("Annulé par l'utilisateur".to_string());
+            }
+            p
+        }
+        _ => {
+            let home_dir = if is_root && user != "root" {
+                format!("/home/{}", user)
+            } else {
+                std::env::var("HOME").unwrap_or_else(|_| "/home/nixos".to_string())
+            };
+            let desktop = std::path::Path::new(&home_dir).join("Desktop");
+            let target = if desktop.exists() {
+                desktop.join("chomiamos-installation.txt")
+            } else {
+                std::path::PathBuf::from("/tmp/chomiamos-installation.txt")
+            };
+            target.to_string_lossy().to_string()
+        }
+    };
+
+    std::fs::write(&target_path, content.as_bytes())
+        .map_err(|e| format!("Impossible d'enregistrer le fichier dans {} : {}", target_path, e))?;
+
+    Ok(target_path)
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
@@ -280,6 +351,7 @@ fn main() {
             poweroff_system,
             check_installer_update,
             apply_installer_update,
+            save_installation_logs,
         ])
         .run(tauri::generate_context!())
         .expect("Erreur lors de l'exécution de l'installateur ChomiamOS");

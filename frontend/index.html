@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.2 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.5 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.2)</span>
+          <span id="update-status-text">À jour (v1.2.5)</span>
         </button>
 
         <div class="session-badge">
@@ -529,7 +529,7 @@
             </div>
           </div>
 
-          <div class="terminal-wrapper">
+          <div class="terminal-wrapper" id="install-terminal-wrapper">
             <div class="terminal-header">
               <div class="terminal-dots">
                 <span class="dot dot-red"></span>
@@ -537,6 +537,16 @@
                 <span class="dot dot-green"></span>
               </div>
               <span class="terminal-title">Journal d'installation en direct</span>
+              <div class="terminal-actions">
+                <button type="button" class="terminal-action-btn active" id="btn-toggle-autoscroll" title="Activer / Suspendre le défilement automatique des logs">
+                  <span id="autoscroll-icon">⬇</span>
+                  <span id="autoscroll-text">Défilement auto : ON</span>
+                </button>
+                <button type="button" class="terminal-action-btn" id="btn-export-logs" title="Enregistrer l'intégralité du journal au format texte (.txt)">
+                  <span>💾</span>
+                  <span>Enregistrer sous...</span>
+                </button>
+              </div>
             </div>
             <div class="terminal-log" id="install-terminal-log">
               <div class="log-line text-muted">> Prêt pour le démarrage...</div>

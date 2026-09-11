@@ -51,9 +51,9 @@ logos:
   light_128: "logos/logo-256.png"
 
 wallpapers:
-  default: "wallpapers/wallpaper.jpeg"
-  welcome_dark: "wallpapers/wallpaper.jpeg"
-  welcome_light: "wallpapers/wallpaper.jpeg"
+  default: "wallpapers/wallpaper_0007.png"
+  welcome_dark: "wallpapers/wallpaper_0007.png"
+  welcome_light: "wallpapers/wallpaper_0007.png"
 
 boot:
   bootloader: "boot/glf-bootloader.png"
