@@ -739,9 +739,24 @@ class NixosJob(BaseJob):
                 "# 🛡️ Protection des fichiers de configuration spécifiques à chaque machine\n"
                 "vars.nix merge=ours\n"
                 "hosts/desktop/hardware-configuration.nix merge=ours\n"
-                "hardware-configuration.nix merge=ours\n",
+                "hardware-configuration.nix merge=ours\n"
+                "hosts/desktop/mount.nix merge=ours\n"
+                "mount.nix merge=ours\n"
+                "custom-packages.nix merge=ours\n"
+                "modules/core/firewall.nix merge=ours\n"
+                "firewall.nix merge=ours\n",
                 encoding="utf-8",
             )
+
+            # Sauvegarde préventive pare-feu
+            fw_orig = etc_nixos / "modules" / "core" / "firewall.nix"
+            if fw_orig.exists():
+                backup_fw = etc_nixos / "modules" / "core" / ".firewall.nix.backup"
+                backup_fw.write_text(fw_orig.read_text(encoding="utf-8"), encoding="utf-8")
+                try:
+                    os.chmod(backup_fw, 0o600)
+                except Exception:
+                    pass
 
             # 5. Indexation Git (indispensable pour les Flakes Nix)
             if not (etc_nixos / ".git").is_dir():
