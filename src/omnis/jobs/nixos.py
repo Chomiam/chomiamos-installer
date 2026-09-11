@@ -634,7 +634,7 @@ class NixosJob(BaseJob):
             except Exception as exc:
                 logger.debug("nixos-enter permissions check: %s", exc)
 
-            # 4. Configuration Git pour nh et commit initial propre
+            # 4. Configuration Git pour nh (indexation des fichiers sans commit artificiel non signé)
             subprocess.run(
                 ["git", "-C", str(etc_nixos), "config", "core.fileMode", "false"],
                 check=False,
@@ -647,23 +647,9 @@ class NixosJob(BaseJob):
                 ["git", "-C", str(etc_nixos), "config", "user.email", f"{username}@chomiamos.local"],
                 check=False,
             )
+            # Ajout à l'index pour que Flakes reconnaisse les fichiers spécifiques à la machine
+            # sans créer de commit local non signé qui briserait la signature cryptographique du repo officiel
             subprocess.run(["git", "-C", str(etc_nixos), "add", "-A"], check=False)
-            subprocess.run(
-                [
-                    "git",
-                    "-C",
-                    str(etc_nixos),
-                    "-c",
-                    f"user.name={username}",
-                    "-c",
-                    f"user.email={username}@chomiamos.local",
-                    "commit",
-                    "-m",
-                    "chore: configuration initiale ChomiamOS",
-                    "--allow-empty",
-                ],
-                check=False,
-            )
 
             # 5. Re-chown pour s'assurer que les fichiers .git créés par git commit appartiennent à l'utilisateur
             self._run_command(
