@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.8 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.9 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.8)</span>
+          <span id="update-status-text">À jour (v1.2.9)</span>
         </button>
 
         <div class="session-badge">
@@ -931,6 +931,44 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btn-close-update-modal">Fermer</button>
         <button type="button" class="btn btn-primary" id="btn-start-update">Mettre à jour maintenant</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catppuccin Mocha Swap Warning Modal -->
+  <div class="modal-backdrop hidden" id="modal-swap-warning">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-icon-badge" style="background: rgba(250, 179, 135, 0.2); color: var(--mocha-peach);">⚠️</div>
+        <h3>Attention : Désactivation du Swap</h3>
+      </div>
+      <div class="modal-body">
+        <p>Vous avez choisi de désactiver complètement le fichier d'échange (Swap à 0 Go). Voici les conséquences importantes à connaître :</p>
+        
+        <div class="swap-warning-list" style="margin: 14px 0; display: flex; flex-direction: column; gap: 10px;">
+          <div style="background: var(--mocha-surface0); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--mocha-peach); font-size: 0.88rem;">
+            <strong style="color: var(--mocha-peach);">💤 Pas d'Hibernation</strong>
+            <p style="margin: 4px 0 0 0; color: var(--mocha-subtext0); font-size: 0.82rem;">La mise en veille prolongée (hibernation sur disque) est impossible sans espace de Swap pour stocker le contenu de la RAM.</p>
+          </div>
+
+          <div style="background: var(--mocha-surface0); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--mocha-sapphire); font-size: 0.88rem;">
+            <strong style="color: var(--mocha-sapphire);">🛡️ Stabilité en Jeu & Prévention OOM</strong>
+            <p style="margin: 4px 0 0 0; color: var(--mocha-subtext0); font-size: 0.82rem;">Lors des pics d'utilisation mémoire (gros jeux, compilation), le Swap évite que le système ne tue brutalement vos applications en cas de saturation de la RAM (OOM-Killer).</p>
+          </div>
+
+          <div style="background: var(--mocha-surface0); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--mocha-mauve); font-size: 0.88rem;">
+            <strong style="color: var(--mocha-mauve);">⚡ Optimisation de la Mémoire Cache</strong>
+            <p style="margin: 4px 0 0 0; color: var(--mocha-subtext0); font-size: 0.82rem;">Le noyau Linux déporte les pages inactives sur le Swap pour libérer un maximum de mémoire vive rapide dédiée au cache de lecture/écriture.</p>
+          </div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: var(--mocha-subtext1); margin-top: 8px;">
+          Grâce à notre préallocation instantanée (<code>posix_fallocate</code>), créer un fichier de Swap ne prend qu'une fraction de seconde et n'engendre aucun ralentissement.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-confirm-no-swap">Maintenir à 0 Go</button>
+        <button type="button" class="btn btn-primary" id="btn-revert-swap">Activer 8 Go (Recommandé)</button>
       </div>
     </div>
   </div>

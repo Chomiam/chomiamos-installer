@@ -597,7 +597,27 @@ function initSwapSlider() {
     });
   }
 
-  slider.addEventListener('input', updateSwapDisplay);
+  const modalSwap = document.getElementById('modal-swap-warning');
+  const btnRevert = document.getElementById('btn-revert-swap');
+  const btnKeepZero = document.getElementById('btn-confirm-no-swap');
+
+  let prevIdx = parseInt(slider.value, 10);
+
+  function checkSwapWarning(newIdx) {
+    if (newIdx === 0 && prevIdx !== 0) {
+      if (modalSwap) modalSwap.classList.remove('hidden');
+    }
+    prevIdx = newIdx;
+  }
+
+  slider.addEventListener('input', () => {
+    updateSwapDisplay();
+  });
+
+  slider.addEventListener('change', () => {
+    const idx = parseInt(slider.value, 10);
+    checkSwapWarning(idx);
+  });
 
   document.querySelectorAll('.swap-scale span').forEach((el) => {
     el.addEventListener('click', () => {
@@ -605,9 +625,33 @@ function initSwapSlider() {
       if (!isNaN(idx)) {
         slider.value = idx;
         updateSwapDisplay();
+        checkSwapWarning(idx);
       }
     });
   });
+
+  if (btnRevert) {
+    btnRevert.addEventListener('click', () => {
+      slider.value = '2'; // 8 Go (Recommandé)
+      prevIdx = 2;
+      updateSwapDisplay();
+      if (modalSwap) modalSwap.classList.add('hidden');
+    });
+  }
+
+  if (btnKeepZero) {
+    btnKeepZero.addEventListener('click', () => {
+      if (modalSwap) modalSwap.classList.add('hidden');
+    });
+  }
+
+  if (modalSwap) {
+    modalSwap.addEventListener('click', (e) => {
+      if (e.target === modalSwap) {
+        modalSwap.classList.add('hidden');
+      }
+    });
+  }
 
   updateSwapDisplay();
 }
@@ -840,7 +884,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.8 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.9 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
