@@ -87,15 +87,36 @@ jobs:
       - name: 🗜️ Package Release Assets
         run: |
           echo "=== Préparation des assets de release ==="
+          ls -la ./result/bin/
+
           # Binaire natif standalone : extraire le vrai exécutable ELF généré par Nix/Tauri
-          if [ -f ./result/bin/.chomiamos-installer-wrapped_ ]; then
+          if [ -f ./result/bin/.chomiamos-installer-wrapped ]; then
+            echo "📦 Copie du binaire ELF natif (.chomiamos-installer-wrapped)..."
+            cp ./result/bin/.chomiamos-installer-wrapped ./chomiamos-installer-x86_64
+          elif [ -f ./result/bin/.chomiamos-installer-wrapped_ ]; then
             echo "📦 Copie du binaire ELF natif (.chomiamos-installer-wrapped_)..."
             cp ./result/bin/.chomiamos-installer-wrapped_ ./chomiamos-installer-x86_64
           else
-            echo "📦 Copie du binaire direct chomiamos-installer..."
-            cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64
+            echo "📦 Recherche de tout binaire ELF dans result/bin/..."
+            ELF_BIN=$(find ./result/bin/ -type f -name ".*wrapped*" | head -n 1)
+            if [ -n "$ELF_BIN" ]; then
+              echo "📦 Trouvé: $ELF_BIN"
+              cp "$ELF_BIN" ./chomiamos-installer-x86_64
+            else
+              echo "⚠️ Fallback binaire direct..."
+              cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64
+            fi
           fi
           chmod +x ./chomiamos-installer-x86_64
+
+          # Contrôle de sécurité strict : le binaire natif doit faire au moins 5 Mo
+          SIZE=$(stat -c%s ./chomiamos-installer-x86_64)
+          echo "📦 Taille du binaire préparé : $SIZE octets"
+          if [ "$SIZE" -lt 5000000 ]; then
+            echo "❌ ERREUR CRITIQUE : chomiamos-installer-x86_64 fait seulement $SIZE octets ! Ce n'est pas le binaire ELF natif."
+            exit 1
+          fi
+          echo "✅ Binaire natif vérifié et validé ($SIZE octets)"
 
           # Archive complète pour le système de mise à jour
           tar -czf chomiamos-installer-release.tar.gz \
