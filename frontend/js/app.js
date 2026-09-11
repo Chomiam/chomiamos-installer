@@ -1,19 +1,59 @@
-const { invoke } = window.__TAURI__.core;
+// ==========================================================================
+// ChomiamOS Installer - Tauri v2 Controller
+// ==========================================================================
 
 let currentStep = 1;
 const totalSteps = 7;
 let availableLayouts = [];
 let availableDisks = [];
+let availableDesktops = [];
+
+// Reliable IPC Helper for Tauri v2
+async function ensureTauri() {
+  if (window.__TAURI__?.core?.invoke || window.__TAURI_INTERNALS__?.invoke) {
+    return true;
+  }
+  for (let i = 0; i < 50; i++) {
+    await new Promise(r => setTimeout(r, 20));
+    if (window.__TAURI__?.core?.invoke || window.__TAURI_INTERNALS__?.invoke) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function invoke(cmd, args = {}) {
+  await ensureTauri();
+  if (window.__TAURI__?.core?.invoke) {
+    return window.__TAURI__.core.invoke(cmd, args);
+  }
+  if (window.__TAURI_INTERNALS__?.invoke) {
+    return window.__TAURI_INTERNALS__.invoke(cmd, args);
+  }
+  console.error("Tauri invoke non disponible pour:", cmd);
+  throw new Error("Tauri IPC non disponible");
+}
+
+async function listen(event, cb) {
+  await ensureTauri();
+  if (window.__TAURI__?.event?.listen) {
+    return window.__TAURI__.event.listen(event, cb);
+  }
+  if (window.__TAURI_INTERNALS__?.listen) {
+    return window.__TAURI_INTERNALS__.listen(event, cb);
+  }
+  return () => {};
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await setupInstallationListeners();
-  initInstallButton();
   initNavigation();
   await loadPrerequisites();
+  await loadDesktops();
   await loadKeyboardLayouts();
   await loadDisks();
   initSwapSlider();
   initSummaryTrigger();
+  initConfirmationModal();
 });
 
 function initNavigation() {
@@ -38,7 +78,6 @@ function initNavigation() {
     });
   });
 
-  // Desktop Environment radio click handling
   document.querySelectorAll('input[name="desktop_env"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.querySelectorAll('.selection-card').forEach(card => card.classList.remove('active'));
@@ -48,108 +87,158 @@ function initNavigation() {
 }
 
 function goToStep(step) {
-  document.getElementById(`panel-step-${currentStep}`).classList.remove('active');
-  document.querySelector(`.step-item[data-step="${currentStep}"]`).classList.remove('active');
-  if (step > currentStep) {
-    document.querySelector(`.step-item[data-step="${currentStep}"]`).classList.add('completed');
+  const curPanel = document.getElementById(`panel-step-${currentStep}`);
+  const curNav = document.querySelector(`.step-item[data-step="${currentStep}"]`);
+  if (curPanel) curPanel.classList.remove('active');
+  if (curNav) {
+    curNav.classList.remove('active');
+    if (step > currentStep) curNav.classList.add('completed');
   }
 
   currentStep = step;
 
-  document.getElementById(`panel-step-${currentStep}`).classList.add('active');
-  document.querySelector(`.step-item[data-step="${currentStep}"]`).classList.add('active');
+  const nextPanel = document.getElementById(`panel-step-${currentStep}`);
+  const nextNav = document.querySelector(`.step-item[data-step="${currentStep}"]`);
+  if (nextPanel) nextPanel.classList.add('active');
+  if (nextNav) nextNav.classList.add('active');
 
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
   const btnInstall = document.getElementById('btn-install');
 
-  btnPrev.disabled = currentStep === 1;
+  if (btnPrev) btnPrev.disabled = currentStep === 1;
 
   if (currentStep === totalSteps) {
-    btnNext.classList.add('hidden');
-    btnInstall.classList.remove('hidden');
+    if (btnNext) btnNext.classList.add('hidden');
+    if (btnInstall) btnInstall.classList.remove('hidden');
     updateSummary();
-  } else {
-    btnNext.classList.remove('hidden');
-    btnInstall.classList.add('hidden');
+  } else if (currentStep < totalSteps) {
+    if (btnNext) btnNext.classList.remove('hidden');
+    if (btnInstall) btnInstall.classList.add('hidden');
   }
 }
 
 async function loadPrerequisites() {
   try {
     const pre = await invoke('get_prerequisites');
-
     updatePrereqCard('prereq-efi', pre.is_efi, pre.is_efi ? 'Mode UEFI Détecté' : 'Mode BIOS Legacy Détecté');
-    updatePrereqCard('prereq-ram', pre.ram_ok, `${pre.total_ram_gb} Go Détectés (${pre.cpu_cores} threads CPU)`);
-    updatePrereqCard('prereq-internet', pre.has_internet, pre.has_internet ? 'Connecté (Accès caches Nix)' : 'Non connecté (Mode hors-ligne)');
-    updatePrereqCard('prereq-disk', pre.disks_count > 0, `${pre.disks_count} disque(s) disponible(s)`);
+    updatePrereqCard('prereq-ram', pre.has_sufficient_ram, `${pre.ram_gb} Go de RAM détectés`);
+    updatePrereqCard('prereq-disk', pre.has_sufficient_disk, `${pre.disk_gb} Go d'espace disponible`);
+    updatePrereqCard('prereq-net', pre.has_internet, pre.has_internet ? 'Connecté à Internet' : 'Connexion Internet Absente');
   } catch (e) {
-    console.error("Failed to load prerequisites:", e);
+    console.error("Prerequisites error:", e);
   }
 }
 
-function updatePrereqCard(id, ok, message) {
+function updatePrereqCard(id, passed, detail) {
   const card = document.getElementById(id);
-  card.classList.remove('loading');
-  card.classList.add(ok ? 'success' : 'warning');
-  card.querySelector('.prereq-status').textContent = message;
+  if (!card) return;
+  const statusEl = card.querySelector('.prereq-status');
+  const detailEl = card.querySelector('.prereq-detail');
+  if (passed) {
+    statusEl.textContent = '✓ Conforme';
+    statusEl.className = 'prereq-status status-ok';
+  } else {
+    statusEl.textContent = '✗ Attention';
+    statusEl.className = 'prereq-status status-warn';
+  }
+  if (detailEl && detail) detailEl.textContent = detail;
+}
+
+async function loadDesktops() {
+  try {
+    const desktops = await invoke('get_desktops');
+    availableDesktops = desktops;
+    for (const d of desktops) {
+      if (d.id === 'gnome') {
+        const el = document.getElementById('de-title-gnome');
+        if (el) el.textContent = d.name;
+      } else if (d.id === 'cinnamon') {
+        const el = document.getElementById('de-title-cinnamon');
+        if (el) el.textContent = d.name;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to query desktops:", e);
+  }
 }
 
 async function loadKeyboardLayouts() {
   try {
     availableLayouts = await invoke('get_layouts');
-    const layoutSelect = document.getElementById('keyboard-layout-select');
-    const variantSelect = document.getElementById('keyboard-variant-select');
-    const testInput = document.getElementById('keyboard-test-input');
+    const selLayout = document.getElementById('keyboard-layout-select');
+    const selVariant = document.getElementById('keyboard-variant-select');
+    selLayout.innerHTML = '';
 
-    layoutSelect.innerHTML = availableLayouts.map(l => `<option value="${l.code}">${l.name}</option>`).join('');
+    availableLayouts.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = `${l.name} (${l.id.toUpperCase()})`;
+      if (l.id === 'fr') opt.selected = true;
+      selLayout.appendChild(opt);
+    });
 
-    const updateVariants = () => {
-      const selectedCode = layoutSelect.value;
-      const layout = availableLayouts.find(l => l.code === selectedCode);
-      if (layout) {
-        variantSelect.innerHTML = layout.variants.map(v => `<option value="${v}">${v === '' ? 'Par défaut (Standard)' : v}</option>`).join('');
-      }
-      applyKeyboardLive();
-    };
+    updateVariantsDropdown('fr');
 
-    layoutSelect.addEventListener('change', updateVariants);
-    variantSelect.addEventListener('change', applyKeyboardLive);
+    selLayout.addEventListener('change', async () => {
+      const lid = selLayout.value;
+      updateVariantsDropdown(lid);
+      await applyKeyboard();
+    });
 
-    updateVariants();
+    selVariant.addEventListener('change', async () => {
+      await applyKeyboard();
+    });
   } catch (e) {
-    console.error("Failed to load keyboard layouts:", e);
+    console.error("Failed to load layouts:", e);
   }
 }
 
-async function applyKeyboardLive() {
+function updateVariantsDropdown(layoutId) {
+  const selVariant = document.getElementById('keyboard-variant-select');
+  selVariant.innerHTML = '';
+
+  const found = availableLayouts.find(l => l.id === layoutId);
+  const defOpt = document.createElement('option');
+  defOpt.value = "";
+  defOpt.textContent = "Par défaut (Standard)";
+  selVariant.appendChild(defOpt);
+
+  if (found && found.variants) {
+    found.variants.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.id;
+      opt.textContent = v.name;
+      selVariant.appendChild(opt);
+    });
+  }
+}
+
+async function applyKeyboard() {
   const layout = document.getElementById('keyboard-layout-select').value;
   const variant = document.getElementById('keyboard-variant-select').value;
   try {
     await invoke('apply_keyboard_live', { layout, variant });
   } catch (e) {
-    console.warn("Live keyboard apply:", e);
+    console.error("Apply keyboard failed:", e);
   }
 }
 
 async function loadDisks() {
   try {
     availableDisks = await invoke('get_disks');
-    const list = document.getElementById('disk-list');
-
+    const container = document.getElementById('disks-container');
     if (availableDisks.length === 0) {
-      list.innerHTML = `<div class="callout-card"><span>⚠️</span><div>Aucun disque trouvé.</div></div>`;
+      container.innerHTML = '<div class="alert alert-warn">Aucun disque fixe détecté. Mode simulation actif.</div>';
       return;
     }
 
-    list.innerHTML = availableDisks.map((d, idx) => `
+    container.innerHTML = availableDisks.map((d, idx) => `
       <div class="disk-card ${idx === 0 ? 'selected' : ''}" data-path="${d.path}">
-        <div class="disk-meta">
-          <span class="disk-icon">${d.is_nvme ? '⚡' : (d.is_rotational ? '💽' : '💾')}</span>
-          <div>
-            <strong>${d.model} (${d.path})</strong>
-            <small style="color: var(--mocha-subtext0); display: block;">${d.size_gb} Go • ${d.is_nvme ? 'NVMe PCIe' : (d.is_rotational ? 'Disque mécanique HDD' : 'SSD SATA')}</small>
-          </div>
+        <span class="disk-icon">💾</span>
+        <div class="disk-details">
+          <strong>${d.model || 'Disque Système'} (${d.path})</strong>
+          <small>${d.size_gb} Go • ${d.is_removable ? 'Amovible' : 'Fixe'}</small>
         </div>
         <span class="badge">${idx === 0 ? 'Sélectionné' : 'Cliquer pour choisir'}</span>
       </div>
@@ -173,8 +262,6 @@ async function loadDisks() {
 function initSwapSlider() {
   const slider = document.getElementById('swap-slider');
   const valSpan = document.getElementById('swap-size-val');
-  const btnBench = document.getElementById('btn-benchmark-swap');
-  const benchResult = document.getElementById('swap-bench-result');
 
   slider.addEventListener('input', () => {
     const val = parseInt(slider.value);
@@ -184,36 +271,18 @@ function initSwapSlider() {
       valSpan.textContent = `${val / 1024} Go`;
     }
   });
-
-  btnBench.addEventListener('click', async () => {
-    const sizeMb = parseInt(slider.value) || 4096;
-    btnBench.disabled = true;
-    btnBench.textContent = "Test en cours...";
-    benchResult.classList.remove('hidden');
-    benchResult.textContent = `Allocation de ${sizeMb / 1024} Go via posix_fallocate...`;
-
-    try {
-      const elapsedMs = await invoke('test_instant_swap', { sizeMb });
-      benchResult.textContent = `⚡ Succès: ${sizeMb / 1024} Go préalloués en ${elapsedMs.toFixed(2)} ms !`;
-    } catch (e) {
-      benchResult.textContent = `Erreur: ${e}`;
-    } finally {
-      btnBench.disabled = false;
-      btnBench.textContent = "Tester la vitesse Rust";
-    }
-  });
 }
 
 function collectSelections() {
   const selectedDisk = document.querySelector('.disk-card.selected');
-  const diskPath = selectedDisk ? selectedDisk.dataset.path : (availableDisks[0] ? availableDisks[0].path : "");
+  const diskPath = selectedDisk ? selectedDisk.dataset.path : (availableDisks[0] ? availableDisks[0].path : "/dev/sda");
 
   return {
     hostname: document.getElementById('input-hostname').value || "chomiamos",
     username: document.getElementById('input-username').value || "chomiam",
     fullname: document.getElementById('input-fullname').value || "ChomiamOS User",
     password: document.getElementById('input-password').value || null,
-    desktop_env: document.querySelector('input[name="desktop_env"]:checked').value || "gnome",
+    desktop_env: document.querySelector('input[name="desktop_env"]:checked')?.value || "gnome",
     browser: document.getElementById('browser-select').value || "chrome",
     discord_client: "discord",
     keyboard_layout: document.getElementById('keyboard-layout-select').value || "fr",
@@ -238,13 +307,15 @@ function updateSummary() {
 
   box.innerHTML = `
     <div class="summary-item"><label>Disque cible</label><span>${s.target_disk || 'Non sélectionné'}</span></div>
-    <div class="summary-item"><label>Swap (posix_fallocate)</label><span>${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}</span></div>
+    <div class="summary-item"><label>Fichier de Swap</label><span>${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}</span></div>
     <div class="summary-item"><label>Disposition Clavier</label><span>${s.keyboard_layout} ${s.keyboard_variant ? '(' + s.keyboard_variant + ')' : ''}</span></div>
     <div class="summary-item"><label>Bureau Choisi</label><span>${s.desktop_env.toUpperCase()}</span></div>
     <div class="summary-item"><label>Utilisateur / Hôte</label><span>${s.username} @ ${s.hostname}</span></div>
-    <div class="summary-item"><label>Option Sunshine</label><span>${s.sunshine ? 'Activé (Streaming local)' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Option Sober</label><span>${s.sober ? 'Activé (Roblox Flatpak)' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Navigateur</label><span>${s.browser}</span></div>
+    <div class="summary-item"><label>Serveur Sunshine</label><span>${s.sunshine ? 'Activé' : 'Désactivé'}</span></div>
+    <div class="summary-item"><label>Sober (Roblox)</label><span>${s.sober ? 'Activé' : 'Désactivé'}</span></div>
+    <div class="summary-item"><label>NVIDIA GeForce NOW</label><span>${s.geforce_now ? 'Activé' : 'Désactivé'}</span></div>
+    <div class="summary-item"><label>Volants & Simracing</label><span>${s.steering_wheels ? 'Activé' : 'Désactivé'}</span></div>
+    <div class="summary-item"><label>Navigateur Web</label><span>${s.browser}</span></div>
   `;
 }
 
@@ -271,70 +342,28 @@ function initSummaryTrigger() {
   });
 }
 
-
-// Tauri Event Listeners & Installation Wiring
-let unlistenProgress = null;
-let unlistenLog = null;
-let unlistenFinished = null;
-
-async function setupInstallationListeners() {
-  if (window.__TAURI__ && window.__TAURI__.event) {
-    unlistenProgress = await window.__TAURI__.event.listen('install_progress', (e) => {
-      const p = e.payload;
-      document.getElementById('install-bar-fill').style.width = `${p.percent}%`;
-      document.getElementById('install-percent-val').textContent = `${p.percent}%`;
-      document.getElementById('install-step-title').textContent = p.step;
-      appendLog(`[${p.percent}%] ${p.message}`);
-    });
-
-    unlistenLog = await window.__TAURI__.event.listen('install_log', (e) => {
-      appendLog(e.payload);
-    });
-
-    unlistenFinished = await window.__TAURI__.event.listen('install_finished', (e) => {
-      const res = e.payload;
-      if (res.success) {
-        document.getElementById('install-complete-card').classList.remove('hidden');
-        document.getElementById('install-heading').textContent = "Installation Terminée !";
-        document.getElementById('install-subheading').textContent = "ChomiamOS Gaming Edition est prêt.";
-      } else {
-        appendLog(`[ERREUR FATALE] ${res.error || 'Erreur inconnue'}`);
-        alert(`Erreur d'installation: ${res.error}`);
-      }
-    });
-  }
-}
-
-function appendLog(text) {
-  const term = document.getElementById('install-terminal-log');
-  const line = document.createElement('div');
-  line.className = 'log-line';
-  line.textContent = `> ${text}`;
-  term.appendChild(line);
-  term.scrollTop = term.scrollHeight;
-}
-
-
-function initInstallButton() {
+// Confirmation Modal & Installation Pipeline
+function initConfirmationModal() {
   const btnInstall = document.getElementById('btn-install');
-  btnInstall.addEventListener('click', async () => {
+  const modal = document.getElementById('modal-confirm-install');
+  const btnCancel = document.getElementById('btn-modal-cancel');
+  const btnProceed = document.getElementById('btn-modal-proceed');
+  const targetLabel = document.getElementById('modal-target-disk-label');
+
+  btnInstall.addEventListener('click', () => {
     const s = collectSelections();
-    const confirmed = confirm(`Êtes-vous sûr de vouloir installer ChomiamOS Gaming Edition sur le disque ${s.target_disk || 'sélectionné'} ?\n\nToutes les données présentes sur ce disque seront effacées.`);
-    if (!confirmed) return;
+    targetLabel.textContent = s.target_disk || '/dev/sda';
+    modal.classList.remove('hidden');
+  });
 
-    // Switch to step 8 panel
-    document.getElementById(`panel-step-${currentStep}`).classList.remove('active');
-    document.getElementById('panel-step-8').classList.add('active');
-    document.querySelector('.wizard-actions').classList.add('hidden');
-    document.querySelector('.wizard-nav').classList.add('hidden');
+  btnCancel.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
 
-    try {
-      appendLog("Initialisation du processus d'installation...");
-      await invoke('start_installation', { selections: s, dryRun: false });
-    } catch (err) {
-      appendLog(`Erreur au lancement: ${err}`);
-      alert(`Erreur: ${err}`);
-    }
+  btnProceed.addEventListener('click', async () => {
+    modal.classList.add('hidden');
+    const s = collectSelections();
+    startInstallation(s);
   });
 
   document.getElementById('btn-reboot-now')?.addEventListener('click', async () => {
@@ -352,4 +381,85 @@ function initInstallButton() {
       alert("Erreur poweroff: " + e);
     }
   });
+}
+
+function appendLog(text) {
+  const term = document.getElementById('install-terminal-log');
+  if (!term) return;
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.textContent = `> ${text}`;
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
+async function startInstallation(s) {
+  // Basculer vers l'écran d'installation (Panel 8)
+  document.getElementById(`panel-step-${currentStep}`).classList.remove('active');
+  document.getElementById('panel-step-8').classList.add('active');
+  document.querySelector('.wizard-actions').classList.add('hidden');
+  document.querySelector('.wizard-nav').classList.add('hidden');
+
+  appendLog("🚀 Démarrage du processus d'installation...");
+  appendLog(`Disque cible configuré : ${s.target_disk}`);
+
+  try {
+    await invoke('start_installation', { selections: s, dryRun: false });
+  } catch (err) {
+    appendLog(`[ERREUR LANCEMENT] ${err}`);
+    alert(`Erreur: ${err}`);
+    return;
+  }
+
+  // Écoute directe des événements si disponible
+  listen('install_progress', (e) => {
+    const p = e.payload || e;
+    if (p.percent !== undefined) {
+      document.getElementById('install-bar-fill').style.width = `${p.percent}%`;
+      document.getElementById('install-percent-val').textContent = `${p.percent}%`;
+    }
+    if (p.step) document.getElementById('install-step-title').textContent = p.step;
+  });
+
+  listen('install_log', (e) => {
+    const line = e.payload || e;
+    appendLog(line);
+  });
+
+  // Boucle de polling (200ms) pour garantir la réception de tous les logs et états
+  let lastLogCount = 0;
+  const pollInterval = setInterval(async () => {
+    try {
+      const snap = await invoke('get_install_state', { sinceLogIdx: lastLogCount });
+
+      if (snap.new_logs && snap.new_logs.length > 0) {
+        for (const line of snap.new_logs) {
+          appendLog(line);
+        }
+        lastLogCount = snap.total_logs_count;
+      }
+
+      if (snap.percent !== undefined) {
+        document.getElementById('install-bar-fill').style.width = `${snap.percent}%`;
+        document.getElementById('install-percent-val').textContent = `${snap.percent}%`;
+      }
+      if (snap.step) {
+        document.getElementById('install-step-title').textContent = snap.step;
+      }
+
+      if (snap.is_finished) {
+        clearInterval(pollInterval);
+        if (snap.success) {
+          document.getElementById('install-complete-card').classList.remove('hidden');
+          document.getElementById('install-heading').textContent = "Installation Terminée !";
+          document.getElementById('install-subheading').textContent = "ChomiamOS Gaming Edition est prêt.";
+        } else {
+          appendLog(`[ERREUR FATALE] ${snap.error || 'Erreur inconnue'}`);
+          alert(`Erreur d'installation: ${snap.error}`);
+        }
+      }
+    } catch (err) {
+      console.error("Polling install state error:", err);
+    }
+  }, 200);
 }

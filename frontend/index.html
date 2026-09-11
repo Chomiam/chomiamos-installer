@@ -176,7 +176,7 @@
               <span>16 Go</span>
               <span>32 Go</span>
             </div>
-            <div id="swap-bench-result" class="bench-result hidden"></div>
+            
           </div>
         </section>
 
@@ -191,7 +191,7 @@
               <input type="radio" name="desktop_env" value="gnome" checked>
               <div class="card-inner">
                 <span class="card-icon">🔵</span>
-                <span class="card-title">GNOME 48</span>
+                <span class="card-title" id="de-title-gnome">GNOME</span>
                 <span class="card-desc">Thème Catppuccin Mocha, extensions Blur & Dash-to-Dock préconfigurées.</span>
               </div>
             </label>
@@ -199,7 +199,7 @@
               <input type="radio" name="desktop_env" value="cinnamon">
               <div class="card-inner">
                 <span class="card-icon">🌿</span>
-                <span class="card-title">Cinnamon</span>
+                <span class="card-title" id="de-title-cinnamon">Cinnamon 6.6</span>
                 <span class="card-desc">Bureau traditionnel ultra-rapide avec fonds d'écran officiels intégrés.</span>
               </div>
             </label>
@@ -207,7 +207,7 @@
               <input type="radio" name="desktop_env" value="kde">
               <div class="card-inner">
                 <span class="card-icon">❄️</span>
-                <span class="card-title">KDE Plasma 6</span>
+                <span class="card-title" id="de-title-kde">KDE Plasma 6</span>
                 <span class="card-desc">Personnalisation extrême, Catppuccin Lavender et Wayland HDR.</span>
               </div>
             </label>
@@ -215,7 +215,7 @@
               <input type="radio" name="desktop_env" value="cosmic">
               <div class="card-inner">
                 <span class="card-icon">🚀</span>
-                <span class="card-title">COSMIC Desktop</span>
+                <span class="card-title" id="de-title-cosmic">COSMIC Desktop (Alpha)</span>
                 <span class="card-desc">Nouvelle génération écrite en Rust par System76 avec fenêtrage dynamique.</span>
               </div>
             </label>
@@ -224,7 +224,7 @@
           <div class="form-group" style="margin-top: 24px;">
             <label for="browser-select">Navigateur Web principal</label>
             <select id="browser-select" class="form-select">
-              <option value="chrome">Google Chrome (Recommandé)</option>
+              <option value="chrome">Google Chrome</option>
               <option value="firefox">Mozilla Firefox</option>
               <option value="brave">Brave Browser</option>
               <option value="zen">Zen Browser</option>
@@ -293,7 +293,7 @@
               <div class="toggle-card-body">
                 <span class="toggle-icon">☀️</span>
                 <div class="toggle-text">
-                  <strong>Serveur Sunshine (Optionnel)</strong>
+                  <strong>Serveur Sunshine</strong>
                   <small>Streaming local de jeux ultra-faible latence vers Moonlight (HDR/4K)</small>
                 </div>
               </div>
@@ -305,7 +305,7 @@
               <div class="toggle-card-body">
                 <span class="toggle-icon">🧱</span>
                 <div class="toggle-text">
-                  <strong>Sober (Roblox - Optionnel)</strong>
+                  <strong>Sober (Roblox)</strong>
                   <small>Client Roblox natif et optimisé Linux via Flatpak</small>
                 </div>
               </div>
@@ -313,7 +313,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-geforce" checked>
+              <input type="checkbox" id="chk-geforce">
               <div class="toggle-card-body">
                 <span class="toggle-icon">☁️</span>
                 <div class="toggle-text">
@@ -325,7 +325,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-wheels" checked>
+              <input type="checkbox" id="chk-wheels">
               <div class="toggle-card-body">
                 <span class="toggle-icon">🏎️</span>
                 <div class="toggle-text">
@@ -436,5 +436,27 @@
   </div>
 
   <script src="js/app.js"></script>
+
+  <!-- Catppuccin Mocha Confirmation Modal -->
+  <div class="modal-backdrop hidden" id="modal-confirm-install">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-icon-badge">⚠️</div>
+        <h3>Confirmer l'Installation</h3>
+      </div>
+      <div class="modal-body">
+        <p>Attention : vous êtes sur le point de formater et d'installer <strong>ChomiamOS Gaming Edition</strong> sur le disque :</p>
+        <div class="modal-disk-target" id="modal-target-disk-label">/dev/sda</div>
+        <p class="modal-danger-note">
+          Toutes les données, partitions et fichiers présents sur ce disque seront <strong>définitivement effacés</strong>.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-modal-cancel">Annuler</button>
+        <button type="button" class="btn btn-danger" id="btn-modal-proceed">Effacer le disque et Installer</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

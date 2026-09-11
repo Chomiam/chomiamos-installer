@@ -1,3 +1,4 @@
+use std::process::Command;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -189,6 +190,64 @@ pub fn get_keyboard_layouts() -> Vec<KeyboardLayoutInfo> {
             code: "ch".into(),
             name: "Suisse".into(),
             variants: vec!["fr".into(), "de".into()],
+        },
+    ]
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DesktopEnvInfo {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub icon: String,
+}
+
+pub fn get_desktop_environments() -> Vec<DesktopEnvInfo> {
+    // 1. Détection dynamique de la version réelle de GNOME
+    let gnome_ver_str = if let Ok(output) = Command::new("gnome-shell").arg("--version").output() {
+        let text = String::from_utf8_lossy(&output.stdout);
+        // Ex: "GNOME Shell 50.4"
+        let parts: Vec<&str> = text.split_whitespace().collect();
+        if parts.len() >= 3 {
+            let ver = parts[2].split('.').next().unwrap_or("50");
+            format!("GNOME {}", ver)
+        } else {
+            "GNOME 50".to_string()
+        }
+    } else {
+        "GNOME 50".to_string()
+    };
+
+    vec![
+        DesktopEnvInfo {
+            id: "gnome".into(),
+            name: gnome_ver_str,
+            version: "50".into(),
+            description: "Thème Catppuccin Mocha, extensions Dash to Dock et Blur-my-Shell préconfigurées.".into(),
+            icon: "🔵".into(),
+        },
+        DesktopEnvInfo {
+            id: "cinnamon".into(),
+            name: "Cinnamon 6.6".into(),
+            version: "6.6".into(),
+            description: "Bureau traditionnel ultra-rapide avec barre des tâches, menu classique et fonds d'écran officiels.".into(),
+            icon: "🌿".into(),
+        },
+        DesktopEnvInfo {
+            id: "kde".into(),
+            name: "KDE Plasma 6".into(),
+            version: "6.6".into(),
+            description: "Personnalisation extrême, Catppuccin Mocha Lavender et session Wayland moderne.".into(),
+            icon: "❄️".into(),
+        },
+        DesktopEnvInfo {
+            id: "cosmic".into(),
+            name: "COSMIC Desktop (Alpha)".into(),
+            version: "Epoch 1".into(),
+            description: "Nouvelle génération développée en Rust par System76 avec fenêtrage dynamique.".into(),
+            icon: "🚀".into(),
         },
     ]
 }

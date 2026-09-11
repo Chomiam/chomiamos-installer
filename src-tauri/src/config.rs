@@ -44,10 +44,10 @@ impl Default for InstallerSelections {
             heroic: true,
             faugus: true,
             decky_loader: false,
-            geforce_now: true,
+            geforce_now: false,
             sunshine: false,
             sober: false,
-            steering_wheels: true,
+            steering_wheels: false,
         }
     }
 }

@@ -782,3 +782,158 @@ body {
   gap: 12px;
   margin-top: 12px;
 }
+
+
+/* Form Controls & Dropdown Dark Styling (Catppuccin Mocha) */
+select, .form-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: var(--mocha-surface0) !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cba6f7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px !important;
+  border: 1px solid var(--mocha-surface2) !important;
+  color: var(--mocha-text) !important;
+  padding: 12px 42px 12px 16px !important;
+  border-radius: 10px !important;
+  font-family: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+select:focus, .form-select:focus {
+  border-color: var(--mocha-mauve) !important;
+  box-shadow: 0 0 0 3px rgba(203, 166, 247, 0.25) !important;
+}
+
+select option, .form-select option {
+  background-color: #1e1e2e !important;
+  color: #cdd6f4 !important;
+  padding: 12px !important;
+}
+
+select option:checked, .form-select option:checked {
+  background-color: #313244 !important;
+  color: var(--mocha-mauve) !important;
+  font-weight: 600;
+}
+
+/* Modal Confirmation Dialog */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 17, 27, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-backdrop.hidden {
+  display: none !important;
+}
+
+.modal-card {
+  background: var(--mocha-mantle);
+  border: 1px solid var(--mocha-red);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 540px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-icon-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(243, 139, 168, 0.15);
+  border: 1px solid rgba(243, 139, 168, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  color: var(--mocha-text);
+  font-weight: 700;
+}
+
+.modal-body {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--mocha-subtext1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-disk-target {
+  background: var(--mocha-surface0);
+  border: 1px solid var(--mocha-surface1);
+  border-left: 4px solid var(--mocha-red);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mocha-mauve);
+}
+
+.modal-danger-note {
+  color: var(--mocha-red);
+  font-size: 0.88rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--mocha-red), #e05f7c);
+  color: var(--mocha-crust);
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 16px rgba(243, 139, 168, 0.3);
+}
+
+.btn-danger:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

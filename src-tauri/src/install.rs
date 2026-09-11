@@ -1,6 +1,8 @@
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
@@ -18,6 +20,45 @@ pub struct InstallProgress {
 pub struct InstallFinished {
     pub success: bool,
     pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstallStateSnapshot {
+    pub is_running: bool,
+    pub is_finished: bool,
+    pub success: bool,
+    pub percent: u32,
+    pub step: String,
+    pub current_message: String,
+    pub error: Option<String>,
+    pub new_logs: Vec<String>,
+    pub total_logs_count: usize,
+}
+
+pub struct SharedInstallState {
+    pub is_running: bool,
+    pub is_finished: bool,
+    pub success: bool,
+    pub percent: u32,
+    pub step: String,
+    pub current_message: String,
+    pub error: Option<String>,
+    pub logs: Vec<String>,
+}
+
+impl Default for SharedInstallState {
+    fn default() -> Self {
+        Self {
+            is_running: false,
+            is_finished: false,
+            success: false,
+            percent: 0,
+            step: "Prêt pour l'installation".into(),
+            current_message: "En attente du lancement...".into(),
+            error: None,
+            logs: Vec::new(),
+        }
+    }
 }
 
 fn is_root_user() -> bool {
@@ -50,27 +91,81 @@ fn hash_user_password(password: &str) -> Result<String, String> {
     }
 }
 
-pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_run: bool) -> Result<(), String> {
-    let emit_progress = |percent: u32, step: &str, msg: &str| {
-        let _ = app.emit("install_progress", InstallProgress {
-            percent,
-            step: step.into(),
-            message: msg.into(),
-        });
+pub async fn execute_installation(
+    app: AppHandle,
+    state: Arc<Mutex<SharedInstallState>>,
+    mut s: InstallerSelections,
+    dry_run: bool,
+) -> Result<(), String> {
+    // 0. Reset state
+    {
+        let mut st = state.lock().await;
+        st.is_running = true;
+        st.is_finished = false;
+        st.success = false;
+        st.percent = 2;
+        st.step = "Initialisation de l'installation".into();
+        st.current_message = "Vérification des disques cibles...".into();
+        st.error = None;
+        st.logs.clear();
+        st.logs.push("=== Démarrage de l'installation de ChomiamOS Gaming Edition ===".into());
+    }
+
+    let emit_log = {
+        let app = app.clone();
+        let state = state.clone();
+        move |line: &str| {
+            let l = line.to_string();
+            let _ = app.emit("install_log", &l);
+            let state = state.clone();
+            tokio::spawn(async move {
+                let mut st = state.lock().await;
+                st.logs.push(l);
+            });
+        }
     };
 
-    let emit_log = |line: &str| {
-        let _ = app.emit("install_log", line.to_string());
+    let emit_progress = {
+        let app = app.clone();
+        let state = state.clone();
+        move |percent: u32, step: &str, msg: &str| {
+            let p = InstallProgress {
+                percent,
+                step: step.into(),
+                message: msg.into(),
+            };
+            let _ = app.emit("install_progress", &p);
+            let state = state.clone();
+            let step_str = step.to_string();
+            let msg_str = msg.to_string();
+            tokio::spawn(async move {
+                let mut st = state.lock().await;
+                st.percent = percent;
+                st.step = step_str;
+                st.current_message = msg_str;
+            });
+        }
     };
 
-    emit_log("=== Démarrage de l'installation de ChomiamOS Gaming Edition ===");
+    // Auto-select disk if empty
+    if s.target_disk.is_empty() {
+        let disks = crate::system::list_disks();
+        if let Some(first) = disks.first() {
+            s.target_disk = first.path.clone();
+            emit_log(&format!("[INFO] Disque cible auto-sélectionné : {}", s.target_disk));
+        } else {
+            s.target_disk = "/dev/sda".to_string();
+            emit_log(&format!("[INFO] Disque par défaut : {}", s.target_disk));
+        }
+    }
+
     emit_log(&format!("Disque cible : {}", s.target_disk));
-    emit_log(&format!("Bureau : {}", s.desktop_env));
-    emit_log(&format!("Utilisateur : {} (Machine: {})", s.username, s.hostname));
+    emit_log(&format!("Environnement de bureau : {}", s.desktop_env));
+    emit_log(&format!("Compte utilisateur : {} (Hôte : {})", s.username, s.hostname));
 
     let effective_dry_run = dry_run || !is_root_user();
     if effective_dry_run {
-        emit_log("[INFO] Mode simulation activé (dry-run ou droits non-root). Les commandes destructives seront simulées.");
+        emit_log("[INFO] Mode simulation activé (droits non-root ou test). Les opérations système réelles sont simulées.");
     }
 
     // --- STEP 1: Partitioning ---
@@ -95,36 +190,51 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
 
         let parted_gpt = Command::new("parted").args(["-s", &s.target_disk, "mklabel", "gpt"]).status();
         if parted_gpt.map_or(false, |s| !s.success()) {
-            return Err(format!("Échec de création du label GPT sur {}", s.target_disk));
+            let err = format!("Échec de création du label GPT sur {}", s.target_disk);
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
         }
 
-        // ESP 1024 MiB
         let _ = Command::new("parted").args(["-s", &s.target_disk, "mkpart", "ESP", "fat32", "1MiB", "1024MiB"]).status();
         let _ = Command::new("parted").args(["-s", &s.target_disk, "set", "1", "esp", "on"]).status();
-
-        // Root ext4 reste du disque
         let _ = Command::new("parted").args(["-s", &s.target_disk, "mkpart", "root", "ext4", "1024MiB", "100%"]).status();
 
-        // Informer le noyau
         let _ = Command::new("partprobe").arg(&s.target_disk).status();
         tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
 
-        // Formater ESP
         emit_log(&format!("Formatage de la partition EFI en FAT32 ({})", efi_part));
         let mkfs_fat = Command::new("mkfs.fat").args(["-F", "32", "-n", "BOOT", &efi_part]).status();
         if mkfs_fat.map_or(false, |s| !s.success()) {
-            return Err(format!("Échec formatage FAT32 sur {}", efi_part));
+            let err = format!("Échec formatage FAT32 sur {}", efi_part);
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
         }
 
-        // Formater Root ext4
         emit_log(&format!("Formatage de la partition racine en ext4 ({})", root_part));
         let mkfs_ext4 = Command::new("mkfs.ext4").args(["-F", "-L", "nixos", &root_part]).status();
         if mkfs_ext4.map_or(false, |s| !s.success()) {
-            return Err(format!("Échec formatage ext4 sur {}", root_part));
+            let err = format!("Échec formatage ext4 sur {}", root_part);
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
         }
     } else {
-        tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
-        emit_log(&format!("[DRY-RUN] Table GPT créée, {} (EFI 1Go) et {} (Root ext4)", efi_part, root_part));
+        tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+        emit_log(&format!("[DRY-RUN] Table GPT créée, {} (ESP 1Go) et {} (Root ext4)", efi_part, root_part));
     }
 
     // --- STEP 2: Mounting ---
@@ -133,16 +243,30 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
         let _ = Command::new("mkdir").args(["-p", "/mnt"]).status();
         let mnt_root = Command::new("mount").args([&root_part, "/mnt"]).status();
         if mnt_root.map_or(false, |s| !s.success()) {
-            return Err("Échec du montage de /mnt".into());
+            let err = "Échec du montage de /mnt".to_string();
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
         }
 
         let _ = Command::new("mkdir").args(["-p", "/mnt/boot"]).status();
         let mnt_boot = Command::new("mount").args([&efi_part, "/mnt/boot"]).status();
         if mnt_boot.map_or(false, |s| !s.success()) {
-            return Err("Échec du montage de /mnt/boot".into());
+            let err = "Échec du montage de /mnt/boot".to_string();
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
         }
     } else {
-        tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         emit_log("[DRY-RUN] Volumes montés sous /mnt et /mnt/boot");
     }
 
@@ -162,8 +286,8 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
                 emit_log("Swapfile activé avec succès.");
             }
         } else {
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-            emit_log(&format!("[DRY-RUN] Swap {} Mo alloué en 0.4 ms via posix_fallocate", s.swap_size_mb));
+            tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
+            emit_log(&format!("[DRY-RUN] Swap {} Mo alloué instantanément", s.swap_size_mb));
         }
     }
 
@@ -226,7 +350,14 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
     let vars_file = target_nixos.join("vars.nix");
     if let Err(e) = std::fs::write(&vars_file, vars_content) {
         emit_log(&format!("[ERR] Impossible d'écrire vars.nix: {}", e));
-        return Err(format!("Échec d'écriture de vars.nix: {}", e));
+        let err = format!("Échec d'écriture de vars.nix: {}", e);
+        let mut st = state.lock().await;
+        st.is_running = false;
+        st.is_finished = true;
+        st.success = false;
+        st.error = Some(err.clone());
+        let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+        return Err(err);
     }
     emit_log(&format!("Fichier vars.nix généré dans {}", vars_file.display()));
 
@@ -263,7 +394,14 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
 
         let status = child.wait().map_err(|e| format!("Erreur attente nixos-install: {}", e))?;
         if !status.success() {
-            return Err("nixos-install a échoué.".into());
+            let err = "nixos-install a échoué.".to_string();
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
         }
     } else {
         let mock_steps = [
@@ -277,7 +415,7 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
         ];
 
         for (i, step) in mock_steps.iter().enumerate() {
-            tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
             let pct = 60 + (i as u32 + 1) * 5;
             emit_log(&format!("[SIMULATION] {}", step));
             emit_progress(pct, "Installation de ChomiamOS...", step);
@@ -292,6 +430,16 @@ pub async fn execute_installation(app: AppHandle, s: InstallerSelections, dry_ru
         let _ = Command::new("umount").args(["-R", "/mnt"]).status();
     }
     emit_log("Félicitations ! L'installation de ChomiamOS est terminée avec succès.");
+
+    {
+        let mut st = state.lock().await;
+        st.is_running = false;
+        st.is_finished = true;
+        st.success = true;
+        st.percent = 100;
+        st.step = "Installation terminée avec succès !".into();
+        st.current_message = "Votre système est prêt.".into();
+    }
 
     let _ = app.emit("install_finished", InstallFinished {
         success: true,
