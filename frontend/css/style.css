@@ -782,7 +782,52 @@ body {
 }
 .log-line {
   word-break: break-all;
-  line-height: 1.4;
+  line-height: 1.5;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.log-line.log-step {
+  color: var(--mocha-mauve);
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: rgba(203, 166, 247, 0.14);
+  border-left: 3px solid var(--mocha-mauve);
+  padding: 6px 10px;
+  margin: 6px 0 2px 0;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+.log-line.log-success {
+  color: var(--mocha-green);
+  font-weight: 600;
+}
+
+.log-line.log-info {
+  color: var(--mocha-blue);
+}
+
+.log-line.log-warn {
+  color: var(--mocha-peach);
+  background: rgba(250, 179, 135, 0.08);
+  border-left: 3px solid var(--mocha-peach);
+  padding: 3px 8px;
+}
+
+.log-line.log-error {
+  color: var(--mocha-red);
+  font-weight: 700;
+  background: rgba(243, 139, 168, 0.14);
+  border-left: 3px solid var(--mocha-red);
+  padding: 4px 8px;
+}
+
+.log-line.log-build {
+  color: var(--mocha-subtext0);
+  font-size: 0.78rem;
+  opacity: 0.88;
 }
 
 .install-complete-card {

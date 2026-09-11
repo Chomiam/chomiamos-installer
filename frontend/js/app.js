@@ -730,6 +730,21 @@ function appendLog(text) {
   if (!term) return;
   const line = document.createElement('div');
   line.className = 'log-line';
+
+  if (text.includes('[ÉTAPE') || text.includes('=== ÉTAPE') || text.startsWith('=== ')) {
+    line.classList.add('log-step');
+  } else if (text.includes('[OK]') || text.includes('[SUCCESS]') || text.includes('✓') || text.includes('avec succès')) {
+    line.classList.add('log-success');
+  } else if (text.includes('[ERREUR') || text.includes('[ERR]') || text.includes('FATAL') || text.includes('Échec')) {
+    line.classList.add('log-error');
+  } else if (text.includes('[WARN]') || text.includes('[ATTENTION]')) {
+    line.classList.add('log-warn');
+  } else if (text.includes('[INFO]')) {
+    line.classList.add('log-info');
+  } else if (text.includes('[BUILD]')) {
+    line.classList.add('log-build');
+  }
+
   line.textContent = `> ${text}`;
   term.appendChild(line);
   term.scrollTop = term.scrollHeight;
@@ -978,7 +993,7 @@ async function checkAndUpdatePill() {
         pillBtn.title = `Mise à jour v${info.latest_version} disponible ! Cliquez pour installer.`;
       }
     } else {
-      const curVer = info ? info.current_version : "1.2.1";
+      const curVer = info ? info.current_version : "1.2.2";
       if (dot) {
         dot.className = 'status-dot green';
       }
@@ -999,8 +1014,8 @@ function openUpdateModal() {
   const modal = ensureUpdateModalExists();
   if (!modal) return;
 
-  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.1";
-  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.1";
+  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.2";
+  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.2";
   const hasUpdate = currentUpdateInfo ? currentUpdateInfo.has_update : false;
 
   const elCur = document.getElementById('modal-current-ver');
