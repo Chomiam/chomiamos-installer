@@ -579,7 +579,40 @@ class NixosJob(BaseJob):
             except OSError:
                 pass
 
-            # 2. Commandes système de renfort (chown/chmod avec UID:GID numérique)
+            # 2. Attribution des permissions complètes sur le répertoire personnel /home/{username}
+            user_home = Path(target_root) / "home" / username
+            if user_home.is_dir():
+                for root, dirs, files in os.walk(user_home):
+                    for d in dirs:
+                        p = os.path.join(root, d)
+                        try:
+                            os.chown(p, uid, gid, follow_symlinks=False)
+                            os.chmod(p, 0o750)
+                        except OSError:
+                            pass
+                    for f in files:
+                        p = os.path.join(root, f)
+                        try:
+                            os.chown(p, uid, gid, follow_symlinks=False)
+                        except OSError:
+                            pass
+                try:
+                    os.chown(user_home, uid, gid, follow_symlinks=False)
+                    os.chmod(user_home, 0o750)
+                except OSError:
+                    pass
+                self._run_command(
+                    ["chown", "-R", f"{uid}:{gid}", str(user_home)],
+                    description=f"Attribution de {user_home} à {username} ({uid}:{gid})",
+                    dry_run=False,
+                )
+                self._run_command(
+                    ["chmod", "-R", "u+rwX", str(user_home)],
+                    description=f"Permissions complètes utilisateur sur {user_home}",
+                    dry_run=False,
+                )
+
+            # 2b. Commandes système de renfort sur /etc/nixos
             self._run_command(
                 ["chown", "-R", f"{uid}:{gid}", str(etc_nixos)],
                 description=f"Attribution de {etc_nixos} à {username} ({uid}:{gid})",
@@ -594,7 +627,7 @@ class NixosJob(BaseJob):
             # 3. Exécution dans le chroot avec nixos-enter si disponible
             try:
                 subprocess.run(
-                    ["nixos-enter", "--root", target_root, "-c", f"chown -R {username}:users /etc/nixos && chmod -R u+rwX,g+rwX /etc/nixos"],
+                    ["nixos-enter", "--root", target_root, "-c", f"chown -R {username}:users /home/{username} /etc/nixos && chmod -R u+rwX /home/{username} && chmod -R u+rwX,g+rwX /etc/nixos"],
                     check=False,
                     capture_output=True,
                 )
