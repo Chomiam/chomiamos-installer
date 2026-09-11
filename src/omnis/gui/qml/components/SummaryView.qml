@@ -91,6 +91,9 @@ Item {
     property string diskValue: ""
     property string diskSizeValue: ""
     property string partitionModeValue: "auto"
+    property string swapStrategyValue: "file"
+    property int swapSizeMbValue: 0
+    property bool encryptionValue: false
 
     // Distro info
     property string distroName: "ChomiamOS"
@@ -734,6 +737,28 @@ Item {
                                     text: qsTr("Disque cible : %1 %2 | Système de fichiers : Ext4")
                                           .arg(diskValue || "Non sélectionné")
                                           .arg(diskSizeValue ? "(" + diskSizeValue + ")" : "")
+                                    font.pixelSize: 13
+                                    color: textMutedColor
+                                }
+
+                                Text {
+                                    text: {
+                                        var swapDesc = "";
+                                        if (swapStrategyValue === "none") {
+                                            swapDesc = qsTr("Désactivé (Sans swap)");
+                                        } else if (swapStrategyValue === "hibernate") {
+                                            swapDesc = qsTr("Hibernation (égal à la RAM)");
+                                        } else {
+                                            if (swapSizeMbValue > 0) {
+                                                swapDesc = qsTr("Fichier %1 Go").arg((swapSizeMbValue / 1024).toFixed(0));
+                                            } else {
+                                                swapDesc = qsTr("Fichier (Automatique)");
+                                            }
+                                        }
+                                        return qsTr("Swap : %1 | Chiffrement LUKS : %2")
+                                            .arg(swapDesc)
+                                            .arg(encryptionValue ? qsTr("Activé") : qsTr("Désactivé"));
+                                    }
                                     font.pixelSize: 13
                                     color: textMutedColor
                                 }

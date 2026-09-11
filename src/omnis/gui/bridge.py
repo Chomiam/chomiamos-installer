@@ -1358,6 +1358,7 @@ class EngineBridge(QObject):
             "partitionMode": "auto",
             "filesystem": "ext4",
             "swapStrategy": "file",
+            "swapSizeMb": 0,
             "encryption": False,
             "encryptionPassphrase": "",
             "efiSizeMb": 512,
@@ -2504,6 +2505,20 @@ class EngineBridge(QObject):
                 print(f"[Engine] Swap strategy set to: {strategy}")
             self.selectionsChanged.emit()
 
+    @Property(int, notify=selectionsChanged)
+    def swapSizeMb(self) -> int:
+        """Get swap size in MB (0 = automatic based on RAM and strategy)."""
+        return int(self._selections.get("swapSizeMb", 0))
+
+    @Slot(int)
+    def setSwapSizeMb(self, size_mb: int) -> None:
+        """Set swap size in MB (0 = automatic)."""
+        if self._selections.get("swapSizeMb") != size_mb:
+            self._selections["swapSizeMb"] = max(0, int(size_mb))
+            if self._debug:
+                print(f"[Engine] Swap size set to: {size_mb} MB")
+            self.selectionsChanged.emit()
+
     @Property(bool, notify=selectionsChanged)
     def encryption(self) -> bool:
         """Get whether root encryption (LUKS2) is enabled."""
@@ -2910,10 +2925,13 @@ class EngineBridge(QObject):
         geom = self._selected_disk_geometry()
         if not geom:
             return []
+        swap_strat = str(self._selections.get("swapStrategy", self._selections.get("swap_strategy", "file")))
+        swap_sz_mb = int(self._selections.get("swapSizeMb", self._selections.get("swap_size_mb", 0)) or 0)
         planned = plan_auto_layout(
             int(geom.get("sizeSectors", 0) or 0),
             filesystem=str(self._selections.get("filesystem", "ext4")),
-            swap_strategy=str(self._selections.get("swap_strategy", "file")),
+            swap_strategy=swap_strat,
+            swap_size_mb=swap_sz_mb,
             encryption=bool(self._selections.get("encryption", False)),
             efi_size_mb=int(self._selections.get("efi_size_mb", 512) or 512),
         )
@@ -3723,6 +3741,8 @@ class EngineBridge(QObject):
             normalized["partition_mode"] = normalized.pop("partitionMode")
         if "swapStrategy" in normalized:
             normalized["swap_strategy"] = normalized.pop("swapStrategy")
+        if "swapSizeMb" in normalized:
+            normalized["swap_size_mb"] = normalized.pop("swapSizeMb")
         if "encryptionPassphrase" in normalized:
             normalized["encryption_passphrase"] = normalized.pop("encryptionPassphrase")
         if "efiSizeMb" in normalized:

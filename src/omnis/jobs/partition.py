@@ -69,7 +69,7 @@ def _detect_ram_mb() -> int:
     return 8192
 
 
-def swapfile_size_mb(strategy: str, ram_mb: int = 0) -> int:
+def swapfile_size_mb(strategy: str, ram_mb: int = 0, custom_size_mb: int = 0) -> int:
     """
     Return the swapfile size the ``file``/``hibernate`` strategies would create.
 
@@ -77,6 +77,10 @@ def swapfile_size_mb(strategy: str, ram_mb: int = 0) -> int:
     Shared with the UI so the disk preview announces the size that will actually
     be created.
     """
+    if strategy == "none":
+        return 0
+    if custom_size_mb > 0:
+        return custom_size_mb
     ram = ram_mb or _detect_ram_mb()
     if strategy == "hibernate":
         return max(ram, 8192)
@@ -94,6 +98,7 @@ def plan_auto_layout(
     efi_size_mb: int = 512,
     legacy_swap_gb: int = 0,
     ram_mb: int = 0,
+    swap_size_mb: int = 0,
 ) -> list[dict[str, Any]]:
     """
     Compute the partitions automatic mode would create, without touching a disk.
@@ -131,7 +136,7 @@ def plan_auto_layout(
 
     root = entry(2, root_start, root_end, filesystem, "linux")
     root["encrypted"] = encryption
-    root["swapfileBytes"] = swapfile_size_mb(swap_strategy, ram_mb) * 1024 * 1024
+    root["swapfileBytes"] = swapfile_size_mb(swap_strategy, ram_mb, custom_size_mb=swap_size_mb) * 1024 * 1024
 
     planned = [entry(1, efi_start, efi_end, "vfat", "efi"), root]
     if use_swap_partition:
@@ -817,10 +822,13 @@ class PartitionJob(BaseJob):
         if filesystem not in [f.value for f in FilesystemType]:
             return JobResult.fail(f"Invalid filesystem type: {filesystem}", error_code=36)
 
-        # Validate swap size (legacy swap_size partition path)
+        # Validate swap size (legacy swap_size partition path or swapfile size in MB)
         swap_size = selections.get("swap_size", 0)
         if not isinstance(swap_size, (int, float)) or swap_size < 0:
             return JobResult.fail("Invalid swap size", error_code=37)
+        swap_size_mb = selections.get("swap_size_mb", 0)
+        if not isinstance(swap_size_mb, (int, float)) or swap_size_mb < 0:
+            return JobResult.fail("Invalid swapfile size", error_code=37)
 
         # Validate swap strategy (current path)
         swap_strategy = selections.get("swap_strategy")
@@ -1858,22 +1866,33 @@ class PartitionJob(BaseJob):
         """
         Create and activate a swapfile under ``target_root``.
 
-        - ``file``: size = min(RAM, 8192 MB), default 4096 MB if RAM unknown.
+        - ``file``: size = custom_size_mb if provided > 0, else min(RAM, 8192 MB), default 4096 MB if RAM unknown.
         - ``hibernate``: size >= RAM (so the image fits), default 8192 MB.
 
         Args:
-            context: Execution context (provides target_root)
+            context: Execution context (provides target_root and selections)
             strategy: "file" or "hibernate"
             dry_run: If True, simulate only
 
         Returns:
             JobResult indicating success or failure
         """
+        if strategy == "none":
+            logger.info("Swap strategy is 'none', skipping swapfile configuration.")
+            return JobResult.ok("No swapfile requested")
+
+        custom_size_mb = int(context.selections.get("swap_size_mb", 0) or 0)
         ram_mb = _detect_ram_mb()
-        if strategy == "hibernate":
+        if custom_size_mb > 0:
+            size_mb = custom_size_mb
+        elif strategy == "hibernate":
             size_mb = max(ram_mb, 8192)
         else:  # "file"
             size_mb = min(ram_mb, 8192) if ram_mb else 4096
+
+        if size_mb <= 0:
+            logger.info("Swapfile size is 0MB, skipping swapfile creation.")
+            return JobResult.ok("Swapfile skipped (0MB)")
 
         swapfile = f"{context.target_root}/swapfile"
         logger.info(f"Swapfile strategy={strategy}, size={size_mb}MB at {swapfile}")
@@ -2140,6 +2159,18 @@ class PartitionJob(BaseJob):
                 logger.debug(f"Not unmounted {efi_mount}: {(result.stderr or '').strip()}")
         except Exception as e:
             logger.debug(f"Failed to unmount {efi_mount}: {e}")
+
+        # Try to deactivate swapfile if present before unmounting root
+        swapfile = f"{target_root}/swapfile"
+        try:
+            subprocess.run(
+                ["swapoff", swapfile],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        except Exception as e:
+            logger.debug(f"Failed to deactivate swapfile: {e}")
 
         # Try to unmount root
         try:

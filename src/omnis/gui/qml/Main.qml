@@ -499,6 +499,9 @@ ApplicationWindow {
                 onSwapStrategySelected: function(strategy) {
                     engine.setSwapStrategy(strategy)
                 }
+                onSwapSizeChanged: function(sizeMb) {
+                    engine.setSwapSizeMb(sizeMb)
+                }
                 onEncryptionToggled: function(enabled) {
                     engine.setEncryption(enabled)
                 }
@@ -578,6 +581,9 @@ ApplicationWindow {
                 diskValue: engine.selectedDisk
                 diskSizeValue: engine.selectedDiskSize
                 partitionModeValue: engine.partitionMode
+                swapStrategyValue: engine.swapStrategy
+                swapSizeMbValue: engine.swapSizeMb
+                encryptionValue: engine.encryption
 
                 confirmed: engine.confirmed
                 onConfirmedToggled: function(value) { engine.setConfirmed(value) }

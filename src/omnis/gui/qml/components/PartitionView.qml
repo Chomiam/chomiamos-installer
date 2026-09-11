@@ -80,6 +80,7 @@ Item {
     // Auto-mode option signals (engine slots added in parallel by bridge agent)
     signal filesystemSelected(string fs)          // "ext4" | "btrfs"
     signal swapStrategySelected(string strategy)  // "file" | "none" | "hibernate"
+    signal swapSizeChanged(int sizeMb)            // 0 = auto, or size in MB
     signal encryptionToggled(bool enabled)
     signal encryptionPassphraseSet(string passphrase)
     signal efiSizeChanged(int sizeMb)
@@ -94,6 +95,7 @@ Item {
     readonly property string partitionMode: engine.partitionMode  // "auto" | "manual"
     readonly property string filesystem: engine.filesystem        // "ext4" | "btrfs"
     readonly property string swapStrategy: engine.swapStrategy     // "file" | "none" | "hibernate"
+    readonly property int swapSizeMb: engine.swapSizeMb           // 0 = auto
     readonly property bool encryptionEnabled: engine.encryption
     readonly property int efiSizeMb: 512       // fixed for MVP
 
@@ -1179,10 +1181,10 @@ Item {
                         // --- Swap ---
                         Column {
                             width: parent.width
-                            spacing: 8
+                            spacing: 12
 
                             Text {
-                                text: qsTr("Swap")
+                                text: qsTr("Swap (Mémoire d'échange)")
                                 font.pixelSize: 15
                                 font.bold: true
                                 color: textColor
@@ -1192,21 +1194,94 @@ Item {
                                 spacing: 24
 
                                 ThemedRadio {
-                                    text: qsTr("File (auto)")
+                                    text: qsTr("Fichier d'échange")
                                     checked: swapStrategy === "file"
                                     onClicked: swapStrategySelected("file")
                                 }
 
                                 ThemedRadio {
-                                    text: qsTr("None")
+                                    text: qsTr("Sans swap (Recommandé VM)")
                                     checked: swapStrategy === "none"
                                     onClicked: swapStrategySelected("none")
                                 }
 
                                 ThemedRadio {
-                                    text: qsTr("Hibernation")
+                                    text: qsTr("Hibernation (égal à la RAM)")
                                     checked: swapStrategy === "hibernate"
                                     onClicked: swapStrategySelected("hibernate")
+                                }
+                            }
+
+                            // Sélection de la taille quand le mode fichier swap est activé
+                            RowLayout {
+                                visible: swapStrategy === "file"
+                                spacing: 14
+
+                                Text {
+                                    text: qsTr("Taille du fichier d'échange :")
+                                    font.pixelSize: 13
+                                    color: textColor
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
+                                PartCombo {
+                                    id: swapSizeCombo
+                                    implicitWidth: 240
+                                    model: [
+                                        qsTr("Automatique (par défaut)"),
+                                        qsTr("1 Go (minimal)"),
+                                        qsTr("2 Go (recommandé VM 60-80 Go)"),
+                                        qsTr("4 Go (standard)"),
+                                        qsTr("8 Go"),
+                                        qsTr("16 Go")
+                                    ]
+                                    currentIndex: {
+                                        switch (swapSizeMb) {
+                                            case 1024: return 1;
+                                            case 2048: return 2;
+                                            case 4096: return 3;
+                                            case 8192: return 4;
+                                            case 16384: return 5;
+                                            default: return 0;
+                                        }
+                                    }
+                                    onActivated: function(index) {
+                                        var sizes = [0, 1024, 2048, 4096, 8192, 16384]
+                                        swapSizeChanged(sizes[index])
+                                    }
+                                }
+                            }
+
+                            // Message d'aide contextuel
+                            Rectangle {
+                                width: parent.width
+                                implicitHeight: swapHelpText.implicitHeight + 16
+                                radius: 6
+                                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
+                                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.25)
+                                border.width: 1
+
+                                Text {
+                                    id: swapHelpText
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    verticalAlignment: Text.AlignVCenter
+                                    wrapMode: Text.WordWrap
+                                    font.pixelSize: 12
+                                    color: textMutedColor
+                                    text: {
+                                        if (swapStrategy === "none") {
+                                            return qsTr("ℹ️ Aucun fichier ni partition de swap ne sera alloué. Cette option libère un maximum d'espace disque, idéal sur les machines virtuelles (ex: 60 à 80 Go) ou si vous manquez d'espace.")
+                                        } else if (swapStrategy === "hibernate") {
+                                            return qsTr("ℹ️ La taille du swap couvrira l'intégralité de la RAM afin de permettre la sauvegarde complète de l'état système lors de la mise en veille prolongée.")
+                                        } else {
+                                            if (swapSizeMb > 0) {
+                                                return qsTr("ℹ️ Fichier /swapfile fixe alloué à %1 Go. Permet de limiter strictement l'empreinte disque du swap.").arg((swapSizeMb / 1024).toFixed(0))
+                                            } else {
+                                                return qsTr("ℹ️ Taille automatique calculée selon votre mémoire RAM (plafonnée à 8 Go). Vous pouvez choisir 2 Go ci-dessus pour éviter la saturation du disque sur les VM.")
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
