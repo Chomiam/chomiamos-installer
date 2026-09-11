@@ -12,8 +12,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test:
-    name: 🔨 Build Package & Release Assets
+  build:
+    name: 🔨 Build Rust/Tauri Installer
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -23,15 +23,36 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 🔍 Check Python Syntax
+      # ── Vérifications syntaxiques rapides ──
+      - name: 🔍 Validate Frontend (HTML/JS/CSS)
         run: |
-          python -m py_compile src/omnis/main.py src/omnis/gui/bridge.py src/omnis/utils/updater.py src/omnis/jobs/nixos.py
+          echo "=== Vérification de la présence des fichiers frontend ==="
+          test -f frontend/index.html   && echo "✅ index.html"
+          test -f frontend/js/app.js    && echo "✅ app.js"
+          test -f frontend/css/style.css && echo "✅ style.css"
+          echo "=== Vérification syntaxe JS (node --check) ==="
+          if command -v node &>/dev/null; then
+            node --check frontend/js/app.js && echo "✅ app.js syntax OK"
+          else
+            echo "⚠️  Node.js non disponible, skip JS syntax check"
+          fi
 
+      - name: 🦀 Validate Rust source structure
+        run: |
+          echo "=== Vérification de la structure Cargo/Tauri ==="
+          test -f src-tauri/Cargo.toml     && echo "✅ Cargo.toml"
+          test -f src-tauri/tauri.conf.json && echo "✅ tauri.conf.json"
+          test -f src-tauri/src/main.rs     && echo "✅ main.rs"
+          test -f src-tauri/src/install.rs  && echo "✅ install.rs"
+          test -f Cargo.lock               && echo "✅ Cargo.lock"
+          test -f package.nix              && echo "✅ package.nix"
+          test -f flake.nix                && echo "✅ flake.nix"
+          # Extraction de la version depuis Cargo.toml
+          VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "📦 Version détectée : $VERSION"
+          echo "INSTALLER_VERSION=$VERSION" >> $GITHUB_ENV
+
+      # ── Installation Nix avec Flakes ──
       - name: ❄️ Install Nix
         uses: cachix/install-nix-action@v31
         with:
@@ -47,36 +68,62 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
         continue-on-error: true
 
-      - name: 📦 Build Nix Package (Omnis)
+      # ── Build du paquet Rust via Nix ──
+      - name: 📦 Build ChomiamOS Installer (Nix + Rust/Tauri)
         run: |
+          echo "🔨 Construction du paquet chomiamos-installer v$INSTALLER_VERSION via Nix..."
           nix build --print-build-logs .#omnis
+          echo "✅ Build terminé avec succès"
 
-      - name: 🧪 Test Executable Output
+      - name: 🧪 Test Executable
         run: |
-          ./result/bin/omnis --version
-          ./result/bin/omnis --help
+          echo "=== Test du binaire compilé ==="
+          ls -la result/bin/
+          ./result/bin/chomiamos-installer --version
+          ./result/bin/chomiamos-installer --help
+          echo "✅ Binaire fonctionnel"
 
-      - name: 🗜️ Package Auto-Update Archive
+      # ── Packaging des assets de release ──
+      - name: 🗜️ Package Release Assets
         run: |
-          cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64 || cp data/bin/chomiamos-installer ./chomiamos-installer-x86_64
+          echo "=== Préparation des assets de release ==="
+          # Binaire standalone
+          cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64
           chmod +x ./chomiamos-installer-x86_64
-          tar -czf chomiamos-installer-release.tar.gz src config data package.nix pyproject.toml README.md flake.nix
+
+          # Archive complète pour le système de mise à jour
+          tar -czf chomiamos-installer-release.tar.gz \
+            src-tauri/ \
+            frontend/ \
+            config/ \
+            package.nix \
+            flake.nix \
+            flake.lock \
+            Cargo.toml \
+            Cargo.lock \
+            README.md \
+            LICENSE
+
           sha256sum chomiamos-installer-release.tar.gz > chomiamos-installer-release.tar.gz.sha256
-          echo "Archive de release générée :"
-          ls -lh chomiamos-installer-release.tar.gz* chomiamos-installer-x86_64
+          sha256sum chomiamos-installer-x86_64 > chomiamos-installer-x86_64.sha256
+
+          echo "📦 Assets générés :"
+          ls -lh chomiamos-installer-release.tar.gz* chomiamos-installer-x86_64*
 
       - name: 📤 Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: chomiamos-installer-release
+          name: chomiamos-installer-v${{ env.INSTALLER_VERSION }}
           path: |
             chomiamos-installer-release.tar.gz
             chomiamos-installer-release.tar.gz.sha256
             chomiamos-installer-x86_64
+            chomiamos-installer-x86_64.sha256
 
+  # ── Release GitHub automatique sur tag v* ──
   release:
     name: 🚀 Publish GitHub Release
-    needs: build-and-test
+    needs: build
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
@@ -84,27 +131,29 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 📥 Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: chomiamos-installer-release
-
-      - name: 🏷️ Determine Tag Name
-        id: tag_info
+      - name: 🏷️ Determine Version & Tag
+        id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             TAG_NAME="${GITHUB_REF#refs/tags/}"
           else
-            VERSION=$(PYTHONPATH=src python3 -c "from omnis import __version__; print(__version__)")
+            VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
             TAG_NAME="v${VERSION}"
           fi
           echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "🏷️ Release tag: ${TAG_NAME}"
 
-      - name: 📢 Create or Update Release
+      - name: 📥 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: chomiamos-installer-*
+          merge-multiple: true
+
+      - name: 📢 Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag_info.outputs.tag }}
-          name: "ChomiamOS Installer ${{ steps.tag_info.outputs.tag }}"
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "ChomiamOS Installer ${{ steps.version.outputs.tag }}"
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -112,3 +161,4 @@ jobs:
             chomiamos-installer-release.tar.gz
             chomiamos-installer-release.tar.gz.sha256
             chomiamos-installer-x86_64
+            chomiamos-installer-x86_64.sha256
