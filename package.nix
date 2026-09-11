@@ -104,11 +104,15 @@ ENTRY
     mkdir -p $out/share/omnis
     if [ -d config ]; then
       cp -r config $out/share/omnis/config
+      if [ -f config/chomiamos.yaml ]; then
+        cp config/chomiamos.yaml $out/share/omnis/omnis.yaml
+      fi
     fi
 
-    # Ensure runtime disk & partitioning tools are in PATH
+    # Ensure runtime disk & partitioning tools are in PATH and WebKit compatibility in VMs
     wrapProgram $out/bin/chomiamos-installer \
-      --prefix PATH : ${lib.makeBinPath runtimeTools}
+      --prefix PATH : ${lib.makeBinPath runtimeTools} \
+      --set-default WEBKIT_DISABLE_DMABUF_RENDERER "1"
   '';
 
   meta = with lib; {

@@ -143,6 +143,10 @@ fn main() {
         return;
     }
 
+    if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_err() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     let install_state = Arc::new(Mutex::new(SharedInstallState::default()));
 
     tauri::Builder::default()
