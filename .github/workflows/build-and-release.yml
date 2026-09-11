@@ -16,6 +16,8 @@ jobs:
     name: 🔨 Build Package & Release Assets
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
     steps:
       - name: 📥 Checkout repository
@@ -39,9 +41,7 @@ jobs:
 
       - name: ⚡ Setup Cachix
         uses: cachix/cachix-action@v15
-        if: '${{ env.CACHIX_AUTH_TOKEN != "" }}'
-        env:
-          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        if: env.CACHIX_AUTH_TOKEN != ''
         with:
           name: chomiamos-installer
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -58,8 +58,6 @@ jobs:
 
       - name: 🗜️ Package Auto-Update Archive
         run: |
-          mkdir -p release-pkg
-          # Construction du paquet de mise à jour propre
           tar -czf chomiamos-installer-release.tar.gz src config data package.nix pyproject.toml README.md flake.nix
           sha256sum chomiamos-installer-release.tar.gz > chomiamos-installer-release.tar.gz.sha256
           echo "Archive de release générée :"
@@ -94,8 +92,7 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             TAG_NAME="${GITHUB_REF#refs/tags/}"
           else
-            # Extraction de la version depuis src/omnis/__init__.py
-            VERSION=$(grep "__version__" src/omnis/__init__.py | cut -d """ -f 2)
+            VERSION=$(PYTHONPATH=src python3 -c "from omnis import __version__; print(__version__)")
             TAG_NAME="v${VERSION}"
           fi
           echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
