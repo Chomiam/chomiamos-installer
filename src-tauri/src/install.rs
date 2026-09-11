@@ -101,6 +101,26 @@ fn is_root_user() -> bool {
     false
 }
 
+fn privileged_cmd(prog: &str) -> Command {
+    if is_root_user() {
+        Command::new(prog)
+    } else {
+        let mut cmd = Command::new("sudo");
+        cmd.arg(prog);
+        cmd
+    }
+}
+
+fn privileged_async_cmd(prog: &str) -> AsyncCommand {
+    if is_root_user() {
+        AsyncCommand::new(prog)
+    } else {
+        let mut cmd = AsyncCommand::new("sudo");
+        cmd.arg(prog);
+        cmd
+    }
+}
+
 fn hash_user_password(password: &str) -> Result<String, String> {
     let mut child = Command::new("openssl")
         .args(["passwd", "-6", "-stdin"])
@@ -214,9 +234,11 @@ pub async fn execute_installation(
     emit_log(&format!("[INFO] Bureau sélectionné : {} | Clavier : {} ({})", s.desktop_env, s.keyboard_layout, s.keyboard_variant));
     emit_log(&format!("[INFO] Fuseau horaire : {} | Utilisateur : {}", s.timezone, s.username));
 
-    let effective_dry_run = dry_run || !is_root_user();
+    let effective_dry_run = dry_run;
     if effective_dry_run {
-        emit_log("[WARN] Mode simulation actif (droits non-root ou test). Les modifications système réelles ne seront pas appliquées.");
+        emit_log("[WARN] Mode simulation actif (test demandé). Les modifications système réelles ne seront pas appliquées.");
+    } else {
+        emit_log("[INFO] ⚡ Mode INSTALLATION RÉELLE activé : écriture directe sur le matériel en cours...");
     }
 
     let (efi_part, root_part) = get_partition_names(&s.target_disk);
@@ -229,11 +251,11 @@ pub async fn execute_installation(
 
     if !effective_dry_run {
         emit_log("[INFO] Désactivation de tous les swaps existants (swapoff -a)...");
-        let _ = Command::new("swapoff").arg("-a").status();
+        let _ = privileged_cmd("swapoff").arg("-a").status();
 
         emit_log("[INFO] Démontage propre récursif de /mnt si déjà actif...");
-        let _ = Command::new("umount").args(["-R", "-q", "/mnt"]).status();
-        let _ = Command::new("umount").args(["-l", "-R", "-q", "/mnt"]).status();
+        let _ = privileged_cmd("umount").args(["-R", "-q", "/mnt"]).status();
+        let _ = privileged_cmd("umount").args(["-l", "-R", "-q", "/mnt"]).status();
 
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         emit_log("[OK] Environnement nettoyé et prêt pour le partitionnement.");
@@ -250,10 +272,10 @@ pub async fn execute_installation(
 
     if !effective_dry_run {
         emit_log(&format!("[INFO] Suppression des signatures de systèmes de fichiers (wipefs sur {})...", s.target_disk));
-        let _ = Command::new("wipefs").args(["-a", "-f", &s.target_disk]).status();
+        let _ = privileged_cmd("wipefs").args(["-a", "-f", &s.target_disk]).status();
 
         emit_log(&format!("[INFO] Création d'une table de partitions GPT vierge sur {}...", s.target_disk));
-        let parted_gpt = Command::new("parted")
+        let parted_gpt = privileged_cmd("parted")
             .args(["-s", &s.target_disk, "--", "mklabel", "gpt"])
             .status();
         // Vérification robuste : Err (commande introuvable) ET code de sortie non nul
@@ -277,7 +299,7 @@ pub async fn execute_installation(
         }
 
         emit_log("[INFO] Création de la partition EFI (1024 Mo - ESP/FAT32)...");
-        let parted_esp = Command::new("parted")
+        let parted_esp = privileged_cmd("parted")
             .args(["-s", &s.target_disk, "--", "mkpart", "ESP", "fat32", "1MiB", "1025MiB"])
             .status();
         match parted_esp {
@@ -292,10 +314,10 @@ pub async fn execute_installation(
                 return Err(err);
             }
         }
-        let _ = Command::new("parted").args(["-s", &s.target_disk, "--", "set", "1", "esp", "on"]).status();
+        let _ = privileged_cmd("parted").args(["-s", &s.target_disk, "--", "set", "1", "esp", "on"]).status();
 
         emit_log("[INFO] Création de la partition racine Root (ext4 - 100% de l'espace)...");
-        let parted_root = Command::new("parted")
+        let parted_root = privileged_cmd("parted")
             .args(["-s", &s.target_disk, "--", "mkpart", "root", "ext4", "1025MiB", "100%"])
             .status();
         match parted_root {
@@ -312,8 +334,8 @@ pub async fn execute_installation(
         }
 
         emit_log("[INFO] Notification au noyau et synchronisation udev (partprobe & udevadm settle)...");
-        let _ = Command::new("partprobe").arg(&s.target_disk).status();
-        let _ = Command::new("udevadm").args(["settle", "--timeout=10"]).status();
+        let _ = privileged_cmd("partprobe").arg(&s.target_disk).status();
+        let _ = privileged_cmd("udevadm").args(["settle", "--timeout=10"]).status();
 
         // Attente active de la présence des nœuds de partitions
         let mut partitions_ready = false;
@@ -326,7 +348,7 @@ pub async fn execute_installation(
         }
 
         if !partitions_ready {
-            let _ = Command::new("partprobe").arg(&s.target_disk).status();
+            let _ = privileged_cmd("partprobe").arg(&s.target_disk).status();
             tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         }
 
@@ -344,12 +366,12 @@ pub async fn execute_installation(
 
     if !effective_dry_run {
         emit_log(&format!("[INFO] Formatage de la partition EFI en FAT32 ({}) avec le label BOOT...", efi_part));
-        let mkfs_fat = Command::new("mkfs.vfat").args(["-F", "32", "-n", "BOOT", &efi_part]).status();
+        let mkfs_fat = privileged_cmd("mkfs.vfat").args(["-F", "32", "-n", "BOOT", &efi_part]).status();
         let fat_ok = match mkfs_fat {
             Ok(st) if st.success() => true,
             _ => {
                 emit_log("[WARN] mkfs.vfat a échoué, tentative avec mkfs.fat...");
-                match Command::new("mkfs.fat").args(["-F", "32", "-n", "BOOT", &efi_part]).status() {
+                match privileged_cmd("mkfs.fat").args(["-F", "32", "-n", "BOOT", &efi_part]).status() {
                     Ok(st) if st.success() => true,
                     _ => false,
                 }
@@ -363,7 +385,7 @@ pub async fn execute_installation(
         emit_log("[OK] Partition EFI formatée avec succès en FAT32.");
 
         emit_log(&format!("[INFO] Formatage de la partition racine en ext4 ({}) avec le label nixos...", root_part));
-        let mkfs_ext4 = Command::new("mkfs.ext4").args(["-F", "-L", "nixos", &root_part]).status();
+        let mkfs_ext4 = privileged_cmd("mkfs.ext4").args(["-F", "-L", "nixos", &root_part]).status();
         match mkfs_ext4 {
             Ok(st) if st.success() => {},
             other => {
@@ -382,8 +404,8 @@ pub async fn execute_installation(
         // Le noyau peut mettre un instant à exposer les métadonnées du FS
         // fraîchement formaté. Sans cette synchronisation, le mount échoue.
         emit_log("[INFO] Synchronisation udev post-formatage (udevadm settle + sync)...");
-        let _ = Command::new("udevadm").args(["settle", "--timeout=10"]).status();
-        let _ = Command::new("sync").status();
+        let _ = privileged_cmd("udevadm").args(["settle", "--timeout=10"]).status();
+        let _ = privileged_cmd("sync").status();
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         emit_log("[OK] Synchronisation noyau/udev terminée, partitions prêtes pour le montage.");
     } else {
@@ -406,7 +428,7 @@ pub async fn execute_installation(
         emit_log(&format!("[INFO] Montage de la partition racine {} sur /mnt...", root_part));
         let mut root_mounted = false;
         for attempt in 1..=3 {
-            match Command::new("mount").args([&root_part, "/mnt"]).status() {
+            match privileged_cmd("mount").args([&root_part, "/mnt"]).status() {
                 Ok(st) if st.success() => {
                     root_mounted = true;
                     break;
@@ -419,7 +441,7 @@ pub async fn execute_installation(
                     emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, root_part, detail));
                     if attempt < 3 {
                         emit_log("[INFO] Attente de 2s avant la prochaine tentative de montage...");
-                        let _ = Command::new("udevadm").args(["settle", "--timeout=5"]).status();
+                        let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
                         tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
                     }
                 }
@@ -437,7 +459,7 @@ pub async fn execute_installation(
         emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
         let mut boot_mounted = false;
         for attempt in 1..=3 {
-            match Command::new("mount").args([&efi_part, "/mnt/boot"]).status() {
+            match privileged_cmd("mount").args([&efi_part, "/mnt/boot"]).status() {
                 Ok(st) if st.success() => {
                     boot_mounted = true;
                     break;
@@ -460,6 +482,7 @@ pub async fn execute_installation(
             return Err(err);
         }
         emit_log("[OK] /mnt/boot monté avec succès.");
+        let _ = privileged_cmd("chmod").args(["777", "/mnt/boot"]).status();
 
         // ── Vérification réelle des points de montage via /proc/mounts ──
         // Plus fiable que Path::exists() qui retourne true même sans montage
@@ -495,9 +518,9 @@ pub async fn execute_installation(
             if let Err(e) = create_instant_swapfile(swap_path, s.swap_size_mb) {
                 emit_log(&format!("[WARN] Erreur création swapfile: {}. Poursuite sans swapfile bloquant...", e));
             } else {
-                let _ = Command::new("chmod").args(["600", "/mnt/var/swapfile"]).status();
-                let _ = Command::new("mkswap").arg("/mnt/var/swapfile").status();
-                let _ = Command::new("swapon").arg("/mnt/var/swapfile").status();
+                let _ = privileged_cmd("chmod").args(["600", "/mnt/var/swapfile"]).status();
+                let _ = privileged_cmd("mkswap").arg("/mnt/var/swapfile").status();
+                let _ = privileged_cmd("swapon").arg("/mnt/var/swapfile").status();
                 emit_log(&format!("[OK] Swapfile de {} Mo activé avec succès.", s.swap_size_mb));
             }
         } else {
@@ -524,7 +547,7 @@ pub async fn execute_installation(
     if !effective_dry_run {
         emit_log("[INFO] Sondage matériel automatique par nixos-generate-config...");
         let _ = std::fs::create_dir_all("/tmp/nixos-hw");
-        let gen_status = Command::new("nixos-generate-config")
+        let gen_status = privileged_cmd("nixos-generate-config")
             .args(["--root", "/mnt", "--dir", "/tmp/nixos-hw"])
             .status();
         match gen_status {
@@ -739,10 +762,14 @@ r#"{{ config, lib, ... }}:
     emit_log("[INFO] Lancement de nixos-install sur la cible /mnt...");
 
     if !effective_dry_run {
+        let _ = privileged_cmd("chown").args(["-R", "root:root", "/mnt/etc"]).status();
+        let _ = privileged_cmd("chmod").args(["755", "/mnt"]).status();
+        let _ = privileged_cmd("chmod").args(["755", "/mnt/boot"]).status();
+
         let secure_tmp = Path::new("/mnt/var/tmp/nix-installer");
         let _ = std::fs::create_dir_all(secure_tmp);
 
-        let mut cmd = AsyncCommand::new("nixos-install");
+        let mut cmd = privileged_async_cmd("nixos-install");
         cmd.args([
             "--no-root-passwd",
             "--option", "trusted-substituters", "https://cache.nixos.org https://cosmic.cachix.org https://chomiamos-dashboard.cachix.org https://duckstation.cachix.org",
@@ -904,17 +931,17 @@ r#"{{ config, lib, ... }}:
 
     if !effective_dry_run {
         emit_log(&format!("[INFO] Attribution des droits sur /mnt/etc/nixos à l'utilisateur '{}'...", s.username));
-        let _ = Command::new("chown").args(["-R", &format!("{}:users", s.username), "/mnt/etc/nixos"]).status();
-        let _ = Command::new("chmod").args(["-R", "u+rwX,go+rX", "/mnt/etc/nixos"]).status();
+        let _ = privileged_cmd("chown").args(["-R", &format!("{}:users", s.username), "/mnt/etc/nixos"]).status();
+        let _ = privileged_cmd("chmod").args(["-R", "u+rwX,go+rX", "/mnt/etc/nixos"]).status();
 
         emit_log("[INFO] Synchronisation des données résiduelles (sync)...");
-        let _ = Command::new("sync").status();
+        let _ = privileged_cmd("sync").status();
 
         emit_log("[INFO] Démontage propre des volumes...");
         if s.swap_size_mb > 0 {
-            let _ = Command::new("swapoff").arg("/mnt/var/swapfile").status();
+            let _ = privileged_cmd("swapoff").arg("/mnt/var/swapfile").status();
         }
-        let _ = Command::new("umount").args(["-R", "/mnt"]).status();
+        let _ = privileged_cmd("umount").args(["-R", "/mnt"]).status();
         emit_log("[OK] Volumes démontés avec succès.");
     }
 

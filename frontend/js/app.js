@@ -890,7 +890,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.12 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.13 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");

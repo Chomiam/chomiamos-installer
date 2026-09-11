@@ -208,8 +208,29 @@ body {
   background: var(--mocha-base);
   padding: 32px 40px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mocha-surface2) var(--mocha-mantle);
+}
+
+.step-content-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.step-content-area::-webkit-scrollbar-track {
+  background: var(--mocha-mantle);
+  border-radius: 4px;
+}
+
+.step-content-area::-webkit-scrollbar-thumb {
+  background: var(--mocha-surface2);
+  border-radius: 4px;
+}
+
+.step-content-area::-webkit-scrollbar-thumb:hover {
+  background: var(--mocha-mauve);
 }
 
 /* Verrouillage strict du défilement lors de l'installation : la page ne bouge jamais */

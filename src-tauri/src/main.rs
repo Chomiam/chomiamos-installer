@@ -312,6 +312,26 @@ async fn save_installation_logs(content: String) -> Result<String, String> {
 }
 
 fn main() {
+    // Si l'installateur n'est pas root et que sudo sans mot de passe est actif (session Live),
+    // s'élever automatiquement en root avec sudo -E pour avoir les droits d'accès directs aux disques
+    if let Ok(output) = Command::new("id").arg("-u").output() {
+        if String::from_utf8_lossy(&output.stdout).trim() != "0" {
+            if let Ok(status) = Command::new("sudo").args(["-n", "true"]).status() {
+                if status.success() {
+                    if let Ok(exe) = std::env::current_exe() {
+                        let raw_args: Vec<String> = std::env::args().skip(1).collect();
+                        use std::os::unix::process::CommandExt;
+                        let _ = Command::new("sudo")
+                            .arg("-E")
+                            .arg(exe)
+                            .args(&raw_args)
+                            .exec();
+                    }
+                }
+            }
+        }
+    }
+
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
         println!("chomiamos-installer {}", env!("CARGO_PKG_VERSION"));
