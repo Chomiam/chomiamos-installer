@@ -189,42 +189,17 @@ class NixosJob(BaseJob):
     @staticmethod
     def _detect_gpu() -> str:
         try:
-            virt_out = subprocess.run(
-                ["systemd-detect-virt"],
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout.strip().lower()
-
-            res = subprocess.run(["lspci"], capture_output=True, text=True, check=False)
-            out = (res.stdout or "").lower()
-
-            # Détection des machines virtuelles (KVM, QEMU, VMware, VirtualBox, Hyper-V, Proxmox)
-            is_vm = (virt_out not in ("", "none")) or any(
-                k in out for k in ("virtio", "qemu", "vmware", "virtualbox", "innotek", "red hat, inc. virtio", "bochs", "hyper-v")
-            )
-
-            # Si c'est une VM, vérifier s'il y a un GPU dédié en passthrough direct (PCI passthrough)
-            has_passthrough_nvidia = ("nvidia" in out or "geforce" in out) and not any(k in out for k in ("virtualbox", "vmware"))
-            has_passthrough_amd = ("radeon" in out) and not any(k in out for k in ("virtualbox", "vmware"))
-
-            if is_vm and not (has_passthrough_nvidia or has_passthrough_amd):
-                return "vm"
-
-            if "nvidia" in out or "geforce" in out:
+            from omnis.jobs.gpu import GPUDetector, GPUVendor
+            detector = GPUDetector()
+            gpus = detector.gpus
+            if any(gpu.vendor == GPUVendor.NVIDIA for gpu in gpus):
                 return "nvidia"
-            elif "radeon" in out or ("amd" in out and "advanced micro devices" in out):
+            if any(gpu.vendor == GPUVendor.AMD for gpu in gpus):
                 return "amd"
-            elif "arc" in out or "iris" in out:
+            if any(gpu.vendor == GPUVendor.INTEL for gpu in gpus):
                 return "intel"
-
-            if is_vm:
+            if any(gpu.vendor == GPUVendor.VM for gpu in gpus):
                 return "vm"
-
-            if "intel" in out:
-                return "intel"
-            elif "amd" in out:
-                return "amd"
         except Exception:
             pass
         return "amd"

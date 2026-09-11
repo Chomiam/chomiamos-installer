@@ -18,6 +18,7 @@ from PySide6.QtCore import Property, QObject, QThread, QTimer, QUrl, Signal, Slo
 
 from omnis.i18n.translator import get_translator
 from omnis.jobs.base import JobStatus
+from omnis.jobs.gpu import GPUDetector, GPUVendor
 from omnis.jobs.locale import LocaleJob
 from omnis.jobs.partition import (
     PartitionOperation,
@@ -3008,9 +3009,8 @@ class EngineBridge(QObject):
         if hasattr(self, "_cached_is_nvidia") and self._cached_is_nvidia is not None:
             return self._cached_is_nvidia
         try:
-            res = subprocess.run(["lspci"], capture_output=True, text=True, check=False)
-            out = (res.stdout or "").lower()
-            self._cached_is_nvidia = ("nvidia" in out or "geforce" in out)
+            detector = GPUDetector()
+            self._cached_is_nvidia = any(gpu.vendor == GPUVendor.NVIDIA for gpu in detector.gpus)
         except Exception:
             self._cached_is_nvidia = False
         return self._cached_is_nvidia
