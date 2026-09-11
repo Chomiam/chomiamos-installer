@@ -87,8 +87,14 @@ jobs:
       - name: 🗜️ Package Release Assets
         run: |
           echo "=== Préparation des assets de release ==="
-          # Binaire standalone
-          cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64
+          # Binaire natif standalone : extraire le vrai exécutable ELF généré par Nix/Tauri
+          if [ -f ./result/bin/.chomiamos-installer-wrapped_ ]; then
+            echo "📦 Copie du binaire ELF natif (.chomiamos-installer-wrapped_)..."
+            cp ./result/bin/.chomiamos-installer-wrapped_ ./chomiamos-installer-x86_64
+          else
+            echo "📦 Copie du binaire direct chomiamos-installer..."
+            cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64
+          fi
           chmod +x ./chomiamos-installer-x86_64
 
           # Archive complète pour le système de mise à jour

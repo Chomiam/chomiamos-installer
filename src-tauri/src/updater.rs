@@ -56,12 +56,31 @@ pub fn check_update() -> UpdateInfo {
 
                         let mut download_url = String::new();
                         if let Some(assets) = json.get("assets").and_then(|a| a.as_array()) {
+                            // 1. Chercher d'abord le binaire officiel direct chomiamos-installer-x86_64
                             for asset in assets {
                                 if let Some(name) = asset.get("name").and_then(|n| n.as_str()) {
-                                    if name.contains("chomiamos-installer") && !name.ends_with(".tar.gz") {
+                                    if name == "chomiamos-installer-x86_64" {
                                         if let Some(durl) = asset.get("browser_download_url").and_then(|u| u.as_str()) {
                                             download_url = durl.to_string();
                                             break;
+                                        }
+                                    }
+                                }
+                            }
+                            // 2. Si non trouvé par nom exact, filtrer rigoureusement les fichiers non-exécutables (.sha256, .tar.gz, etc.)
+                            if download_url.is_empty() {
+                                for asset in assets {
+                                    if let Some(name) = asset.get("name").and_then(|n| n.as_str()) {
+                                        if name.contains("chomiamos-installer")
+                                            && !name.ends_with(".sha256")
+                                            && !name.ends_with(".tar.gz")
+                                            && !name.ends_with(".zip")
+                                            && !name.ends_with(".txt")
+                                        {
+                                            if let Some(durl) = asset.get("browser_download_url").and_then(|u| u.as_str()) {
+                                                download_url = durl.to_string();
+                                                break;
+                                            }
                                         }
                                     }
                                 }
@@ -180,12 +199,25 @@ pub async fn download_and_restart<R: tauri::Runtime>(
         ));
     }
 
-    // Vérifier que le fichier a bien été téléchargé et n'est pas vide
+    // Vérifier que le fichier a bien été téléchargé et fait au moins 1 Mo (binaire ELF complet)
     let meta = std::fs::metadata(temp_dest)
         .map_err(|e| format!("Le fichier téléchargé est introuvable: {}", e))?;
-    if meta.len() < 1024 {
+    if meta.len() < 1_000_000 {
         let _ = std::fs::remove_file(temp_dest);
-        return Err("Le fichier téléchargé est trop petit ou corrompu. La mise à jour a été annulée.".into());
+        return Err(format!(
+            "Le fichier téléchargé est trop petit ({} octets) ou corrompu. Un binaire valide fait ~20 Mo. La mise à jour a été annulée.",
+            meta.len()
+        ));
+    }
+
+    // Vérifier le header ELF pour garantir qu'il s'agit bien d'un exécutable Linux natif valide
+    if let Ok(mut f) = std::fs::File::open(temp_dest) {
+        use std::io::Read;
+        let mut magic = [0u8; 4];
+        if f.read_exact(&mut magic).is_ok() && &magic != &[0x7f, b'E', b'L', b'F'] {
+            let _ = std::fs::remove_file(temp_dest);
+            return Err("Le fichier téléchargé n'est pas un binaire Linux ELF valide.".into());
+        }
     }
 
     let _ = app.emit("update_progress", UpdateProgress {
