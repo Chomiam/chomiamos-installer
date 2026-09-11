@@ -79,9 +79,9 @@ jobs:
           recommended_gb: 16
         disk:
           enabled: true
-          min_gb: 20
-          warn_gb: 40
-          recommended_gb: 60
+          min_gb: 80
+          warn_gb: 100
+          recommended_gb: 150
         gpu:
           enabled: true
           availability:

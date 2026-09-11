@@ -795,11 +795,11 @@ class PartitionJob(BaseJob):
             logger.error(f"Failed to list disks: {e}")
             return JobResult.fail("Failed to enumerate disks", error_code=34)
 
-        # Check minimum disk size (10 GB)
-        min_size_bytes = 10 * 1024 * 1024 * 1024
+        # Check minimum disk size (64 GB minimum pour ChomiamOS Gaming)
+        min_size_bytes = 64 * 1024 * 1024 * 1024
         if disk_info.size < min_size_bytes:
             return JobResult.fail(
-                f"Disk too small: {disk_info.size_human} (minimum 10 GB required)",
+                f"Disk too small: {disk_info.size_human} (minimum 80 GB recommended, 64 GB minimum required)",
                 error_code=35,
             )
 

@@ -292,8 +292,8 @@ class SystemRequirementsChecker:
         next to a larger secondary drive.
         """
         cfg = self._get_check_config("disk")
-        min_gb = cfg.get("min_gb", 60)
-        recommended_gb = cfg.get("recommended_gb", 120)
+        min_gb = cfg.get("min_gb", 80)
+        recommended_gb = cfg.get("recommended_gb", 150)
         recommend_ssd = cfg.get("recommend_ssd", True)
 
         rec_value = f"{recommended_gb} GB"
