@@ -58,10 +58,12 @@ jobs:
 
       - name: 🗜️ Package Auto-Update Archive
         run: |
+          cp ./result/bin/chomiamos-installer ./chomiamos-installer-x86_64 || cp data/bin/chomiamos-installer ./chomiamos-installer-x86_64
+          chmod +x ./chomiamos-installer-x86_64
           tar -czf chomiamos-installer-release.tar.gz src config data package.nix pyproject.toml README.md flake.nix
           sha256sum chomiamos-installer-release.tar.gz > chomiamos-installer-release.tar.gz.sha256
           echo "Archive de release générée :"
-          ls -lh chomiamos-installer-release.tar.gz*
+          ls -lh chomiamos-installer-release.tar.gz* chomiamos-installer-x86_64
 
       - name: 📤 Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -70,6 +72,7 @@ jobs:
           path: |
             chomiamos-installer-release.tar.gz
             chomiamos-installer-release.tar.gz.sha256
+            chomiamos-installer-x86_64
 
   release:
     name: 🚀 Publish GitHub Release
@@ -108,3 +111,4 @@ jobs:
           files: |
             chomiamos-installer-release.tar.gz
             chomiamos-installer-release.tar.gz.sha256
+            chomiamos-installer-x86_64

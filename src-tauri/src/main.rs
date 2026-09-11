@@ -129,6 +129,20 @@ async fn apply_installer_update(download_url: String) -> Result<(), String> {
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--version" || a == "-v" || a == "-V") {
+        println!("chomiamos-installer {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+    if args.iter().any(|a| a == "--help" || a == "-h") {
+        println!("ChomiamOS Installer v{}", env!("CARGO_PKG_VERSION"));
+        println!("Usage: chomiamos-installer [OPTIONS]");
+        println!("\nOptions:");
+        println!("  -h, --help       Afficher l'aide");
+        println!("  -v, --version    Afficher la version");
+        return;
+    }
+
     let install_state = Arc::new(Mutex::new(SharedInstallState::default()));
 
     tauri::Builder::default()
