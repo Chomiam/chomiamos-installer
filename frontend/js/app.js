@@ -768,6 +768,23 @@ function initTerminalActions() {
   const btnExportLogs = document.getElementById('btn-export-logs');
   const term = document.getElementById('install-terminal-log');
 
+  if (term) {
+    term.addEventListener('scroll', () => {
+      const isAtBottom = term.scrollHeight - term.scrollTop - term.clientHeight < 35;
+      if (!isAtBottom && autoScrollEnabled) {
+        autoScrollEnabled = false;
+        if (btnToggleAutoScroll) btnToggleAutoScroll.classList.remove('active');
+        if (autoscrollIcon) autoscrollIcon.textContent = '⏸';
+        if (autoscrollText) autoscrollText.textContent = 'Défilement auto : OFF';
+      } else if (isAtBottom && !autoScrollEnabled) {
+        autoScrollEnabled = true;
+        if (btnToggleAutoScroll) btnToggleAutoScroll.classList.add('active');
+        if (autoscrollIcon) autoscrollIcon.textContent = '⬇';
+        if (autoscrollText) autoscrollText.textContent = 'Défilement auto : ON';
+      }
+    });
+  }
+
   if (btnToggleAutoScroll) {
     btnToggleAutoScroll.addEventListener('click', () => {
       autoScrollEnabled = !autoScrollEnabled;
@@ -790,7 +807,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.5 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.6 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -834,6 +851,8 @@ async function startInstallation(s) {
     const installPanel = document.getElementById('panel-step-8');
     if (installPanel) installPanel.classList.add('active');
 
+    // Verrouillage du scroll sur le conteneur parent pour forcer le scroll uniquement dans le terminal
+    document.querySelector('.step-content-area')?.classList.add('no-scroll');
     document.querySelector('.wizard-actions')?.classList.add('hidden');
     document.querySelector('.stepper-sidebar')?.classList.add('hidden');
 
@@ -844,7 +863,7 @@ async function startInstallation(s) {
 
     await invoke('start_installation', { selections: s, dryRun: false });
 
-    // Écoute directe des événements si disponible
+    // Écoute directe de la progression si disponible
     listen('install_progress', (e) => {
       const p = e.payload || e;
       if (p.percent !== undefined) {
@@ -857,11 +876,6 @@ async function startInstallation(s) {
         const title = document.getElementById('install-step-title');
         if (title) title.textContent = p.step;
       }
-    });
-
-    listen('install_log', (e) => {
-      const line = e.payload || e;
-      appendLog(line);
     });
 
     // Boucle de polling (200ms) pour garantir la réception de tous les logs et états
