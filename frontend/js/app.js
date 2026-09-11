@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSwapSlider();
   initSummaryTrigger();
   initConfirmationModal();
+  await checkForAppUpdates();
 });
 
 function initNavigation() {
@@ -462,4 +463,35 @@ async function startInstallation(s) {
       console.error("Polling install state error:", err);
     }
   }, 200);
+}
+
+
+async function checkForAppUpdates() {
+  try {
+    const info = await invoke('check_installer_update');
+    if (info && info.has_update) {
+      const banner = document.getElementById('update-notification');
+      const verLabel = document.getElementById('update-version-label');
+      const btnUpdate = document.getElementById('btn-apply-update');
+
+      if (banner && verLabel && btnUpdate) {
+        verLabel.textContent = `v${info.latest_version}`;
+        banner.classList.remove('hidden');
+
+        btnUpdate.addEventListener('click', async () => {
+          btnUpdate.disabled = true;
+          btnUpdate.textContent = "Téléchargement...";
+          try {
+            await invoke('apply_installer_update', { downloadUrl: info.download_url });
+          } catch (err) {
+            alert("Erreur lors de la mise à jour: " + err);
+            btnUpdate.disabled = false;
+            btnUpdate.textContent = "Mettre à jour";
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.debug("Check update error:", err);
+  }
 }

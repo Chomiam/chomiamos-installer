@@ -5,10 +5,12 @@ mod system;
 mod swap;
 mod config;
 mod install;
+mod updater;
 
 use system::{check_prerequisites, list_disks, get_keyboard_layouts, get_desktop_environments, SystemPrerequisites, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo};
 use config::{InstallerSelections, generate_vars_nix};
 use install::{execute_installation, InstallStateSnapshot, SharedInstallState};
+use updater::{check_update, download_and_restart, UpdateInfo};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::process::Command;
@@ -111,6 +113,21 @@ fn poweroff_system() -> Result<(), String> {
     Ok(())
 }
 
+
+#[tauri::command]
+fn check_installer_update() -> UpdateInfo {
+    check_update()
+}
+
+#[tauri::command]
+async fn apply_installer_update(download_url: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        download_and_restart(&download_url)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn main() {
     let install_state = Arc::new(Mutex::new(SharedInstallState::default()));
 
@@ -127,6 +144,8 @@ fn main() {
             get_install_state,
             reboot_system,
             poweroff_system,
+            check_installer_update,
+            apply_installer_update,
         ])
         .run(tauri::generate_context!())
         .expect("Erreur lors de l'exécution de l'installateur ChomiamOS");

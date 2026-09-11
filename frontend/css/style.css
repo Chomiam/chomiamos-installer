@@ -937,3 +937,31 @@ select option:checked, .form-select option:checked {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+
+/* Update Banner in Header */
+.update-notification {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(203, 166, 247, 0.15);
+  border: 1px solid var(--mocha-mauve);
+  padding: 6px 14px;
+  border-radius: 20px;
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+.update-badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--mocha-mauve);
+}
+.update-version {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--mocha-text);
+  font-weight: 700;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(203, 166, 247, 0.2); }
+  50% { box-shadow: 0 0 16px rgba(203, 166, 247, 0.45); }
+}
