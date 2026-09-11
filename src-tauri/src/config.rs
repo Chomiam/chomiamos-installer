@@ -15,6 +15,7 @@ pub struct InstallerSelections {
     pub target_disk: String,
     pub swap_size_mb: u64,
     pub gpu_driver: Option<String>,
+
     // Gaming
     pub steam: bool,
     pub lutris: bool,
@@ -25,6 +26,38 @@ pub struct InstallerSelections {
     pub sunshine: bool,
     pub sober: bool,
     pub steering_wheels: bool,
+
+    // Multimédia & Audio
+    pub stremio: bool,
+    pub vlc: bool,
+    pub mpv: bool,
+    pub davinci_resolve: String, // "none", "free", "studio"
+    pub audacity: bool,
+    pub ardour: bool,
+
+    // Productivité & Création
+    pub obs_studio: bool,
+    pub kdenlive: bool,
+    pub blender: bool,
+    pub godot: bool,
+    pub antigravity: bool,
+    pub pear_desktop: bool,
+    pub goverlay: bool,
+    pub flatseal: bool,
+
+    // Réseau & Partage
+    pub tailscale: bool,
+    pub localsend: bool,
+    pub motrix: bool,
+
+    // Impression 3D & Slicers
+    pub slicer_orcaslicer: bool,
+    pub slicer_prusaslicer: bool,
+    pub slicer_bambustudio: bool,
+    pub slicer_cura: bool,
+
+    // Suite IA Locale
+    pub ai_suite_enable: bool,
 }
 
 impl Default for InstallerSelections {
@@ -52,6 +85,28 @@ impl Default for InstallerSelections {
             sunshine: false,
             sober: false,
             steering_wheels: false,
+            stremio: true,
+            vlc: true,
+            mpv: true,
+            davinci_resolve: "none".into(),
+            audacity: false,
+            ardour: false,
+            obs_studio: true,
+            kdenlive: true,
+            blender: true,
+            godot: true,
+            antigravity: true,
+            pear_desktop: true,
+            goverlay: true,
+            flatseal: true,
+            tailscale: true,
+            localsend: true,
+            motrix: true,
+            slicer_orcaslicer: false,
+            slicer_prusaslicer: false,
+            slicer_bambustudio: false,
+            slicer_cura: false,
+            ai_suite_enable: false,
         }
     }
 }
@@ -73,7 +128,7 @@ pub fn generate_vars_nix(s: &InstallerSelections, hashed_password: Option<&str>,
 r#"{{
   # =========================================================================
   # ⚙️ VARIABLES DU SYSTÈME CHOMIAMOS GAMING EDITION
-  # Généré par le nouvel installateur ChomiamOS (Rust + Tauri v2)
+  # Généré par l'installateur ChomiamOS (Rust + Tauri v2)
   # =========================================================================
 
   # Nom d'hôte de la machine (Hostname)
@@ -149,7 +204,7 @@ r#"{{
 
   # Suite d'Émulation & Rétrogaming
   emulation = {{
-    enable = false;
+    enable = true;
     frontend = "es-de";
     autoCheckUpdates = true;
     retroarch = {{
@@ -166,6 +221,64 @@ r#"{{
       azahar = true;
       rpcs3 = false;
     }};
+  }};
+
+  # =========================================================================
+  # 🎬 LOGICIEL DE MONTAGE DAVINCI RESOLVE
+  # Options disponibles : "none" | "free" | "studio"
+  # =========================================================================
+  davinciResolve = "{davinci_resolve}";
+
+  # =========================================================================
+  # 🎨 LOGICIELS DE CRÉATION 3D & MOTEURS DE JEU (BLENDER & GODOT ENGINE)
+  # =========================================================================
+  blender = {blender};
+  godot = {godot};
+
+  # =========================================================================
+  # 🌐 APPLICATIONS RÉSEAU, PARTAGE & TÉLÉCHARGEMENT
+  # =========================================================================
+  tailscale = {tailscale};
+  localsend = {localsend};
+  motrix = {motrix};
+
+  # =========================================================================
+  # 📺 MULTIMÉDIA & STREAMING
+  # =========================================================================
+  stremio = {stremio};
+  vlc = {vlc};
+  mpv = {mpv};
+
+  # =========================================================================
+  # 💻 PRODUCTIVITÉ & OUTILS
+  # =========================================================================
+  antigravity = {antigravity};
+  pearDesktop = {pear_desktop};
+  kdenlive = {kdenlive};
+  obsStudio = {obs_studio};
+  goverlay = {goverlay};
+  flatseal = {flatseal};
+  audacity = {audacity};
+  ardour = {ardour};
+
+  # Impression 3D & Slicers
+  slicers = {{
+    orcaslicer = {slicer_orcaslicer};
+    prusaslicer = {slicer_prusaslicer};
+    cura = {slicer_cura};
+    bambustudio = {slicer_bambustudio};
+  }};
+
+  # =========================================================================
+  # 🤖 SUITE IA LOCALE (OLLAMA + OPEN-WEBUI + SEARXNG)
+  # =========================================================================
+  aiSuite = {{
+    enable = {ai_suite_enable};
+    rocmOverrideGfx = "12.0.1";
+    keepAlive = "0s";
+    openWebUiPort = 8080;
+    searxPort = 8888;
+    openFirewall = false;
   }};
 }}
 "#,
@@ -190,5 +303,27 @@ r#"{{
         sunshine = s.sunshine,
         sober = s.sober,
         steering_wheels = s.steering_wheels,
+        davinci_resolve = s.davinci_resolve,
+        blender = s.blender,
+        godot = s.godot,
+        tailscale = s.tailscale,
+        localsend = s.localsend,
+        motrix = s.motrix,
+        stremio = s.stremio,
+        vlc = s.vlc,
+        mpv = s.mpv,
+        antigravity = s.antigravity,
+        pear_desktop = s.pear_desktop,
+        kdenlive = s.kdenlive,
+        obs_studio = s.obs_studio,
+        goverlay = s.goverlay,
+        flatseal = s.flatseal,
+        audacity = s.audacity,
+        ardour = s.ardour,
+        slicer_orcaslicer = s.slicer_orcaslicer,
+        slicer_prusaslicer = s.slicer_prusaslicer,
+        slicer_cura = s.slicer_cura,
+        slicer_bambustudio = s.slicer_bambustudio,
+        ai_suite_enable = s.ai_suite_enable,
     )
 }

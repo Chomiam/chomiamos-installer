@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.7 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.8 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.7)</span>
+          <span id="update-status-text">À jour (v1.2.8)</span>
         </button>
 
         <div class="session-badge">
@@ -63,28 +63,42 @@
           <div class="step-num">4</div>
           <div class="step-info">
             <span class="step-label">Bureau & Web</span>
-            <span class="step-desc">GNOME, Cinnamon, KDE, COSMIC</span>
+            <span class="step-desc">Bureau, Web & Discord</span>
           </div>
         </div>
         <div class="step-item" data-step="5">
           <div class="step-num">5</div>
           <div class="step-info">
             <span class="step-label">Gaming</span>
-            <span class="step-desc">Lanceurs, Sunshine & Sober</span>
+            <span class="step-desc">Steam, Sunshine, Rétro</span>
           </div>
         </div>
         <div class="step-item" data-step="6">
           <div class="step-num">6</div>
           <div class="step-info">
-            <span class="step-label">Utilisateur</span>
-            <span class="step-desc">Compte & Sécurité</span>
+            <span class="step-label">Multimédia</span>
+            <span class="step-desc">VLC, DaVinci & Audio</span>
           </div>
         </div>
         <div class="step-item" data-step="7">
           <div class="step-num">7</div>
           <div class="step-info">
-            <span class="step-label">Installation</span>
-            <span class="step-desc">Déploiement NixOS</span>
+            <span class="step-label">Productivité</span>
+            <span class="step-desc">OBS, 3D & Outils</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="8">
+          <div class="step-num">8</div>
+          <div class="step-info">
+            <span class="step-label">Utilisateur</span>
+            <span class="step-desc">Compte & Sécurité</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="9">
+          <div class="step-num">9</div>
+          <div class="step-info">
+            <span class="step-label">Résumé</span>
+            <span class="step-desc">Validation & Déploiement</span>
           </div>
         </div>
       </aside>
@@ -290,14 +304,24 @@
             </label>
           </div>
 
-          <div class="form-group" style="margin-top: 24px;">
+          <div class="form-group" style="margin-top: 20px;">
             <label for="browser-select">Navigateur Web principal</label>
             <select id="browser-select" class="form-select">
-              <option value="chrome">Google Chrome</option>
-              <option value="firefox">Mozilla Firefox</option>
-              <option value="brave">Brave Browser</option>
-              <option value="zen">Zen Browser</option>
-              <option value="librewolf">LibreWolf</option>
+              <option value="chrome" selected>Google Chrome (Natif)</option>
+              <option value="firefox">Mozilla Firefox (Natif)</option>
+              <option value="brave">Brave Browser (Flatpak)</option>
+              <option value="zen">Zen Browser (Flatpak)</option>
+              <option value="librewolf">LibreWolf (Natif respect de la vie privée)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label for="discord-select">Client de Communication Discord</label>
+            <select id="discord-select" class="form-select">
+              <option value="discord" selected>Discord (Client officiel)</option>
+              <option value="vesktop">Vesktop (Vencord + Optimisation Linux & Screenshare Wayland)</option>
+              <option value="equibop">Equibop (Client alternatif léger)</option>
+              <option value="none">Aucun (Ne pas installer Discord)</option>
             </select>
           </div>
         </section>
@@ -407,8 +431,291 @@
           </div>
         </section>
 
-        <!-- Step 6: User -->
+        <!-- Step 6: Multimédia -->
         <section class="step-panel" id="panel-step-6">
+          <div class="panel-header">
+            <h2>Multimédia & Audio</h2>
+            <p>Sélectionnez les lecteurs, outils de streaming et suites de production audiovisuelle.</p>
+          </div>
+
+          <div class="section-subtitle">📺 Lecteurs Vidéo & Streaming</div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-stremio" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🍿</span>
+                <div class="toggle-text">
+                  <strong>Stremio</strong>
+                  <small>Centre multimédia avec streaming vidéo et modules communautaires</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-vlc" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎬</span>
+                <div class="toggle-text">
+                  <strong>VLC Media Player</strong>
+                  <small>Lecteur multimédia universel, tous codecs intégrés</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-mpv" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">⚡</span>
+                <div class="toggle-text">
+                  <strong>MPV</strong>
+                  <small>Lecteur vidéo minimaliste, ultra-performant et personnalisable</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+
+          <div class="section-subtitle" style="margin-top: 20px;">🎵 Production & Montage Audio / Vidéo</div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="davinci-select">🎬 Suite de Montage DaVinci Resolve (Blackmagic Design)</label>
+            <select id="davinci-select" class="form-select">
+              <option value="none" selected>Désactivé (Ne pas installer)</option>
+              <option value="free">DaVinci Resolve (Édition Gratuite avec accélération GPU)</option>
+              <option value="studio">DaVinci Resolve Studio (Édition Payante / Clé requise)</option>
+            </select>
+          </div>
+
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-audacity">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎙️</span>
+                <div class="toggle-text">
+                  <strong>Audacity</strong>
+                  <small>Enregistreur et éditeur audio multipiste classique</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-ardour">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎚️</span>
+                <div class="toggle-text">
+                  <strong>Ardour (DAW)</strong>
+                  <small>Station de travail audio numérique professionnelle pour musiciens et ingénieurs</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Step 7: Productivité & Création -->
+        <section class="step-panel" id="panel-step-7">
+          <div class="panel-header">
+            <h2>Productivité & Création</h2>
+            <p>Outils de capture, création graphique, impression 3D, réseau et intelligence artificielle.</p>
+          </div>
+
+          <div class="section-subtitle">🎨 Création 3D, Montage Vidéo & Code</div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-obs" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">📹</span>
+                <div class="toggle-text">
+                  <strong>OBS Studio</strong>
+                  <small>Capture et streaming vidéo en direct avec accélération matérielle NVENC / VAAPI</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-kdenlive" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎞️</span>
+                <div class="toggle-text">
+                  <strong>Kdenlive</strong>
+                  <small>Logiciel de montage vidéo libre non-linéaire complet</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-blender" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🧊</span>
+                <div class="toggle-text">
+                  <strong>Blender 3D</strong>
+                  <small>Suite complète de modélisation, animation et rendu 3D</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-godot" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🤖</span>
+                <div class="toggle-text">
+                  <strong>Godot Engine</strong>
+                  <small>Moteur de création de jeux 2D/3D open-source ultra-léger</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-antigravity" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🪐</span>
+                <div class="toggle-text">
+                  <strong>Antigravity IDE</strong>
+                  <small>Environnement de développement assisté par IA avec intégration système native</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-peardesktop" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🍐</span>
+                <div class="toggle-text">
+                  <strong>Pear Desktop</strong>
+                  <small>Espace d'applications P2P décentralisées</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+
+          <div class="section-subtitle" style="margin-top: 20px;">🌐 Réseau & Utilitaires Système</div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-tailscale" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🔒</span>
+                <div class="toggle-text">
+                  <strong>Tailscale</strong>
+                  <small>VPN maillé Zero-Config sécurisé basé sur WireGuard</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-localsend" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">📲</span>
+                <div class="toggle-text">
+                  <strong>LocalSend</strong>
+                  <small>Partage de fichiers P2P ultra-rapide sur réseau local (alternative AirDrop)</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-motrix" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">⬇️</span>
+                <div class="toggle-text">
+                  <strong>Motrix</strong>
+                  <small>Gestionnaire de téléchargements multithread et BitTorrent</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-goverlay" checked>
+              <div class="toggle-card-body">
+                <span class="toggle-icon">📊</span>
+                <div class="toggle-text">
+                  <strong>GOverlay & Flatseal</strong>
+                  <small>Gestionnaire graphique pour MangoHud et contrôle des permissions Flatpak</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+
+          <div class="section-subtitle" style="margin-top: 20px;">🖨️ Impression 3D (Slicers)</div>
+          <div class="toggles-grid">
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-slicer-orca">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🐋</span>
+                <div class="toggle-text">
+                  <strong>OrcaSlicer</strong>
+                  <small>Slicer moderne tout-en-un avec calibrages intégrés et support Klipper</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-slicer-prusa">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🧡</span>
+                <div class="toggle-text">
+                  <strong>PrusaSlicer</strong>
+                  <small>Slicer de référence développé par Prusa Research</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-slicer-bambu">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🎋</span>
+                <div class="toggle-text">
+                  <strong>Bambu Studio</strong>
+                  <small>Suite officielle pour imprimantes Bambu Lab</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+
+            <label class="toggle-card">
+              <input type="checkbox" id="chk-slicer-cura">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🔵</span>
+                <div class="toggle-text">
+                  <strong>UltiMaker Cura</strong>
+                  <small>Slicer historique Ultimaker avec riche écosystème de plugins</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+
+          <div class="section-subtitle" style="margin-top: 20px;">🤖 Suite Intelligence Artificielle Locale</div>
+          <div class="toggles-grid">
+            <label class="toggle-card highlight-card">
+              <input type="checkbox" id="chk-ai-suite">
+              <div class="toggle-card-body">
+                <span class="toggle-icon">🧠</span>
+                <div class="toggle-text">
+                  <strong>Suite IA Locale (Ollama + Open-WebUI)</strong>
+                  <small>Exécution locale privée de LLMs avec accélération GPU, interface ChatGPT locale et SearXNG</small>
+                </div>
+              </div>
+              <div class="switch"></div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Step 8: User -->
+        <section class="step-panel" id="panel-step-8">
           <div class="panel-header">
             <h2>Compte Utilisateur & Sécurité</h2>
             <p>Configurez le profil administrateur principal du système avec authentification sécurisée.</p>
@@ -496,8 +803,8 @@
           </div>
         </section>
 
-        <!-- Step 7: Summary & Install -->
-        <section class="step-panel" id="panel-step-7">
+        <!-- Step 9: Summary & Install -->
+        <section class="step-panel" id="panel-step-9">
           <div class="panel-header">
             <h2>Résumé de l'Installation</h2>
             <p>Vérifiez vos sélections avant de lancer le déploiement sur le disque.</p>
@@ -512,8 +819,8 @@
         </section>
 
         
-        <!-- Step 8: Installation in progress -->
-        <section class="step-panel" id="panel-step-8">
+        <!-- Step 10: Installation in progress -->
+        <section class="step-panel" id="panel-step-10">
           <div class="panel-header">
             <h2 id="install-heading">Installation de ChomiamOS</h2>
             <p id="install-subheading">Veuillez patienter pendant le déploiement sur votre disque...</p>
@@ -526,6 +833,10 @@
             </div>
             <div class="progress-track">
               <div class="progress-bar-fill" id="install-bar-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-sub-stats" id="install-sub-stats">
+              <span class="packages-badge" id="install-packages-count">📦 Détection des paquets en cours...</span>
+              <span class="packages-current-item" id="install-current-pkg"></span>
             </div>
           </div>
 

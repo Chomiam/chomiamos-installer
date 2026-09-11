@@ -3,7 +3,7 @@
 // ==========================================================================
 
 let currentStep = 1;
-const totalSteps = 7;
+const totalSteps = 9;
 let availableLayouts = [];
 let detectedGpuDriver = "amd";
 let availableDisks = [];
@@ -182,7 +182,7 @@ function validateStep(step) {
       return false;
     }
   }
-  if (step === 6) {
+  if (step === 8) {
     const username = document.getElementById('input-username')?.value.trim();
     if (!username) {
       alert("Veuillez saisir un nom d'utilisateur (login).");
@@ -617,28 +617,60 @@ function collectSelections() {
   const diskPath = selectedDisk ? selectedDisk.dataset.path : (availableDisks[0] ? availableDisks[0].path : "/dev/sda");
 
   return {
-    hostname: document.getElementById('input-hostname').value || "chomiamos",
-    username: document.getElementById('input-username').value || "chomiam",
-    fullname: document.getElementById('input-fullname').value || "ChomiamOS User",
-    password: document.getElementById('input-password').value || null,
+    hostname: document.getElementById('input-hostname')?.value || "chomiamos",
+    username: document.getElementById('input-username')?.value || "chomiam",
+    fullname: document.getElementById('input-fullname')?.value || "ChomiamOS User",
+    password: document.getElementById('input-password')?.value || null,
     desktop_env: document.querySelector('input[name="desktop_env"]:checked')?.value || "gnome",
-    browser: document.getElementById('browser-select').value || "chrome",
-    discord_client: "discord",
-    keyboard_layout: document.getElementById('keyboard-layout-select').value || "fr",
+    browser: document.getElementById('browser-select')?.value || "chrome",
+    discord_client: document.getElementById('discord-select')?.value || "discord",
+    keyboard_layout: document.getElementById('keyboard-layout-select')?.value || "fr",
     keyboard_variant: document.getElementById('keyboard-variant-select')?.value || "",
     timezone: document.getElementById('timezone-select')?.value || "Europe/Paris",
     target_disk: diskPath,
     swap_size_mb: getSwapSizeMb(),
     gpu_driver: detectedGpuDriver || "amd",
-    steam: document.getElementById('chk-steam').checked,
-    lutris: document.getElementById('chk-lutris').checked,
-    heroic: document.getElementById('chk-heroic').checked,
-    faugus: document.getElementById('chk-faugus').checked,
+
+    // Gaming
+    steam: document.getElementById('chk-steam')?.checked ?? true,
+    lutris: document.getElementById('chk-lutris')?.checked ?? true,
+    heroic: document.getElementById('chk-heroic')?.checked ?? true,
+    faugus: document.getElementById('chk-faugus')?.checked ?? true,
     decky_loader: false,
-    geforce_now: document.getElementById('chk-geforce').checked,
-    sunshine: document.getElementById('chk-sunshine').checked,
-    sober: document.getElementById('chk-sober').checked,
-    steering_wheels: document.getElementById('chk-wheels').checked,
+    geforce_now: document.getElementById('chk-geforce')?.checked ?? false,
+    sunshine: document.getElementById('chk-sunshine')?.checked ?? false,
+    sober: document.getElementById('chk-sober')?.checked ?? false,
+    steering_wheels: document.getElementById('chk-wheels')?.checked ?? false,
+
+    // Multimédia & Audio
+    stremio: document.getElementById('chk-stremio')?.checked ?? true,
+    vlc: document.getElementById('chk-vlc')?.checked ?? true,
+    mpv: document.getElementById('chk-mpv')?.checked ?? true,
+    davinci_resolve: document.getElementById('davinci-select')?.value || "none",
+    audacity: document.getElementById('chk-audacity')?.checked ?? false,
+    ardour: document.getElementById('chk-ardour')?.checked ?? false,
+
+    // Productivité & Création
+    obs_studio: document.getElementById('chk-obs')?.checked ?? true,
+    kdenlive: document.getElementById('chk-kdenlive')?.checked ?? true,
+    blender: document.getElementById('chk-blender')?.checked ?? true,
+    godot: document.getElementById('chk-godot')?.checked ?? true,
+    antigravity: document.getElementById('chk-antigravity')?.checked ?? true,
+    pear_desktop: document.getElementById('chk-peardesktop')?.checked ?? true,
+    goverlay: document.getElementById('chk-goverlay')?.checked ?? true,
+    flatseal: document.getElementById('chk-goverlay')?.checked ?? true,
+    tailscale: document.getElementById('chk-tailscale')?.checked ?? true,
+    localsend: document.getElementById('chk-localsend')?.checked ?? true,
+    motrix: document.getElementById('chk-motrix')?.checked ?? true,
+
+    // Impression 3D
+    slicer_orcaslicer: document.getElementById('chk-slicer-orca')?.checked ?? false,
+    slicer_prusaslicer: document.getElementById('chk-slicer-prusa')?.checked ?? false,
+    slicer_bambustudio: document.getElementById('chk-slicer-bambu')?.checked ?? false,
+    slicer_cura: document.getElementById('chk-slicer-cura')?.checked ?? false,
+
+    // Suite IA Locale
+    ai_suite_enable: document.getElementById('chk-ai-suite')?.checked ?? false,
   };
 }
 
@@ -654,11 +686,12 @@ function updateSummary() {
     <div class="summary-item"><label>Bureau Choisi</label><span>${s.desktop_env.toUpperCase()}</span></div>
     <div class="summary-item"><label>Pilote Graphique (GPU)</label><span>${(s.gpu_driver || 'amd').toUpperCase()}</span></div>
     <div class="summary-item"><label>Utilisateur / Hôte</label><span>${s.username} @ ${s.hostname}</span></div>
-    <div class="summary-item"><label>Serveur Sunshine</label><span>${s.sunshine ? 'Activé' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Sober (Roblox)</label><span>${s.sober ? 'Activé' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>NVIDIA GeForce NOW</label><span>${s.geforce_now ? 'Activé' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Volants & Simracing</label><span>${s.steering_wheels ? 'Activé' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Navigateur Web</label><span>${s.browser}</span></div>
+    <div class="summary-item"><label>Navigateur & Discord</label><span>${s.browser} • ${s.discord_client}</span></div>
+    <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null, s.davinci_resolve !== 'none'?'DaVinci ('+s.davinci_resolve+')':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
+    <div class="summary-item"><label>Création & Outils</label><span>${[s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
+    <div class="summary-item"><label>Impression 3D</label><span>${[s.slicer_orcaslicer?'OrcaSlicer':null, s.slicer_prusaslicer?'Prusa':null, s.slicer_bambustudio?'Bambu':null, s.slicer_cura?'Cura':null].filter(Boolean).join(', ') || 'Aucun'}</span></div>
+    <div class="summary-item"><label>Suite IA Locale</label><span>${s.ai_suite_enable ? 'Ollama + Open-WebUI (Activé)' : 'Désactivé'}</span></div>
+    <div class="summary-item"><label>Options Gaming</label><span>Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'} | Volants: ${s.steering_wheels ? 'Oui' : 'Non'}</span></div>
   `;
 }
 
@@ -807,7 +840,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.7 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.8 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -844,11 +877,11 @@ function initTerminalActions() {
 
 async function startInstallation(s) {
   try {
-    // Basculer vers l'écran d'installation (Panel 8)
+    // Basculer vers l'écran d'installation (Panel 10)
     const curPanel = document.getElementById(`panel-step-${currentStep}`);
     if (curPanel) curPanel.classList.remove('active');
 
-    const installPanel = document.getElementById('panel-step-8');
+    const installPanel = document.getElementById('panel-step-10');
     if (installPanel) installPanel.classList.add('active');
 
     // Verrouillage du scroll sur le conteneur parent pour forcer le scroll uniquement dans le terminal
@@ -863,7 +896,7 @@ async function startInstallation(s) {
 
     await invoke('start_installation', { selections: s, dryRun: false });
 
-    // Écoute directe de la progression si disponible
+    // Écoute directe de la progression en direct avec suivi des paquets
     listen('install_progress', (e) => {
       const p = e.payload || e;
       if (p.percent !== undefined) {
@@ -875,6 +908,24 @@ async function startInstallation(s) {
       if (p.step) {
         const title = document.getElementById('install-step-title');
         if (title) title.textContent = p.step;
+      }
+
+      // Mise à jour dynamique du compteur de paquets
+      const countEl = document.getElementById('install-packages-count');
+      const pkgEl = document.getElementById('install-current-pkg');
+      if (p.current_pkg !== undefined && p.current_pkg !== null) {
+        if (countEl) {
+          if (p.total_pkgs && p.total_pkgs > 0) {
+            const remaining = Math.max(0, p.total_pkgs - p.current_pkg);
+            countEl.textContent = `📦 ${p.current_pkg} / ${p.total_pkgs} paquets installés (${remaining} restants)`;
+          } else {
+            countEl.textContent = `📦 ${p.current_pkg} paquets installés...`;
+          }
+        }
+      }
+      if (p.pkg_name && pkgEl) {
+        pkgEl.textContent = `• ${p.pkg_name}`;
+        pkgEl.title = p.pkg_name;
       }
     });
 

@@ -15,6 +15,37 @@ pub struct InstallProgress {
     pub percent: u32,
     pub step: String,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_pkg: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_pkgs: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pkg_name: Option<String>,
+}
+
+fn extract_pkg_name(line: &str) -> Option<String> {
+    if let Some(start) = line.find("/nix/store/") {
+        let after_store = &line[start + 11..];
+        let end = after_store.find(|c: char| c == '\'' || c == ' ' || c == '"').unwrap_or(after_store.len());
+        let store_item = &after_store[..end];
+        if let Some(dash_idx) = store_item.find('-') {
+            if dash_idx <= 34 {
+                return Some(store_item[dash_idx + 1..].to_string());
+            }
+        }
+        return Some(store_item.to_string());
+    }
+    None
+}
+
+fn parse_item_count(line: &str, pattern: &str) -> Option<u32> {
+    if let Some(idx) = line.find(pattern) {
+        let before = line[..idx].trim_end();
+        if let Some(last_word) = before.split_whitespace().last() {
+            return last_word.parse::<u32>().ok();
+        }
+    }
+    None
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -135,14 +166,17 @@ pub async fn execute_installation(
         }
     };
 
-    let emit_progress = {
+    let emit_progress_full = {
         let app = app.clone();
         let state = state.clone();
-        move |percent: u32, step: &str, msg: &str| {
+        move |percent: u32, step: &str, msg: &str, cur_pkg: Option<u32>, tot_pkgs: Option<u32>, pkg: Option<String>| {
             let p = InstallProgress {
                 percent,
                 step: step.into(),
                 message: msg.into(),
+                current_pkg: cur_pkg,
+                total_pkgs: tot_pkgs,
+                pkg_name: pkg,
             };
             let _ = app.emit("install_progress", &p);
             let state = state.clone();
@@ -154,6 +188,13 @@ pub async fn execute_installation(
                 st.step = step_str;
                 st.current_message = msg_str;
             });
+        }
+    };
+
+    let emit_progress = {
+        let ep = emit_progress_full.clone();
+        move |percent: u32, step: &str, msg: &str| {
+            ep(percent, step, msg, None, None, None);
         }
     };
 
@@ -183,7 +224,7 @@ pub async fn execute_installation(
     // =========================================================================
     // --- ÉTAPE 1 : Nettoyage et Préparation des Montages (0% - 15%) ---
     // =========================================================================
-    emit_progress(5, "Nettoyage de l'environnement", "Arrêt des swaps et démontage des volumes résiduels...");
+    emit_progress(3, "Nettoyage de l'environnement", "Arrêt des swaps et démontage des volumes résiduels...");
     emit_log("[ÉTAPE 1/8] === Préparation et nettoyage des points de montage ===");
 
     if !effective_dry_run {
@@ -204,7 +245,7 @@ pub async fn execute_installation(
     // =========================================================================
     // --- ÉTAPE 2 : Partitionnement GPT & Synchronisation Noyau (15% - 30%) ---
     // =========================================================================
-    emit_progress(18, "Partitionnement GPT", &format!("Création de la table de partitions sur {}", s.target_disk));
+    emit_progress(8, "Partitionnement GPT", &format!("Création de la table de partitions sur {}", s.target_disk));
     emit_log("[ÉTAPE 2/8] === Partitionnement GPT du disque cible ===");
 
     if !effective_dry_run {
@@ -298,7 +339,7 @@ pub async fn execute_installation(
     // =========================================================================
     // --- ÉTAPE 3 : Formatage des Partitions (30% - 40%) ---
     // =========================================================================
-    emit_progress(30, "Formatage des partitions", "Formatage EFI en FAT32 et Racine en ext4...");
+    emit_progress(14, "Formatage des partitions", "Formatage EFI en FAT32 et Racine en ext4...");
     emit_log("[ÉTAPE 3/8] === Formatage des systèmes de fichiers ===");
 
     if !effective_dry_run {
@@ -353,7 +394,7 @@ pub async fn execute_installation(
     // =========================================================================
     // --- ÉTAPE 4 : Montage Hiérarchique et Tests d'Intégrité (40% - 50%) ---
     // =========================================================================
-    emit_progress(40, "Montage des volumes", "Montage de la racine sur /mnt et de l'EFI sur /mnt/boot...");
+    emit_progress(20, "Montage des volumes", "Montage de la racine sur /mnt et de l'EFI sur /mnt/boot...");
     emit_log("[ÉTAPE 4/8] === Montage ordonné des volumes ===");
 
     if !effective_dry_run {
@@ -443,7 +484,7 @@ pub async fn execute_installation(
     // =========================================================================
     // --- ÉTAPE 5 : Allocation & Activation du Swap (50% - 58%) ---
     // =========================================================================
-    emit_progress(50, "Configuration du Swap", "Vérification et création de l'espace Swap...");
+    emit_progress(25, "Configuration du Swap", "Vérification et création de l'espace Swap...");
     emit_log("[ÉTAPE 5/8] === Configuration de l'espace Swap ===");
 
     if s.swap_size_mb > 0 {
@@ -470,7 +511,7 @@ pub async fn execute_installation(
     // =========================================================================
     // --- ÉTAPE 6 : Génération Matérielle & Déploiement du Framework (58% - 68%) ---
     // =========================================================================
-    emit_progress(58, "Déploiement du framework NixOS", "Sondage matériel et synchronisation complète de ChomiamOS...");
+    emit_progress(30, "Déploiement du framework NixOS", "Sondage matériel et synchronisation complète de ChomiamOS...");
     emit_log("[ÉTAPE 6/8] === Déploiement déclaratif de la configuration ChomiamOS ===");
 
     let target_nixos = if !effective_dry_run {
@@ -693,7 +734,7 @@ r#"{{ config, lib, ... }}:
     // =========================================================================
     // --- ÉTAPE 7 : Déploiement Système via nixos-install (68% - 95%) ---
     // =========================================================================
-    emit_progress(68, "Installation du système ChomiamOS", "Compilation et déploiement déclaratif des paquets NixOS...");
+    emit_progress(35, "Installation du système ChomiamOS", "Compilation et déploiement déclaratif des paquets NixOS...");
     emit_log("[ÉTAPE 7/8] === Déploiement du système via nixos-install ===");
     emit_log("[INFO] Lancement de nixos-install sur la cible /mnt...");
 
@@ -724,27 +765,62 @@ r#"{{ config, lib, ... }}:
         let stderr = child.stderr.take().ok_or("Impossible de capturer stderr de nixos-install")?;
 
         let emit_stdout = emit_log.clone();
-        let emit_prog_out = emit_progress.clone();
+        let emit_prog_out = emit_progress_full.clone();
 
+        struct NixTracker {
+            total_pkgs: u32,
+            current_pkg: u32,
+        }
+        let tracker = std::sync::Arc::new(tokio::sync::Mutex::new(NixTracker {
+            total_pkgs: 0,
+            current_pkg: 0,
+        }));
+
+        let tr_out = tracker.clone();
         let stdout_task = tokio::spawn(async move {
             let mut reader = AsyncBufReader::new(stdout).lines();
-            let mut cur_pct = 68u32;
             while let Ok(Some(line)) = reader.next_line().await {
                 emit_stdout(&line);
-                if cur_pct < 95 && (line.contains("copying path") || line.contains("building ")) {
-                    cur_pct = (cur_pct + 1).min(95);
-                    emit_prog_out(cur_pct, "Installation de ChomiamOS en cours...", &line);
+
+                let mut tr = tr_out.lock().await;
+                if let Some(n) = parse_item_count(&line, "paths will be fetched") {
+                    tr.total_pkgs += n;
+                }
+                if let Some(n) = parse_item_count(&line, "derivations will be built") {
+                    tr.total_pkgs += n;
+                }
+
+                if line.contains("copying path") || line.contains("building '") || line.contains("fetching path") {
+                    tr.current_pkg += 1;
+                    let pkg_name = extract_pkg_name(&line);
+                    let cur = tr.current_pkg;
+                    let tot = tr.total_pkgs;
+                    let pct = if tot > 0 {
+                        let ratio = (cur as f64 / tot as f64).min(1.0);
+                        35 + (ratio * 57.0) as u32
+                    } else {
+                        35 + ((cur as f64 / 2000.0).min(0.9) * 55.0) as u32
+                    };
+                    let short_detail = pkg_name.as_deref().unwrap_or(&line);
+                    emit_prog_out(
+                        pct,
+                        "Installation de ChomiamOS en cours...",
+                        &short_detail,
+                        Some(cur),
+                        if tot > 0 { Some(tot) } else { None },
+                        pkg_name.clone(),
+                    );
                 }
             }
         });
 
         let emit_stderr = emit_log.clone();
-        let emit_prog_err = emit_progress.clone();
+        let emit_prog_err = emit_progress_full.clone();
+        let tr_err = tracker.clone();
         let stderr_task = tokio::spawn(async move {
             let mut reader = AsyncBufReader::new(stderr).lines();
-            let mut cur_pct = 68u32;
             while let Ok(Some(line)) = reader.next_line().await {
-                if line.contains("warning: $HOME") || line.contains("Pass '--accept-flake-config'") {
+                if line.contains("warning: /home/chomiam") || line.contains("Pass '--accept-flake-config'") {
                     emit_stderr(&format!("[INFO] {}", line));
                 } else if line.contains("error:") || line.contains("failed") {
                     emit_stderr(&format!("[ERR] {}", line));
@@ -754,15 +830,34 @@ r#"{{ config, lib, ... }}:
                     emit_stderr(&format!("[BUILD] {}", line));
                 }
 
-                // Dans Nix, les messages "copying path", "building", etc. transitent par stderr
-                if cur_pct < 95 && (line.contains("copying path") || line.contains("building ") || line.contains("fetching path")) {
-                    cur_pct = (cur_pct + 1).min(95);
-                    let short_detail = if let Some(idx) = line.find("/nix/store/") {
-                        &line[idx..]
+                let mut tr = tr_err.lock().await;
+                if let Some(n) = parse_item_count(&line, "paths will be fetched") {
+                    tr.total_pkgs += n;
+                }
+                if let Some(n) = parse_item_count(&line, "derivations will be built") {
+                    tr.total_pkgs += n;
+                }
+
+                if line.contains("copying path") || line.contains("building '") || line.contains("fetching path") {
+                    tr.current_pkg += 1;
+                    let pkg_name = extract_pkg_name(&line);
+                    let cur = tr.current_pkg;
+                    let tot = tr.total_pkgs;
+                    let pct = if tot > 0 {
+                        let ratio = (cur as f64 / tot as f64).min(1.0);
+                        35 + (ratio * 57.0) as u32
                     } else {
-                        &line
+                        35 + ((cur as f64 / 2000.0).min(0.9) * 55.0) as u32
                     };
-                    emit_prog_err(cur_pct, "Installation de ChomiamOS en cours...", short_detail);
+                    let short_detail = pkg_name.as_deref().unwrap_or(&line);
+                    emit_prog_err(
+                        pct,
+                        "Installation de ChomiamOS en cours...",
+                        &short_detail,
+                        Some(cur),
+                        if tot > 0 { Some(tot) } else { None },
+                        pkg_name.clone(),
+                    );
                 }
             }
         });
@@ -804,7 +899,7 @@ r#"{{ config, lib, ... }}:
     // =========================================================================
     // --- ÉTAPE 8 : Permissions, Synchronisation et Démontage Propre (95% - 100%) ---
     // =========================================================================
-    emit_progress(96, "Finalisation de l'installation", "Attribution des droits d'accès et synchronisation disque...");
+    emit_progress(94, "Finalisation de l'installation", "Attribution des droits d'accès et synchronisation disque...");
     emit_log("[ÉTAPE 8/8] === Finalisation et synchronisation finale ===");
 
     if !effective_dry_run {

@@ -758,6 +758,38 @@ body {
   border-radius: 6px;
 }
 
+.progress-sub-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 12px;
+}
+
+.packages-badge {
+  background: rgba(203, 166, 247, 0.12);
+  border: 1px solid rgba(203, 166, 247, 0.35);
+  color: var(--mocha-mauve);
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.2px;
+}
+
+.packages-current-item {
+  color: var(--mocha-subtext0);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 65%;
+  text-align: right;
+}
+
 .terminal-wrapper {
   background: var(--mocha-crust);
   border: 1px solid var(--mocha-surface0);
