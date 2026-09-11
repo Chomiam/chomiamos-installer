@@ -276,6 +276,12 @@ function goToStep(step) {
     if (btnNext) btnNext.classList.remove('hidden');
     if (btnInstall) btnInstall.classList.add('hidden');
   }
+
+  // Remonter en haut de page lors du changement d'étape
+  const scrollArea = document.querySelector('.step-content-area');
+  if (scrollArea) {
+    scrollArea.scrollTop = 0;
+  }
 }
 
 function setPrereqStatus(id, level, statusText, detailText) {
@@ -884,7 +890,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.11 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.12 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
