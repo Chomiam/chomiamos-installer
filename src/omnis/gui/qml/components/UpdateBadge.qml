@@ -27,7 +27,7 @@ Rectangle {
     // Statut réactif provenant du bridge Python
     readonly property string status: engine.updateStatus || "idle"
     readonly property bool isChecking: engine.isCheckingUpdate
-    readonly property string currentVer: engine.appVersion || "0.6.2"
+    readonly property string currentVer: engine.appVersion || "0.6.3"
     readonly property string targetVer: engine.latestVersion || currentVer
 
     // Dimensions
