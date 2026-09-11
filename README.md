@@ -1,4 +1,4 @@
-# 💿 ChomiamOS Installer & Générateur d'Image ISO (v1.0.0 - Rust & Tauri v2)
+# 💿 ChomiamOS Installer & Générateur d'Image ISO (v1.1.0 - Rust & Tauri v2)
 
 <p align="center">
   <img src="https://img.shields.io/badge/NixOS-26.05-5277C3?style=for-the-badge&logo=nixos&logoColor=white" alt="NixOS Version" />
@@ -11,13 +11,13 @@
 
 Ce dépôt héberge le code source officiel de l'**installateur système de ChomiamOS Gaming Edition** ainsi que la recette Flake pour générer l'**image ISO Live d'installation bootable**.
 
-Depuis la **version 1.0.0**, l'installateur a été **entièrement réécrit en Rust natif avec Tauri v2**, remplaçant l'ancienne pile Python/Qt6 pour offrir une vitesse d'exécution fulgurante, une empreinte mémoire minimale et une cohérence visuelle parfaite avec le **Dashboard ChomiamOS** grâce au thème **Catppuccin Mocha**.
+Depuis la **version 1.1.0**, l'installateur a été **entièrement réécrit en Rust natif avec Tauri v2**, remplaçant l'ancienne pile Python/Qt6 pour offrir une vitesse d'exécution fulgurante, une empreinte mémoire minimale et une cohérence visuelle parfaite avec le **Dashboard ChomiamOS** grâce au thème **Catppuccin Mocha**.
 
 ---
 
 ## ⚡ La Révolution Rust + Tauri v2 (v1.0.0)
 
-| Fonctionnalité | Ancienne version (v0.x) | Nouvelle version (v1.0.0) |
+| Fonctionnalité | Ancienne version (v0.x) | Nouvelle version (v1.1.0) |
 | :--- | :--- | :--- |
 | **Backend & Logique Système** | Python 3.11 + Processus IPC lourd | **Rust natif** multithreadé, sans runtime |
 | **Interface Graphique** | PySide6 / Qt6 QML | **Tauri v2** + Webview moderne ultra-fluide |
@@ -135,7 +135,7 @@ Le texte intégral est disponible dans le fichier [LICENSE](LICENSE).
 
 * **Projet d'origine & architecture initiale** : [Omnis Installer](https://github.com/N3oTraX/Omnis) créé par **[N3oTraX](https://github.com/N3oTraX)** et l'équipe **GLF Team**.
   *Base conceptuelle du système de jobs modulaire et détection initiale des disques.*
-* **ChomiamOS Installer (v1.0.0+)** : Réécrit, repensé et développé par **Chomiam** pour **ChomiamOS Gaming Edition**.
+* **ChomiamOS Installer (v1.1.0+)** : Réécrit, repensé et développé par **Chomiam** pour **ChomiamOS Gaming Edition**.
   *Réécriture complète en Rust natif + Tauri v2, allocation instantanée de swap POSIX, support multi-DE étendu (Cinnamon, GNOME, Plasma 6, COSMIC), synchronisation du clavier cross-desktop, refonte UI Catppuccin Mocha, intégration des suites de jeux et écosystème déclaratif NixOS.*
 
 ---

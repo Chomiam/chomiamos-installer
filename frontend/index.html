@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v2 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.1.0 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -40,8 +40,8 @@
         <div class="step-item" data-step="2">
           <div class="step-num">2</div>
           <div class="step-info">
-            <span class="step-label">Clavier & Langue</span>
-            <span class="step-desc">Disposition XKB multi-DE</span>
+            <span class="step-label">Clavier & Fuseau</span>
+            <span class="step-desc">Disposition et Timezone</span>
           </div>
         </div>
         <div class="step-item" data-step="3">
@@ -128,26 +128,33 @@
           </div>
         </section>
 
-        <!-- Step 2: Keyboard -->
+        <!-- Step 2: Keyboard & Timezone -->
         <section class="step-panel" id="panel-step-2">
           <div class="panel-header">
-            <h2>Disposition du Clavier</h2>
-            <p>La disposition sélectionnée sera automatiquement synchronisée sur GNOME, Cinnamon, KDE Plasma, COSMIC et la console TTY.</p>
+            <h2>Disposition du Clavier & Fuseau Horaire</h2>
+            <p>La disposition de votre clavier et votre fuseau horaire seront appliqués en direct et configurés pour tous les environnements de bureau (GNOME, Cinnamon, KDE Plasma, COSMIC).</p>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="keyboard-layout-select">Disposition principale</label>
+              <label for="keyboard-layout-select">Disposition principale du clavier</label>
               <select id="keyboard-layout-select" class="form-select"></select>
             </div>
             <div class="form-group">
-              <label for="keyboard-variant-select">Variante</label>
+              <label for="keyboard-variant-select">Variante de disposition</label>
               <select id="keyboard-variant-select" class="form-select"></select>
             </div>
           </div>
           <div class="keyboard-tester">
-            <label for="keyboard-test-input">Testez votre clavier en direct (AZERTY, QWERTY, accents, chiffres) :</label>
+            <label for="keyboard-test-input">Testez votre clavier en direct (AZERTY, QWERTY, accents é, è, ç, à, chiffres) :</label>
             <input type="text" id="keyboard-test-input" class="form-input" placeholder="Tapez ici pour tester la disposition active immédiatement...">
             <span class="live-applied-badge">✓ Appliqué en direct à la session live</span>
+          </div>
+
+          <div class="form-row" style="margin-top: 1.5rem;">
+            <div class="form-group" style="width: 100%;">
+              <label for="timezone-select">Fuseau horaire (Timezone)</label>
+              <select id="timezone-select" class="form-select"></select>
+            </div>
           </div>
         </section>
 

@@ -7,7 +7,7 @@ mod config;
 mod install;
 mod updater;
 
-use system::{check_prerequisites, list_disks, get_keyboard_layouts, get_desktop_environments, SystemPrerequisites, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo};
+use system::{check_prerequisites, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo, TimezoneInfo};
 use config::{InstallerSelections, generate_vars_nix};
 use install::{execute_installation, InstallStateSnapshot, SharedInstallState};
 use updater::{check_update, download_and_restart, UpdateInfo};
@@ -35,23 +35,134 @@ fn get_desktops() -> Vec<DesktopEnvInfo> {
     get_desktop_environments()
 }
 
+fn get_session_context() -> (String, u32, std::collections::HashMap<String, String>) {
+    let mut uid: Option<u32> = std::env::var("SUDO_UID").ok().and_then(|s| s.parse().ok()).filter(|&u| u != 0);
+
+    if uid.is_none() {
+        if let Ok(runtime) = std::env::var("XDG_RUNTIME_DIR") {
+            if let Some(tail) = runtime.strip_prefix("/run/user/") {
+                if let Ok(u) = tail.parse::<u32>() {
+                    if u != 0 {
+                        uid = Some(u);
+                    }
+                }
+            }
+        }
+    }
+
+    if uid.is_none() {
+        if let Ok(entries) = std::fs::read_dir("/run/user") {
+            for entry in entries.flatten() {
+                if let Ok(name) = entry.file_name().into_string() {
+                    if let Ok(u) = name.parse::<u32>() {
+                        if u != 0 && std::path::Path::new(&format!("/run/user/{}/bus", u)).exists() {
+                            uid = Some(u);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let uid = uid.unwrap_or(1000);
+
+    let username = if let Ok(output) = Command::new("id").args(["-nu", &uid.to_string()]).output() {
+        let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !name.is_empty() { name } else { "nixos".to_string() }
+    } else {
+        "nixos".to_string()
+    };
+
+    let mut env = std::collections::HashMap::new();
+    env.insert("XDG_RUNTIME_DIR".to_string(), format!("/run/user/{}", uid));
+    env.insert("DBUS_SESSION_BUS_ADDRESS".to_string(), format!("unix:path=/run/user/{}/bus", uid));
+    if let Ok(val) = std::env::var("DISPLAY") {
+        env.insert("DISPLAY".to_string(), val);
+    }
+    if let Ok(val) = std::env::var("WAYLAND_DISPLAY") {
+        env.insert("WAYLAND_DISPLAY".to_string(), val);
+    }
+    if let Ok(val) = std::env::var("XAUTHORITY") {
+        env.insert("XAUTHORITY".to_string(), val);
+    }
+
+    (username, uid, env)
+}
+
+fn run_in_user_session(cmd: &[&str]) {
+    let (user, _uid, env) = get_session_context();
+    let is_root = Command::new("id").arg("-u").output().map(|o| String::from_utf8_lossy(&o.stdout).trim() == "0").unwrap_or(false);
+
+    if is_root {
+        let mut full = Command::new("runuser");
+        full.arg("-u").arg(&user).arg("--").arg("env");
+        for (k, v) in &env {
+            full.arg(format!("{}={}", k, v));
+        }
+        full.args(cmd);
+        let _ = full.status();
+    } else {
+        let mut c = Command::new(cmd[0]);
+        for (k, v) in &env {
+            c.env(k, v);
+        }
+        c.args(&cmd[1..]);
+        let _ = c.status();
+    }
+}
+
 #[tauri::command]
 fn apply_keyboard_live(layout: String, variant: String) -> Result<(), String> {
-    let mut cmd = Command::new("setxkbmap");
-    cmd.arg(&layout);
+    // 1. localectl global system keymap
+    let mut localectl_cmd = Command::new("localectl");
+    localectl_cmd.arg("set-x11-keymap").arg(&layout).arg("pc105");
     if !variant.is_empty() {
-        cmd.arg(&variant);
+        localectl_cmd.arg(&variant);
+    } else {
+        localectl_cmd.arg("");
     }
-    let _ = cmd.status();
+    let _ = localectl_cmd.status();
 
-    let mut gsettings_val = format!("[('xkb', '{}')]", layout);
+    // 2. setxkbmap
+    let mut xkb_args = vec!["setxkbmap", layout.as_str()];
     if !variant.is_empty() {
-        gsettings_val = format!("[('xkb', '{}+{}')]", layout, variant);
+        xkb_args.push("-variant");
+        xkb_args.push(variant.as_str());
     }
-    let _ = Command::new("gsettings")
-        .args(["set", "org.gnome.desktop.input-sources", "sources", &gsettings_val])
+    run_in_user_session(&xkb_args);
+
+    // 3. GNOME input-sources
+    let gsettings_val = if variant.is_empty() {
+        format!("[('xkb', '{}')]", layout)
+    } else {
+        format!("[('xkb', '{}+{}')]", layout, variant)
+    };
+    run_in_user_session(&["gsettings", "set", "org.gnome.desktop.input-sources", "sources", &gsettings_val]);
+    run_in_user_session(&["gsettings", "set", "org.gnome.desktop.input-sources", "current", "0"]);
+
+    // 4. Cinnamon input-sources
+    run_in_user_session(&["gsettings", "set", "org.cinnamon.desktop.input-sources", "sources", &gsettings_val]);
+    run_in_user_session(&["gsettings", "set", "org.cinnamon.desktop.input-sources", "current", "0"]);
+
+    Ok(())
+}
+
+#[tauri::command]
+fn get_timezones_list() -> Vec<TimezoneInfo> {
+    get_timezones()
+}
+
+#[tauri::command]
+fn get_detected_timezone() -> String {
+    get_current_timezone()
+}
+
+#[tauri::command]
+fn apply_timezone_live(timezone: String) -> Result<(), String> {
+    let _ = Command::new("timedatectl")
+        .args(["set-timezone", &timezone])
         .status();
-
     Ok(())
 }
 
@@ -157,6 +268,9 @@ fn main() {
             get_layouts,
             get_desktops,
             apply_keyboard_live,
+            get_timezones_list,
+            get_detected_timezone,
+            apply_timezone_live,
             generate_configuration_preview,
             start_installation,
             get_install_state,

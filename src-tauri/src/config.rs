@@ -11,6 +11,7 @@ pub struct InstallerSelections {
     pub discord_client: String,
     pub keyboard_layout: String,
     pub keyboard_variant: String,
+    pub timezone: String,
     pub target_disk: String,
     pub swap_size_mb: u64,
     // Gaming
@@ -37,6 +38,7 @@ impl Default for InstallerSelections {
             discord_client: "discord".into(),
             keyboard_layout: "fr".into(),
             keyboard_variant: "".into(),
+            timezone: "Europe/Paris".into(),
             target_disk: "".into(),
             swap_size_mb: 8192,
             steam: true,
@@ -75,7 +77,7 @@ r#"{{
   hostName = "{hostname}";
 
   # Localisation & Fuseau horaire
-  timeZone = "Europe/Paris";
+  timeZone = "{timezone}";
   defaultLocale = "fr_FR.UTF-8";
 
   # Disposition du clavier (universelle multi-DE)
@@ -167,6 +169,7 @@ r#"{{
         hostname = s.hostname,
         keyboard_layout = s.keyboard_layout,
         keyboard_variant = s.keyboard_variant,
+        timezone = s.timezone,
         username = s.username,
         fullname = s.fullname,
         pwd_field = pwd_field,

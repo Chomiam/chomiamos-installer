@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadPrerequisites();
   await loadDesktops();
   await loadKeyboardLayouts();
+  await loadTimezones();
   await loadDisks();
   initSwapSlider();
   initSummaryTrigger();
@@ -168,18 +169,19 @@ async function loadKeyboardLayouts() {
   try {
     availableLayouts = await invoke('get_layouts');
     const selLayout = document.getElementById('keyboard-layout-select');
-    const selVariant = document.getElementById('keyboard-variant-select');
+    if (!selLayout) return;
     selLayout.innerHTML = '';
 
     availableLayouts.forEach(l => {
+      const lid = l.id || l.code;
       const opt = document.createElement('option');
-      opt.value = l.id;
-      opt.textContent = `${l.name} (${l.id.toUpperCase()})`;
-      if (l.id === 'fr') opt.selected = true;
+      opt.value = lid;
+      opt.textContent = `${l.name} (${lid.toUpperCase()})`;
+      if (lid === 'fr') opt.selected = true;
       selLayout.appendChild(opt);
     });
 
-    updateVariantsDropdown('fr');
+    updateVariantsDropdown(selLayout.value || 'fr');
 
     selLayout.addEventListener('change', async () => {
       const lid = selLayout.value;
@@ -187,9 +189,15 @@ async function loadKeyboardLayouts() {
       await applyKeyboard();
     });
 
-    selVariant.addEventListener('change', async () => {
-      await applyKeyboard();
-    });
+    const selVariant = document.getElementById('keyboard-variant-select');
+    if (selVariant) {
+      selVariant.addEventListener('change', async () => {
+        await applyKeyboard();
+      });
+    }
+
+    // Appliquer le clavier immédiatement au chargement
+    await applyKeyboard();
   } catch (e) {
     console.error("Failed to load layouts:", e);
   }
@@ -197,31 +205,96 @@ async function loadKeyboardLayouts() {
 
 function updateVariantsDropdown(layoutId) {
   const selVariant = document.getElementById('keyboard-variant-select');
+  if (!selVariant) return;
   selVariant.innerHTML = '';
 
-  const found = availableLayouts.find(l => l.id === layoutId);
-  const defOpt = document.createElement('option');
-  defOpt.value = "";
-  defOpt.textContent = "Par défaut (Standard)";
-  selVariant.appendChild(defOpt);
-
-  if (found && found.variants) {
-    found.variants.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.id;
-      opt.textContent = v.name;
-      selVariant.appendChild(opt);
-    });
+  const found = availableLayouts.find(l => (l.id === layoutId || l.code === layoutId));
+  if (!found || !found.variants || found.variants.length === 0) {
+    const defOpt = document.createElement('option');
+    defOpt.value = "";
+    defOpt.textContent = "Par défaut (Standard)";
+    selVariant.appendChild(defOpt);
+    return;
   }
+
+  found.variants.forEach(v => {
+    const opt = document.createElement('option');
+    const vid = typeof v === 'string' ? v : (v.id ?? "");
+    const vname = typeof v === 'string' ? (v || "Par défaut (Standard)") : (v.name || "Par défaut (Standard)");
+    opt.value = vid;
+    opt.textContent = vname;
+    selVariant.appendChild(opt);
+  });
 }
 
 async function applyKeyboard() {
-  const layout = document.getElementById('keyboard-layout-select').value;
-  const variant = document.getElementById('keyboard-variant-select').value;
+  const selLayout = document.getElementById('keyboard-layout-select');
+  const selVariant = document.getElementById('keyboard-variant-select');
+  const layout = selLayout ? selLayout.value : "fr";
+  const variant = selVariant ? selVariant.value : "";
   try {
     await invoke('apply_keyboard_live', { layout, variant });
   } catch (e) {
     console.error("Apply keyboard failed:", e);
+  }
+}
+
+async function loadTimezones() {
+  try {
+    const timezones = await invoke('get_timezones_list');
+    let detectedTz = "Europe/Paris";
+    try {
+      detectedTz = await invoke('get_detected_timezone');
+    } catch (_) {}
+
+    const selTimezone = document.getElementById('timezone-select');
+    if (!selTimezone) return;
+    selTimezone.innerHTML = '';
+
+    const regions = {};
+    timezones.forEach(tz => {
+      const reg = tz.region || "Autres";
+      if (!regions[reg]) regions[reg] = [];
+      regions[reg].push(tz);
+    });
+
+    Object.keys(regions).forEach(reg => {
+      const optGroup = document.createElement('optgroup');
+      optGroup.label = `─── ${reg} ───`;
+      regions[reg].forEach(tz => {
+        const opt = document.createElement('option');
+        opt.value = tz.id;
+        opt.textContent = tz.name;
+        if (tz.id === detectedTz) {
+          opt.selected = true;
+        }
+        optGroup.appendChild(opt);
+      });
+      selTimezone.appendChild(optGroup);
+    });
+
+    if (!timezones.some(tz => tz.id === detectedTz)) {
+      const customOpt = document.createElement('option');
+      customOpt.value = detectedTz;
+      customOpt.textContent = `${detectedTz} (Détecté)`;
+      customOpt.selected = true;
+      selTimezone.insertBefore(customOpt, selTimezone.firstChild);
+    }
+
+    selTimezone.addEventListener('change', async () => {
+      const tz = selTimezone.value;
+      try {
+        await invoke('apply_timezone_live', { timezone: tz });
+      } catch (e) {
+        console.warn("Apply timezone live error:", e);
+      }
+    });
+
+    if (detectedTz) {
+      invoke('apply_timezone_live', { timezone: detectedTz }).catch(() => {});
+    }
+  } catch (e) {
+    console.error("Failed to load timezones:", e);
   }
 }
 
@@ -287,7 +360,8 @@ function collectSelections() {
     browser: document.getElementById('browser-select').value || "chrome",
     discord_client: "discord",
     keyboard_layout: document.getElementById('keyboard-layout-select').value || "fr",
-    keyboard_variant: document.getElementById('keyboard-variant-select').value || "",
+    keyboard_variant: document.getElementById('keyboard-variant-select')?.value || "",
+    timezone: document.getElementById('timezone-select')?.value || "Europe/Paris",
     target_disk: diskPath,
     swap_size_mb: parseInt(document.getElementById('swap-slider').value) || 8192,
     steam: document.getElementById('chk-steam').checked,
@@ -309,7 +383,8 @@ function updateSummary() {
   box.innerHTML = `
     <div class="summary-item"><label>Disque cible</label><span>${s.target_disk || 'Non sélectionné'}</span></div>
     <div class="summary-item"><label>Fichier de Swap</label><span>${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}</span></div>
-    <div class="summary-item"><label>Disposition Clavier</label><span>${s.keyboard_layout} ${s.keyboard_variant ? '(' + s.keyboard_variant + ')' : ''}</span></div>
+    <div class="summary-item"><label>Disposition Clavier</label><span>${s.keyboard_layout.toUpperCase()} ${s.keyboard_variant ? '(' + s.keyboard_variant + ')' : ''}</span></div>
+    <div class="summary-item"><label>Fuseau Horaire</label><span>${s.timezone}</span></div>
     <div class="summary-item"><label>Bureau Choisi</label><span>${s.desktop_env.toUpperCase()}</span></div>
     <div class="summary-item"><label>Utilisateur / Hôte</label><span>${s.username} @ ${s.hostname}</span></div>
     <div class="summary-item"><label>Serveur Sunshine</label><span>${s.sunshine ? 'Activé' : 'Désactivé'}</span></div>
