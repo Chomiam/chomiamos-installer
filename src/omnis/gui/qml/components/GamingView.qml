@@ -249,6 +249,22 @@ Item {
                     }
 
                     CheckCard {
+                        title: "Serveur Sunshine"
+                        subtitle: qsTr("Serveur de streaming de jeux haute performance vers Moonlight (faible latence, 4K/HDR).")
+                        iconText: "☀️"
+                        checked: engine.sunshine
+                        onToggled: engine.setSunshine(!engine.sunshine)
+                    }
+
+                    CheckCard {
+                        title: "Sober (Roblox)"
+                        subtitle: qsTr("Client Roblox natif et optimisé pour Linux via Flatpak.")
+                        iconText: "🧱"
+                        checked: engine.sober
+                        onToggled: engine.setSober(!engine.sober)
+                    }
+
+                    CheckCard {
                         Layout.columnSpan: 2
                         title: "Support Volants & Simracing"
                         subtitle: qsTr("Pilotes noyau pour volants Logitech, Thrustmaster, Fanatec et logiciel de calibration Oversteer.")

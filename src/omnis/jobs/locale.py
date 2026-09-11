@@ -475,13 +475,15 @@ class LocaleJob(BaseJob):
             logger.info(f"Written {vconsole_conf}")
 
             # Write X11 keyboard config (for graphical environment)
+            variant = str(context.selections.get("keyboard_variant") or context.selections.get("keyboardVariant") or "").strip()
+            variant_line = f'    Option "XkbVariant" "{variant}"\n' if variant else ""
             xorg_kbd_conf.parent.mkdir(parents=True, exist_ok=True)
             xorg_content = f"""# Keyboard configuration for X11
 Section "InputClass"
     Identifier "system-keyboard"
     MatchIsKeyboard "on"
     Option "XkbLayout" "{keymap}"
-EndSection
+{variant_line}EndSection
 """
             xorg_kbd_conf.write_text(xorg_content, encoding="utf-8")
             logger.info(f"Written {xorg_kbd_conf}")

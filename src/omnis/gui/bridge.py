@@ -1378,6 +1378,8 @@ class EngineBridge(QObject):
             "heroic": True,
             "faugus": True,
             "deckyLoader": True,
+            "sunshine": False,
+            "sober": False,
             "geforceNow": True,
             "steeringWheels": True,
             # Granular Creation & Tools
@@ -3180,6 +3182,26 @@ class EngineBridge(QObject):
     def setFaugus(self, enabled: bool) -> None:
         if self._selections.get("faugus") != enabled:
             self._selections["faugus"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def sunshine(self) -> bool:
+        return bool(self._selections.get("sunshine", False))
+
+    @Slot(bool)
+    def setSunshine(self, enabled: bool) -> None:
+        if self._selections.get("sunshine") != enabled:
+            self._selections["sunshine"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def sober(self) -> bool:
+        return bool(self._selections.get("sober", False))
+
+    @Slot(bool)
+    def setSober(self, enabled: bool) -> None:
+        if self._selections.get("sober") != enabled:
+            self._selections["sober"] = enabled
             self.selectionsChanged.emit()
 
     @Property(bool, notify=selectionsChanged)

@@ -546,6 +546,8 @@ ApplicationWindow {
                 deckyLoaderValue: engine.deckyLoader
                 geforceNowValue: engine.geforceNow
                 steeringWheelsValue: engine.steeringWheels
+                sunshineValue: engine.sunshine
+                soberValue: engine.sober
 
                 emulationEnableValue: engine.emulationEnable
                 emulationFrontendValue: engine.emulationFrontend

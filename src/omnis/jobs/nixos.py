@@ -228,6 +228,13 @@ class NixosJob(BaseJob):
         decky_loader = "true" if s.get("decky_loader", s.get("deckyLoader", True)) else "false"
         geforce_now = "true" if s.get("geforce_now", s.get("geforceNow", True)) else "false"
         steering_wheels = "true" if s.get("steering_wheels", s.get("steeringWheels", True)) else "false"
+        sunshine = "true" if s.get("sunshine", False) else "false"
+        sober = "true" if s.get("sober", False) else "false"
+
+        # Keyboard selections
+        keymap = str(s.get("keymap") or s.get("keyboard_layout") or "fr").strip()
+        variant = str(s.get("keyboard_variant") or s.get("keyboardVariant") or "").strip()
+        console_keymap = keymap
 
         # Emulation selections
         emulation_enable = "true" if s.get("emulation_enable", s.get("emulationEnable", True)) else "false"
@@ -281,6 +288,13 @@ class NixosJob(BaseJob):
   timeZone = "{timezone}";
   defaultLocale = "{locale}";
 
+  # Disposition du clavier
+  keyboard = {{
+    layout = "{keymap}";
+    variant = "{variant}";
+    keyMap = "{console_keymap}";
+  }};
+
   # Version de l'état système NixOS / Home Manager
   stateVersion = "{state_ver}";
 
@@ -322,6 +336,8 @@ class NixosJob(BaseJob):
     deckyLoader = {decky_loader};
     geforceNow = {geforce_now};
     mountGamesDisk = false;
+    sunshine = {sunshine};
+    sober = {sober};
   }};
 
   steeringWheelSupport = {steering_wheels};

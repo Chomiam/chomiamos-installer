@@ -50,6 +50,8 @@ Item {
     property bool deckyLoaderValue: true
     property bool geforceNowValue: true
     property bool steeringWheelsValue: true
+    property bool sunshineValue: false
+    property bool soberValue: false
 
     // Émulation & Rétrogaming
     property bool emulationEnableValue: true
@@ -146,6 +148,8 @@ Item {
         if (geforceNowValue) list.push("GeForce NOW")
         if (deckyLoaderValue) list.push("Decky Loader")
         if (steeringWheelsValue) list.push("Simracing")
+        if (sunshineValue) list.push("Sunshine")
+        if (soberValue) list.push("Sober")
         if (list.length === 0) return "Aucun lanceur sélectionné"
         return list.join(", ")
     }
