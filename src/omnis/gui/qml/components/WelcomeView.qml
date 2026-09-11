@@ -343,6 +343,17 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
             }
 
+            // Pastille de statut de mise à jour (verte si à jour)
+            UpdateBadge {
+                Layout.alignment: Qt.AlignVCenter
+                successColor: root.successColor
+                accentColor: root.primaryColor
+                warningColor: root.warningColor
+                errorColor: root.errorColor
+                textMutedColor: root.textMutedColor
+                textColor: root.textColor
+            }
+
             Item { Layout.fillWidth: true }
 
             // Website URL (right)

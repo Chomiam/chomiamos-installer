@@ -34,7 +34,7 @@ from omnis.utils.locale_detector import LocaleDetectionResult, LocaleDetector
 from omnis.utils.log_capture import BridgeLogHandler, SecretRedactor, resolve_log_path, upload_log
 from omnis import __version__ as APP_VERSION
 from omnis.utils.network_helper import NetworkHelper
-from omnis.utils.updater import check_for_github_update, download_and_extract_update, restart_installer
+from omnis.utils.updater import check_for_installer_update, check_for_github_update, download_and_extract_update, restart_installer
 
 if TYPE_CHECKING:
     from omnis.core.engine import Engine
@@ -261,13 +261,17 @@ class UpdateCheckWorker(QObject):
 
     def run(self) -> None:
         try:
-            info = check_for_github_update(self._current_version)
-            if info:
-                self.finished.emit(True, info)
-            else:
-                self.finished.emit(False, {})
-        except Exception:
-            self.finished.emit(False, {})
+            info = check_for_installer_update(self._current_version)
+            has_update = info.get("has_update", False)
+            self.finished.emit(has_update, info)
+        except Exception as e:
+            self.finished.emit(False, {
+                "status": "error",
+                "has_update": False,
+                "current_version": self._current_version,
+                "latest_version": self._current_version,
+                "error_message": str(e),
+            })
 
 
 class UpdateDownloadWorker(QObject):
@@ -687,6 +691,7 @@ class EngineBridge(QObject):
     updateProgress = Signal(int, str)  # percent, status_message
     updateFailed = Signal(str)  # error_message
     updateFinished = Signal()  # finished before restart
+    updateStatusChanged = Signal()  # emitted when updateStatus or latestVersion changes
 
     # Locale prefixes that require non-Latin font (CJK, Arabic, Hebrew, etc.)
     # These scripts need fonts with broader Unicode coverage like Noto Sans
@@ -801,6 +806,9 @@ class EngineBridge(QObject):
         self._update_download_thread: QThread | None = None
         self._update_download_worker: UpdateDownloadWorker | None = None
         self._update_download_url: str = ""
+        self._update_status: str = "idle"  # idle, checking, up_to_date, available, offline, error
+        self._latest_version: str = APP_VERSION
+        self._update_status_message: str = ""
         self._log_upload_worker: LogUploadWorker | None = None
 
         # Live (GParted-style) partition-apply thread state.
@@ -1602,11 +1610,44 @@ class EngineBridge(QObject):
         """Version actuelle de l'application."""
         return APP_VERSION
 
+    @Property(str, notify=updateStatusChanged)
+    def updateStatus(self) -> str:
+        """Statut de la vérification de mise à jour: idle, checking, up_to_date, available, offline, error."""
+        return self._update_status
+
+    @Property(str, notify=updateStatusChanged)
+    def latestVersion(self) -> str:
+        """Dernière version trouvée sur GitHub."""
+        return self._latest_version or APP_VERSION
+
+    @Property(bool, notify=updateStatusChanged)
+    def isCheckingUpdate(self) -> bool:
+        """Indique si une recherche de mise à jour est en cours."""
+        return self._update_status == "checking"
+
+    @Property(str, notify=updateStatusChanged)
+    def updateStatusText(self) -> str:
+        """Texte lisible pour l'interface utilisateur."""
+        if self._update_status == "checking":
+            return "Vérification…"
+        elif self._update_status == "up_to_date":
+            return f"v{self.appVersion} • À jour"
+        elif self._update_status == "available":
+            return f"Mise à jour v{self._latest_version} disponible"
+        elif self._update_status == "offline":
+            return f"v{self.appVersion} • Hors-ligne"
+        elif self._update_status == "error":
+            return "Vérification échouée"
+        return f"v{self.appVersion}"
+
     @Slot()
     def checkForUpdates(self) -> None:
         """Lance la recherche de mise à jour GitHub en arrière-plan."""
         if self._update_check_thread is not None and self._update_check_thread.isRunning():
             return
+
+        self._update_status = "checking"
+        self.updateStatusChanged.emit()
 
         self._update_check_thread = QThread(self)
         self._update_check_worker = UpdateCheckWorker(APP_VERSION)
@@ -1622,14 +1663,24 @@ class EngineBridge(QObject):
         self._update_check_thread.start()
 
     def _on_update_check_finished(self, has_update: bool, info: dict) -> None:
+        status = info.get("status", "available" if has_update else "up_to_date")
+        self._update_status = status
+        self._latest_version = info.get("latest_version", APP_VERSION)
+        self._update_status_message = info.get("error_message", "")
+
         if has_update and info:
-            ver = info.get("version", "")
+            ver = info.get("version", self._latest_version)
             notes = info.get("notes", "")
             url = info.get("download_url", "")
             self._update_download_url = url
             if self._debug:
                 print(f"[Update] Nouvelle version détectée: {ver} ({url})")
             self.updateAvailable.emit(ver, notes, url)
+        else:
+            if self._debug:
+                print(f"[Update] Statut: {status} (locale={APP_VERSION}, distante={self._latest_version})")
+
+        self.updateStatusChanged.emit()
 
     def _cleanup_update_check_thread(self) -> None:
         self._update_check_thread = None
@@ -3786,6 +3837,10 @@ class EngineBridge(QObject):
         # Re-run requirements check to update the internet requirement status
         if self._requirements_checker is not None:
             self.checkRequirements()
+
+        # Re-check updater if previously offline, errored or idle
+        if self._update_status in ("offline", "error", "idle"):
+            self.checkForUpdates()
 
     # =========================================================================
     # Locale to Keymap Derivation

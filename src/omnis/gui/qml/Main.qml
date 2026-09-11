@@ -163,6 +163,17 @@ ApplicationWindow {
                 }
             }
 
+            // Pastille statut mise à jour dans l'en-tête
+            UpdateBadge {
+                Layout.alignment: Qt.AlignVCenter
+                successColor: root.successColor
+                accentColor: root.accentColor
+                warningColor: root.warningColor
+                errorColor: root.errorColor
+                textMutedColor: root.textMutedColor
+                textColor: root.textColor
+            }
+
             // Step indicator (steps 1-8)
             Row {
                 spacing: 8
@@ -691,6 +702,17 @@ ApplicationWindow {
                 text: qsTr("Powered by Omnis Installer")
                 font.pixelSize: 12
                 color: textMutedColor
+            }
+
+            // Pastille statut mise à jour dans le pied de page
+            UpdateBadge {
+                Layout.alignment: Qt.AlignVCenter
+                successColor: root.successColor
+                accentColor: root.accentColor
+                warningColor: root.warningColor
+                errorColor: root.errorColor
+                textMutedColor: root.textMutedColor
+                textColor: root.textColor
             }
 
             Item { Layout.fillWidth: true }

@@ -19,3 +19,4 @@ CreationToolsView 1.0 CreationToolsView.qml
 MediaNetworkView 1.0 MediaNetworkView.qml
 
 UpdateDialog 1.0 UpdateDialog.qml
+UpdateBadge 1.0 UpdateBadge.qml
