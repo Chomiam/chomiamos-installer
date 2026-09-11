@@ -17,6 +17,13 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+# Support de la mise à jour dynamique en ligne (Auto-Update) :
+# Si une version mise à jour est présente dans /tmp/omnis-update, on l'injecte en priorité.
+_update_dir = Path(os.environ.get("OMNIS_UPDATED_DIR", "/tmp/omnis-update"))
+_update_src = _update_dir / "src"
+if _update_src.is_dir() and str(_update_src) not in sys.path:
+    sys.path.insert(0, str(_update_src))
+
 from omnis import __version__
 from omnis.core.engine import ConfigurationError
 
@@ -174,6 +181,8 @@ def find_config_file(explicit_path: Path | None = None) -> Path:
     # (install Nix/AppImage: <prefix>/share/omnis/config ; dépôt: <repo>/config),
     # résolue en remontant depuis ce module.
     candidates = [
+        _update_dir / "config" / "chomiamos.yaml",
+        _update_dir / "config" / "omnis.yaml",
         Path("omnis.yaml"),
         Path("/etc/omnis/omnis.yaml"),
         Path("/etc/omnis/chomiamos.yaml"),
@@ -203,6 +212,7 @@ def find_qml_file() -> Path:
     """Locate the main QML file."""
     # Check multiple possible locations
     candidates = [
+        _update_dir / "src" / "omnis" / "gui" / "qml" / "Main.qml",
         Path(__file__).parent / "gui" / "qml" / "Main.qml",
         Path("src/omnis/gui/qml/Main.qml"),
         Path("/usr/share/omnis/qml/Main.qml"),

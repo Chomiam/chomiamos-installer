@@ -883,6 +883,27 @@ ApplicationWindow {
         function onErrorOccurred(jobName, errorMessage) {
             console.error("Error in", jobName + ":", errorMessage)
         }
+
+        // Auto-Update events
+        function onUpdateAvailable(version, notes, url) {
+            console.log("Auto-Update available:", version)
+            appUpdateDialog.newVersion = version
+            appUpdateDialog.releaseNotes = notes
+            appUpdateDialog.downloadUrl = url
+            appUpdateDialog.isUpdating = false
+            appUpdateDialog.errorMessage = ""
+            appUpdateDialog.open()
+        }
+
+        function onUpdateProgress(percent, msg) {
+            appUpdateDialog.progressPercent = percent
+            appUpdateDialog.statusMessage = msg
+        }
+
+        function onUpdateFailed(errMsg) {
+            console.error("Auto-Update failed:", errMsg)
+            appUpdateDialog.errorMessage = errMsg
+        }
     }
 
     // Translator connections for live language switching
@@ -945,6 +966,11 @@ ApplicationWindow {
     // Affiché quand le moteur refuse de démarrer l'installation (pas de droits
     // root, outillage manquant). Sans ce retour l'utilisateur restait devant un
     // écran figé sans savoir que rien n'avait démarré.
+    // Dialogue de mise à jour en ligne
+    UpdateDialog {
+        id: appUpdateDialog
+    }
+
     Dialog {
         id: refusalDialog
 
@@ -1209,5 +1235,8 @@ ApplicationWindow {
 
         // Check system requirements
         engine.checkRequirements()
+
+        // Check for online updates in background
+        engine.checkForUpdates()
     }
 }

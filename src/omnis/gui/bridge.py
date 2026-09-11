@@ -32,7 +32,9 @@ from omnis.utils import disk_detector
 from omnis.utils.keyboard_layout import apply_keyboard_layout_live
 from omnis.utils.locale_detector import LocaleDetectionResult, LocaleDetector
 from omnis.utils.log_capture import BridgeLogHandler, SecretRedactor, resolve_log_path, upload_log
+from omnis import __version__ as APP_VERSION
 from omnis.utils.network_helper import NetworkHelper
+from omnis.utils.updater import check_for_github_update, download_and_extract_update, restart_installer
 
 if TYPE_CHECKING:
     from omnis.core.engine import Engine
@@ -246,6 +248,47 @@ class InstallationWorker(QObject):
         except Exception as e:
             self.error.emit(str(e))
             self.finished.emit(False)
+
+
+class UpdateCheckWorker(QObject):
+    """Worker qui vérifie l'existence d'une nouvelle version en arrière-plan."""
+
+    finished = Signal(bool, dict)  # has_update, update_info
+
+    def __init__(self, current_version: str, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._current_version = current_version
+
+    def run(self) -> None:
+        try:
+            info = check_for_github_update(self._current_version)
+            if info:
+                self.finished.emit(True, info)
+            else:
+                self.finished.emit(False, {})
+        except Exception:
+            self.finished.emit(False, {})
+
+
+class UpdateDownloadWorker(QObject):
+    """Worker qui télécharge, extrait et prépare la mise à jour."""
+
+    progress = Signal(int, str)  # percent, message
+    finished = Signal(bool, str)  # success, error_message
+
+    def __init__(self, download_url: str, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._download_url = download_url
+
+    def run(self) -> None:
+        try:
+            download_and_extract_update(
+                self._download_url,
+                progress_callback=lambda pct, msg: self.progress.emit(pct, msg),
+            )
+            self.finished.emit(True, "")
+        except Exception as e:
+            self.finished.emit(False, str(e))
 
 
 class LogUploadWorker(QObject):
@@ -639,6 +682,12 @@ class EngineBridge(QObject):
     logChanged = Signal()  # notify for the installationLog Property
     logUploadFinished = Signal(str, bool, str)  # url, ok, error_message
 
+    # Auto-Update signals
+    updateAvailable = Signal(str, str, str)  # version, release_notes, download_url
+    updateProgress = Signal(int, str)  # percent, status_message
+    updateFailed = Signal(str)  # error_message
+    updateFinished = Signal()  # finished before restart
+
     # Locale prefixes that require non-Latin font (CJK, Arabic, Hebrew, etc.)
     # These scripts need fonts with broader Unicode coverage like Noto Sans
     NON_LATIN_LOCALE_PREFIXES = (
@@ -747,6 +796,11 @@ class EngineBridge(QObject):
         self._log_flush_timer.start()
 
         self._log_upload_thread: QThread | None = None
+        self._update_check_thread: QThread | None = None
+        self._update_check_worker: UpdateCheckWorker | None = None
+        self._update_download_thread: QThread | None = None
+        self._update_download_worker: UpdateDownloadWorker | None = None
+        self._update_download_url: str = ""
         self._log_upload_worker: LogUploadWorker | None = None
 
         # Live (GParted-style) partition-apply thread state.
@@ -1542,6 +1596,80 @@ class EngineBridge(QObject):
         buffer holds thousands of lines.
         """
         return self._log_handler.get_tail(300)
+
+    @Property(str, constant=True)
+    def appVersion(self) -> str:
+        """Version actuelle de l'application."""
+        return APP_VERSION
+
+    @Slot()
+    def checkForUpdates(self) -> None:
+        """Lance la recherche de mise à jour GitHub en arrière-plan."""
+        if self._update_check_thread is not None and self._update_check_thread.isRunning():
+            return
+
+        self._update_check_thread = QThread(self)
+        self._update_check_worker = UpdateCheckWorker(APP_VERSION)
+        self._update_check_worker.moveToThread(self._update_check_thread)
+
+        self._update_check_thread.started.connect(self._update_check_worker.run)
+        self._update_check_worker.finished.connect(self._on_update_check_finished)
+        self._update_check_worker.finished.connect(self._update_check_thread.quit)
+        self._update_check_worker.finished.connect(self._update_check_worker.deleteLater)
+        self._update_check_thread.finished.connect(self._update_check_thread.deleteLater)
+        self._update_check_thread.finished.connect(self._cleanup_update_check_thread)
+
+        self._update_check_thread.start()
+
+    def _on_update_check_finished(self, has_update: bool, info: dict) -> None:
+        if has_update and info:
+            ver = info.get("version", "")
+            notes = info.get("notes", "")
+            url = info.get("download_url", "")
+            self._update_download_url = url
+            if self._debug:
+                print(f"[Update] Nouvelle version détectée: {ver} ({url})")
+            self.updateAvailable.emit(ver, notes, url)
+
+    def _cleanup_update_check_thread(self) -> None:
+        self._update_check_thread = None
+        self._update_check_worker = None
+
+    @Slot()
+    @Slot(str)
+    def startUpdate(self, download_url: str = "") -> None:
+        """Télécharge et installe la mise à jour, puis redémarre l'application."""
+        if self._update_download_thread is not None and self._update_download_thread.isRunning():
+            return
+
+        url = download_url or self._update_download_url
+        if not url:
+            self.updateFailed.emit("URL de téléchargement manquante.")
+            return
+
+        self._update_download_thread = QThread(self)
+        self._update_download_worker = UpdateDownloadWorker(url)
+        self._update_download_worker.moveToThread(self._update_download_thread)
+
+        self._update_download_thread.started.connect(self._update_download_worker.run)
+        self._update_download_worker.progress.connect(self.updateProgress.emit)
+        self._update_download_worker.finished.connect(self._on_update_download_finished)
+        self._update_download_worker.finished.connect(self._update_download_thread.quit)
+        self._update_download_worker.finished.connect(self._update_download_worker.deleteLater)
+        self._update_download_thread.finished.connect(self._update_download_thread.deleteLater)
+
+        self._update_download_thread.start()
+
+    def _on_update_download_finished(self, success: bool, error_message: str) -> None:
+        self._update_download_thread = None
+        self._update_download_worker = None
+
+        if success:
+            self.updateFinished.emit()
+            # Délai léger pour permettre à l'UI d'afficher 100% avant le redémarrage
+            QTimer.singleShot(800, lambda: restart_installer())
+        else:
+            self.updateFailed.emit(error_message or "Échec de la mise à jour.")
 
     @Slot()
     def uploadInstallLog(self) -> None:
