@@ -376,6 +376,14 @@ class NixosJob(BaseJob):
   audacity = false;
   ardour = false;
 
+  # Impression 3D & Slicers
+  slicers = {{
+    orcaslicer = false;
+    prusaslicer = false;
+    cura = false;
+    bambustudio = false;
+  }};
+
   aiSuite = {{
     enable = {ai_suite};
     rocmOverrideGfx = "12.0.1";
