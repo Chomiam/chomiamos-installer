@@ -43,6 +43,7 @@ Item {
     // Gaming
     property bool gamingEnableValue: true
     property bool steamValue: true
+    property bool gamescopeSessionValue: true
     property bool lutrisValue: true
     property bool heroicValue: true
     property bool faugusValue: true
@@ -135,6 +136,7 @@ Item {
     function formatGamingLaunchers() {
         var list = []
         if (steamValue) list.push("Steam")
+        if (gamescopeSessionValue) list.push("Session GameScope")
         if (lutrisValue) list.push("Lutris")
         if (heroicValue) list.push("Heroic")
         if (faugusValue) list.push("Faugus")

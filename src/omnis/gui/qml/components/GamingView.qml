@@ -18,14 +18,17 @@ Item {
         id: card
         property string title: ""
         property string subtitle: ""
+        property string warningText: ""
         property string iconText: ""
         property bool checked: false
         property bool isMaster: false
+        property bool isOptionEnabled: true
         signal toggled()
 
         Layout.fillWidth: true
         Layout.preferredHeight: cardRow.implicitHeight + 22
         radius: 12
+        opacity: isOptionEnabled ? 1.0 : 0.45
         color: checked
                ? Qt.rgba(root.primaryColor.r, root.primaryColor.g, root.primaryColor.b, 0.18)
                : root.surfaceColor
@@ -37,8 +40,8 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: card.toggled()
+            cursorShape: card.isOptionEnabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+            onClicked: if (card.isOptionEnabled) card.toggled()
         }
 
         RowLayout {
@@ -83,6 +86,16 @@ Item {
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                     visible: text.length > 0
+                }
+
+                Text {
+                    text: card.warningText
+                    font.pixelSize: 11
+                    font.bold: true
+                    color: "#f9e2af"
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                    visible: card.warningText.length > 0
                 }
             }
 
@@ -183,6 +196,16 @@ Item {
                         iconText: "🕹️"
                         checked: engine.steam
                         onToggled: engine.setSteam(!engine.steam)
+                    }
+
+                    CheckCard {
+                        title: qsTr("Session Steam GameScope")
+                        subtitle: qsTr("Session graphique plein écran dédiée GameScope (mode console / Steam Deck).")
+                        warningText: engine.isNvidiaGpu ? qsTr("⚠️ Non disponible sur GPU NVIDIA (incompatibilité session Wayland)") : ""
+                        isOptionEnabled: !engine.isNvidiaGpu
+                        iconText: "📺"
+                        checked: !engine.isNvidiaGpu && engine.gamescopeSession
+                        onToggled: engine.setGamescopeSession(!engine.gamescopeSession)
                     }
 
                     CheckCard {

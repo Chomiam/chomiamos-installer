@@ -1309,6 +1309,7 @@ class EngineBridge(QObject):
             # Granular Gaming
             "gamingEnable": True,
             "steam": True,
+            "gamescopeSession": not self._detect_is_nvidia(),
             "lutris": True,
             "heroic": True,
             "faugus": True,
@@ -3003,6 +3004,35 @@ class EngineBridge(QObject):
             self._selections["geforceNow"] = enabled
             self.selectionsChanged.emit()
 
+    def _detect_is_nvidia(self) -> bool:
+        if hasattr(self, "_cached_is_nvidia") and self._cached_is_nvidia is not None:
+            return self._cached_is_nvidia
+        try:
+            res = subprocess.run(["lspci"], capture_output=True, text=True, check=False)
+            out = (res.stdout or "").lower()
+            self._cached_is_nvidia = ("nvidia" in out or "geforce" in out)
+        except Exception:
+            self._cached_is_nvidia = False
+        return self._cached_is_nvidia
+
+    @Property(bool, notify=selectionsChanged)
+    def isNvidiaGpu(self) -> bool:
+        return self._detect_is_nvidia()
+
+    @Property(bool, notify=selectionsChanged)
+    def gamescopeSession(self) -> bool:
+        if self.isNvidiaGpu:
+            return False
+        return bool(self._selections.get("gamescopeSession", True))
+
+    @Slot(bool)
+    def setGamescopeSession(self, enabled: bool) -> None:
+        if self.isNvidiaGpu:
+            enabled = False
+        if self._selections.get("gamescopeSession") != enabled:
+            self._selections["gamescopeSession"] = enabled
+            self.selectionsChanged.emit()
+
     @Property(bool, notify=selectionsChanged)
     def steeringWheels(self) -> bool:
         return bool(self._selections.get("steeringWheels", True))
@@ -3535,6 +3565,8 @@ class EngineBridge(QObject):
             normalized["retroarch_enable"] = normalized.pop("retroarchEnable")
         if "gamingEnable" in normalized:
             normalized["gaming_enable"] = normalized.pop("gamingEnable")
+        if "gamescopeSession" in normalized:
+            normalized["gamescope_session"] = normalized.pop("gamescopeSession")
         if "deckyLoader" in normalized:
             normalized["decky_loader"] = normalized.pop("deckyLoader")
         if "geforceNow" in normalized:

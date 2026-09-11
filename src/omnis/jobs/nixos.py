@@ -246,6 +246,7 @@ class NixosJob(BaseJob):
         # Gaming selections
         gaming_enable = "true" if s.get("gaming_enable", s.get("gamingEnable", True)) else "false"
         steam = "true" if s.get("steam", True) else "false"
+        gamescope_session = "true" if (gpu != "nvidia" and s.get("gamescope_session", s.get("gamescopeSession", True))) else "false"
         lutris = "true" if s.get("lutris", True) else "false"
         heroic = "true" if s.get("heroic", True) else "false"
         faugus = "true" if s.get("faugus", True) else "false"
@@ -336,6 +337,7 @@ class NixosJob(BaseJob):
 
   gaming = {{
     enable = {gaming_enable};
+    gamescopeSession = {gamescope_session};
     launchers = {{
       steam = {steam};
       lutris = {lutris};
@@ -394,6 +396,10 @@ class NixosJob(BaseJob):
   pearDesktop = {pear_desktop};
   kdenlive = {kdenlive};
   obsStudio = {obs_studio};
+  goverlay = true;
+  flatseal = true;
+  audacity = false;
+  ardour = false;
 
   aiSuite = {{
     enable = {ai_suite};

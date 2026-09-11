@@ -525,6 +525,7 @@ ApplicationWindow {
 
                 gamingEnableValue: engine.gamingEnable
                 steamValue: engine.steam
+                gamescopeSessionValue: engine.gamescopeSession
                 lutrisValue: engine.lutris
                 heroicValue: engine.heroic
                 faugusValue: engine.faugus
