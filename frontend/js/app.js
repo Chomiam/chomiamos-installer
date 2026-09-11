@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDisks();
   initSwapSlider();
   initPasswordSecurity();
+  initKeyboardModifiers();
+  initPasswordVisibilityToggles();
   initSummaryTrigger();
   initConfirmationModal();
   initTerminalActions();
@@ -890,7 +892,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.13 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.14 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -1291,4 +1293,77 @@ function openUpdateModal() {
   }
 
   modal.classList.remove('hidden');
+}
+
+// ── Indicateurs Clavier (Verr Maj / Caps Lock & Verr Num / Num Lock) ─────────
+function initKeyboardModifiers() {
+  function updateModifiers(e) {
+    if (!e || !e.getModifierState) return;
+    const capsLock = e.getModifierState('CapsLock');
+    const numLock = e.getModifierState('NumLock');
+
+    const capsPill = document.getElementById('indicator-caps-lock');
+    const capsStatus = document.getElementById('status-caps-lock');
+    if (capsPill && capsStatus) {
+      if (capsLock) {
+        capsPill.classList.add('caps-active');
+        capsStatus.textContent = 'Actif (Maj)';
+        capsPill.title = 'Attention : les majuscules sont actives, le mot de passe est sensible à la casse';
+      } else {
+        capsPill.classList.remove('caps-active');
+        capsStatus.textContent = 'Désactivé';
+        capsPill.title = 'Majuscules désactivées';
+      }
+    }
+
+    const numPill = document.getElementById('indicator-num-lock');
+    const numStatus = document.getElementById('status-num-lock');
+    if (numPill && numStatus) {
+      if (numLock) {
+        numPill.classList.add('num-active');
+        numStatus.textContent = 'Actif';
+        numPill.title = 'Pavé numérique actif';
+      } else {
+        numPill.classList.remove('num-active');
+        numStatus.textContent = 'Inactif';
+        numPill.title = 'Pavé numérique inactif';
+      }
+    }
+  }
+
+  const pwdInputs = [document.getElementById('input-password'), document.getElementById('input-password-confirm')];
+  pwdInputs.forEach(input => {
+    if (!input) return;
+    input.addEventListener('keydown', updateModifiers);
+    input.addEventListener('keyup', updateModifiers);
+    input.addEventListener('focus', updateModifiers);
+    input.addEventListener('blur', updateModifiers);
+  });
+  window.addEventListener('keydown', updateModifiers);
+  window.addEventListener('keyup', updateModifiers);
+}
+
+// ── Bouton œil pour afficher / masquer le mot de passe ──────────────────────
+function initPasswordVisibilityToggles() {
+  document.querySelectorAll('.btn-toggle-password').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+        btn.title = 'Masquer le mot de passe';
+        btn.setAttribute('aria-label', 'Masquer le mot de passe');
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+        btn.title = 'Afficher le mot de passe';
+        btn.setAttribute('aria-label', 'Afficher le mot de passe');
+      }
+      input.focus();
+    });
+  });
 }
