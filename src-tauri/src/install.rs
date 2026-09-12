@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use crate::config::{InstallerSelections, generate_vars_nix};
-use crate::swap::create_instant_swapfile;
+use crate::swap::{create_instant_swapfile, create_btrfs_swapfile};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallProgress {
@@ -384,21 +384,65 @@ pub async fn execute_installation(
         }
         emit_log("[OK] Partition EFI formatée avec succès en FAT32.");
 
-        emit_log(&format!("[INFO] Formatage de la partition racine en ext4 ({}) avec le label nixos...", root_part));
-        let mkfs_ext4 = privileged_cmd("mkfs.ext4").args(["-F", "-L", "nixos", &root_part]).status();
-        match mkfs_ext4 {
-            Ok(st) if st.success() => {},
-            other => {
-                let detail = match other {
-                    Ok(st) => format!("code de sortie: {:?}", st.code()),
-                    Err(e) => format!("erreur d'exécution: {}", e),
-                };
-                let err = format!("Échec du formatage ext4 de {} ({})", root_part, detail);
+        if s.filesystem == "btrfs" {
+            emit_log(&format!("[INFO] Formatage de la partition racine en Btrfs ({}) avec le label nixos...", root_part));
+            let mkfs_btrfs = privileged_cmd("mkfs.btrfs").args(["-f", "-L", "nixos", &root_part]).status();
+            match mkfs_btrfs {
+                Ok(st) if st.success() => {},
+                other => {
+                    let detail = match other {
+                        Ok(st) => format!("code de sortie: {:?}", st.code()),
+                        Err(e) => format!("erreur d'exécution: {}", e),
+                    };
+                    let err = format!("Échec du formatage Btrfs de {} ({})", root_part, detail);
+                    emit_log(&format!("[ERREUR FATALE] {}", err));
+                    return Err(err);
+                }
+            }
+            emit_log("[OK] Partition racine formatée avec succès en Btrfs.");
+
+            // Création ordonnée des subvolumes Btrfs (@, @home, @nix, @swap)
+            emit_log("[INFO] Montage temporaire pour création des subvolumes Btrfs...");
+            let _ = std::fs::create_dir_all("/mnt");
+            let mnt_temp = privileged_cmd("mount").args([&root_part, "/mnt"]).status();
+            if mnt_temp.map_or(true, |st| !st.success()) {
+                let err = format!("Échec du montage temporaire de {} sur /mnt pour créer les subvolumes", root_part);
                 emit_log(&format!("[ERREUR FATALE] {}", err));
                 return Err(err);
             }
+
+            let subvols = ["@", "@home", "@nix", "@swap"];
+            for sub in &subvols {
+                let p = format!("/mnt/{}", sub);
+                let st = privileged_cmd("btrfs").args(["subvolume", "create", &p]).status();
+                if st.map_or(true, |s| !s.success()) {
+                    let _ = privileged_cmd("umount").args(["-q", "/mnt"]).status();
+                    let err = format!("Échec de création du subvolume Btrfs {}", sub);
+                    emit_log(&format!("[ERREUR FATALE] {}", err));
+                    return Err(err);
+                }
+                emit_log(&format!("[OK] Subvolume Btrfs '{}' créé avec succès.", sub));
+            }
+
+            let _ = privileged_cmd("umount").args(["-q", "/mnt"]).status();
+            emit_log("[OK] Subvolumes créés et volume racine temporaire démonté proprement.");
+        } else {
+            emit_log(&format!("[INFO] Formatage de la partition racine en ext4 ({}) avec le label nixos...", root_part));
+            let mkfs_ext4 = privileged_cmd("mkfs.ext4").args(["-F", "-L", "nixos", &root_part]).status();
+            match mkfs_ext4 {
+                Ok(st) if st.success() => {},
+                other => {
+                    let detail = match other {
+                        Ok(st) => format!("code de sortie: {:?}", st.code()),
+                        Err(e) => format!("erreur d'exécution: {}", e),
+                    };
+                    let err = format!("Échec du formatage ext4 de {} ({})", root_part, detail);
+                    emit_log(&format!("[ERREUR FATALE] {}", err));
+                    return Err(err);
+                }
+            }
+            emit_log("[OK] Partition racine formatée avec succès en ext4.");
         }
-        emit_log("[OK] Partition racine formatée avec succès en ext4.");
 
         // ── Synchronisation udev obligatoire après formatage ──
         // Le noyau peut mettre un instant à exposer les métadonnées du FS
@@ -422,83 +466,180 @@ pub async fn execute_installation(
     if !effective_dry_run {
         let _ = std::fs::create_dir_all("/mnt");
 
-        // ── Montage de la partition racine avec mécanisme de retry ──
-        // Après un formatage récent, le noyau peut mettre un instant à
-        // rendre le système de fichiers disponible pour le montage.
-        emit_log(&format!("[INFO] Montage de la partition racine {} sur /mnt...", root_part));
-        let mut root_mounted = false;
-        for attempt in 1..=3 {
-            match privileged_cmd("mount").args([&root_part, "/mnt"]).status() {
-                Ok(st) if st.success() => {
-                    root_mounted = true;
-                    break;
-                }
-                other => {
-                    let detail = match other {
-                        Ok(st) => format!("code de sortie: {:?}", st.code()),
-                        Err(e) => format!("erreur d'exécution: {}", e),
-                    };
-                    emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, root_part, detail));
-                    if attempt < 3 {
-                        emit_log("[INFO] Attente de 2s avant la prochaine tentative de montage...");
-                        let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
-                        tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-                    }
-                }
-            }
-        }
-        if !root_mounted {
-            let err = format!("Échec du montage de la partition racine {} sur /mnt après 3 tentatives", root_part);
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            return Err(err);
-        }
-        emit_log("[OK] /mnt monté avec succès.");
+        if s.filesystem == "btrfs" {
+            // Options de montage avec compression zstd configurée
+            let compress_opt = if s.btrfs_compression == "none" {
+                "".to_string()
+            } else if s.btrfs_compression.starts_with("zstd") {
+                format!("compress={}", s.btrfs_compression)
+            } else {
+                "compress=zstd:1".to_string()
+            };
 
-        // ── Montage de la partition EFI avec retry ──
-        let _ = std::fs::create_dir_all("/mnt/boot");
-        emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
-        let mut boot_mounted = false;
-        for attempt in 1..=3 {
-            match privileged_cmd("mount").args([&efi_part, "/mnt/boot"]).status() {
-                Ok(st) if st.success() => {
-                    boot_mounted = true;
-                    break;
+            let make_opts = |sub: &str, is_swap: bool| -> String {
+                if is_swap {
+                    format!("subvol={},nodatacow", sub)
+                } else if compress_opt.is_empty() {
+                    format!("subvol={}", sub)
+                } else {
+                    format!("subvol={},{}", sub, compress_opt)
                 }
-                other => {
-                    let detail = match other {
-                        Ok(st) => format!("code de sortie: {:?}", st.code()),
-                        Err(e) => format!("erreur d'exécution: {}", e),
-                    };
-                    emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, efi_part, detail));
-                    if attempt < 3 {
+            };
+
+            // 1. Montage de @ sur /mnt
+            emit_log(&format!("[INFO] Montage du subvolume Btrfs @ sur /mnt (options: {})...", make_opts("@", false)));
+            let mut root_mounted = false;
+            for attempt in 1..=3 {
+                match privileged_cmd("mount").args(["-o", &make_opts("@", false), &root_part, "/mnt"]).status() {
+                    Ok(st) if st.success() => {
+                        root_mounted = true;
+                        break;
+                    }
+                    _other => {
+                        emit_log(&format!("[WARN] Tentative {}/3 montage @ échouée. Retry...", attempt));
                         tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
                     }
                 }
             }
-        }
-        if !boot_mounted {
-            let err = format!("Échec du montage de la partition EFI {} sur /mnt/boot après 3 tentatives", efi_part);
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            return Err(err);
-        }
-        emit_log("[OK] /mnt/boot monté avec succès.");
-        let _ = privileged_cmd("chmod").args(["777", "/mnt/boot"]).status();
+            if !root_mounted {
+                let err = format!("Échec du montage du subvolume Btrfs @ sur /mnt");
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
 
-        // ── Vérification réelle des points de montage via /proc/mounts ──
-        // Plus fiable que Path::exists() qui retourne true même sans montage
-        let mounts_content = std::fs::read_to_string("/proc/mounts").unwrap_or_default();
-        let root_verified = mounts_content.lines().any(|l| l.contains(" /mnt "));
-        let boot_verified = mounts_content.lines().any(|l| l.contains(" /mnt/boot "));
-        if !root_verified || !boot_verified {
-            let err = format!(
-                "Vérification /proc/mounts échouée : /mnt={}, /mnt/boot={}",
-                if root_verified { "OK" } else { "ABSENT" },
-                if boot_verified { "OK" } else { "ABSENT" }
-            );
-            emit_log(&format!("[ERREUR FATALE] {}", err));
-            return Err(err);
+            // 2. Création des répertoires cibles
+            let _ = std::fs::create_dir_all("/mnt/home");
+            let _ = std::fs::create_dir_all("/mnt/nix");
+            let _ = std::fs::create_dir_all("/mnt/swap");
+            let _ = std::fs::create_dir_all("/mnt/boot");
+
+            // 3. Montage de @home
+            emit_log(&format!("[INFO] Montage du subvolume Btrfs @home sur /mnt/home..."));
+            let mnt_home = privileged_cmd("mount").args(["-o", &make_opts("@home", false), &root_part, "/mnt/home"]).status();
+            if mnt_home.map_or(true, |st| !st.success()) {
+                let err = format!("Échec du montage de @home sur /mnt/home");
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+
+            // 4. Montage de @nix
+            emit_log(&format!("[INFO] Montage du subvolume Btrfs @nix sur /mnt/nix..."));
+            let mnt_nix = privileged_cmd("mount").args(["-o", &make_opts("@nix", false), &root_part, "/mnt/nix"]).status();
+            if mnt_nix.map_or(true, |st| !st.success()) {
+                let err = format!("Échec du montage de @nix sur /mnt/nix");
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+
+            // 5. Montage de @swap
+            emit_log(&format!("[INFO] Montage du subvolume Btrfs @swap sur /mnt/swap (nodatacow)..."));
+            let mnt_swap = privileged_cmd("mount").args(["-o", &make_opts("@swap", true), &root_part, "/mnt/swap"]).status();
+            if mnt_swap.map_or(true, |st| !st.success()) {
+                let err = format!("Échec du montage de @swap sur /mnt/swap");
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+
+            // 6. Montage de la partition EFI
+            emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
+            let mnt_boot = privileged_cmd("mount").args([&efi_part, "/mnt/boot"]).status();
+            if mnt_boot.map_or(true, |st| !st.success()) {
+                let err = format!("Échec du montage de l'EFI sur /mnt/boot");
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            let _ = privileged_cmd("chmod").args(["777", "/mnt/boot"]).status();
+
+            // 7. Vérification stricte de tous les points de montage
+            let mounts_content = std::fs::read_to_string("/proc/mounts").unwrap_or_default();
+            let all_ok = mounts_content.lines().any(|l| l.contains(" /mnt "))
+                && mounts_content.lines().any(|l| l.contains(" /mnt/home "))
+                && mounts_content.lines().any(|l| l.contains(" /mnt/nix "))
+                && mounts_content.lines().any(|l| l.contains(" /mnt/swap "))
+                && mounts_content.lines().any(|l| l.contains(" /mnt/boot "));
+
+            if !all_ok {
+                let err = "Vérification /proc/mounts échouée pour les subvolumes Btrfs.".to_string();
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            emit_log("[OK] Subvolumes Btrfs (@, @home, @nix, @swap) et EFI (/mnt/boot) vérifiés et montés avec succès.");
+        } else {
+            // ── Montage de la partition racine ext4 avec mécanisme de retry ──
+            emit_log(&format!("[INFO] Montage de la partition racine ext4 {} sur /mnt...", root_part));
+            let mut root_mounted = false;
+            for attempt in 1..=3 {
+                match privileged_cmd("mount").args([&root_part, "/mnt"]).status() {
+                    Ok(st) if st.success() => {
+                        root_mounted = true;
+                        break;
+                    }
+                    other => {
+                        let detail = match other {
+                            Ok(st) => format!("code de sortie: {:?}", st.code()),
+                            Err(e) => format!("erreur d'exécution: {}", e),
+                        };
+                        emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, root_part, detail));
+                        if attempt < 3 {
+                            emit_log("[INFO] Attente de 2s avant la prochaine tentative de montage...");
+                            let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
+                            tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                        }
+                    }
+                }
+            }
+            if !root_mounted {
+                let err = format!("Échec du montage de la partition racine {} sur /mnt après 3 tentatives", root_part);
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            emit_log("[OK] /mnt monté avec succès.");
+
+            // ── Montage de la partition EFI avec retry ──
+            let _ = std::fs::create_dir_all("/mnt/boot");
+            emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
+            let mut boot_mounted = false;
+            for attempt in 1..=3 {
+                match privileged_cmd("mount").args([&efi_part, "/mnt/boot"]).status() {
+                    Ok(st) if st.success() => {
+                        boot_mounted = true;
+                        break;
+                    }
+                    other => {
+                        let detail = match other {
+                            Ok(st) => format!("code de sortie: {:?}", st.code()),
+                            Err(e) => format!("erreur d'exécution: {}", e),
+                        };
+                        emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, efi_part, detail));
+                        if attempt < 3 {
+                            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                        }
+                    }
+                }
+            }
+            if !boot_mounted {
+                let err = format!("Échec du montage de la partition EFI {} sur /mnt/boot après 3 tentatives", efi_part);
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            emit_log("[OK] /mnt/boot monté avec succès.");
+            let _ = privileged_cmd("chmod").args(["777", "/mnt/boot"]).status();
+
+            // ── Vérification réelle des points de montage via /proc/mounts ──
+            let mounts_content = std::fs::read_to_string("/proc/mounts").unwrap_or_default();
+            let root_verified = mounts_content.lines().any(|l| l.contains(" /mnt "));
+            let boot_verified = mounts_content.lines().any(|l| l.contains(" /mnt/boot "));
+            if !root_verified || !boot_verified {
+                let err = format!(
+                    "Vérification /proc/mounts échouée : /mnt={}, /mnt/boot={}",
+                    if root_verified { "OK" } else { "ABSENT" },
+                    if boot_verified { "OK" } else { "ABSENT" }
+                );
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            emit_log("[OK] Vérification /proc/mounts confirmée : /mnt et /mnt/boot sont correctement montés.");
         }
-        emit_log("[OK] Vérification /proc/mounts confirmée : /mnt et /mnt/boot sont correctement montés.");
     } else {
         tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
         emit_log("[SIMULATION] Volumes montés sous /mnt et /mnt/boot.");
@@ -511,17 +652,27 @@ pub async fn execute_installation(
     emit_log("[ÉTAPE 5/8] === Configuration de l'espace Swap ===");
 
     if s.swap_size_mb > 0 {
-        emit_log(&format!("[INFO] Préallocation instantanée du fichier de swap ({} Mo)...", s.swap_size_mb));
+        emit_log(&format!("[INFO] Allocation et configuration de l'espace Swap ({} Mo)...", s.swap_size_mb));
         if !effective_dry_run {
-            let _ = std::fs::create_dir_all("/mnt/var");
-            let swap_path = Path::new("/mnt/var/swapfile");
-            if let Err(e) = create_instant_swapfile(swap_path, s.swap_size_mb) {
-                emit_log(&format!("[WARN] Erreur création swapfile: {}. Poursuite sans swapfile bloquant...", e));
+            if s.filesystem == "btrfs" {
+                let swap_path = Path::new("/mnt/swap/swapfile");
+                if let Err(e) = create_btrfs_swapfile(swap_path, s.swap_size_mb) {
+                    emit_log(&format!("[WARN] Erreur création swapfile Btrfs: {}. Poursuite sans swap...", e));
+                } else {
+                    let _ = privileged_cmd("swapon").arg("/mnt/swap/swapfile").status();
+                    emit_log(&format!("[OK] Swapfile Btrfs de {} Mo activé avec succès sous /swap/swapfile.", s.swap_size_mb));
+                }
             } else {
-                let _ = privileged_cmd("chmod").args(["600", "/mnt/var/swapfile"]).status();
-                let _ = privileged_cmd("mkswap").arg("/mnt/var/swapfile").status();
-                let _ = privileged_cmd("swapon").arg("/mnt/var/swapfile").status();
-                emit_log(&format!("[OK] Swapfile de {} Mo activé avec succès.", s.swap_size_mb));
+                let _ = std::fs::create_dir_all("/mnt/var");
+                let swap_path = Path::new("/mnt/var/swapfile");
+                if let Err(e) = create_instant_swapfile(swap_path, s.swap_size_mb) {
+                    emit_log(&format!("[WARN] Erreur création swapfile: {}. Poursuite sans swapfile bloquant...", e));
+                } else {
+                    let _ = privileged_cmd("chmod").args(["600", "/mnt/var/swapfile"]).status();
+                    let _ = privileged_cmd("mkswap").arg("/mnt/var/swapfile").status();
+                    let _ = privileged_cmd("swapon").arg("/mnt/var/swapfile").status();
+                    emit_log(&format!("[OK] Swapfile ext4 de {} Mo activé avec succès sous /var/swapfile.", s.swap_size_mb));
+                }
             }
         } else {
             tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
@@ -970,7 +1121,9 @@ r#"{{ config, lib, ... }}:
 
         emit_log("[INFO] Démontage propre des volumes...");
         if s.swap_size_mb > 0 {
+            let _ = privileged_cmd("swapoff").arg("/mnt/swap/swapfile").status();
             let _ = privileged_cmd("swapoff").arg("/mnt/var/swapfile").status();
+            let _ = privileged_cmd("swapoff").arg("-a").status();
         }
         let _ = privileged_cmd("umount").args(["-R", "/mnt"]).status();
         emit_log("[OK] Volumes démontés avec succès.");

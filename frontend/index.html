@@ -17,7 +17,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.20-testing (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.21-testing (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -244,10 +244,153 @@
             </div>
           </div>
 
-          <!-- 2. Choix de la taille du Swap en dessous -->
+          <!-- 2. Système de fichiers (ext4 vs Btrfs) -->
           <div class="form-section-block" style="margin-top: 24px;">
             <div class="section-subtitle">
               <span class="subtitle-badge">2</span>
+              <span>Système de fichiers (File System)</span>
+            </div>
+
+            <div class="fs-tiles-grid">
+              <!-- Tuile ext4 -->
+              <div class="fs-tile-card active" id="fs-tile-ext4" data-fs="ext4">
+                <div class="fs-card-header">
+                  <div class="fs-icon-wrap">🧱</div>
+                  <div class="fs-meta">
+                    <div class="fs-title-row">
+                      <strong class="fs-name">ext4</strong>
+                      <span class="fs-badge fs-badge-stable">Stabilité Maximale</span>
+                    </div>
+                    <span class="fs-subtext">Standard historique Linux • Zéro maintenance</span>
+                  </div>
+                </div>
+                <div class="fs-body">
+                  <p class="fs-desc">Le système de fichiers le plus éprouvé au monde, réputé pour sa robustesse absolue et ses performances prédictibles directes.</p>
+                  
+                  <div class="fs-pros-cons">
+                    <div class="fs-pro-item">
+                      <span class="pro-icon">✅</span>
+                      <span><strong>Fiabilité totale :</strong> Plus de 15 ans d'historique sans faille.</span>
+                    </div>
+                    <div class="fs-pro-item">
+                      <span class="pro-icon">✅</span>
+                      <span><strong>Zéro surcharge CPU :</strong> Aucune compression, écriture directe 1:1.</span>
+                    </div>
+                    <div class="fs-con-item">
+                      <span class="con-icon">❌</span>
+                      <span><strong>Pas de snapshots :</strong> Pas d'instantanés système natifs.</span>
+                    </div>
+                    <div class="fs-con-item">
+                      <span class="con-icon">❌</span>
+                      <span><strong>Pas de compression :</strong> Les jeux occupent leur taille brute complète.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="fs-radio-indicator">
+                  <input type="radio" name="fs-choice" value="ext4" checked>
+                  <span class="fs-radio-custom"></span>
+                </div>
+              </div>
+
+              <!-- Tuile Btrfs -->
+              <div class="fs-tile-card" id="fs-tile-btrfs" data-fs="btrfs">
+                <div class="fs-card-header">
+                  <div class="fs-icon-wrap">🦋</div>
+                  <div class="fs-meta">
+                    <div class="fs-title-row">
+                      <strong class="fs-name">Btrfs</strong>
+                      <span class="fs-badge fs-badge-modern">Snapshots & Compression</span>
+                    </div>
+                    <span class="fs-subtext">Système CoW moderne • Gain d'espace 20-35%</span>
+                  </div>
+                </div>
+                <div class="fs-body">
+                  <p class="fs-desc">Système Copy-on-Write (CoW) moderne avec instantanés instantanés, compression transparente en temps réel et vérification d'intégrité.</p>
+                  
+                  <div class="fs-pros-cons">
+                    <div class="fs-pro-item">
+                      <span class="pro-icon">✅</span>
+                      <span><strong>Compression zstd :</strong> Économise 20 à 35% d'espace disque.</span>
+                    </div>
+                    <div class="fs-pro-item">
+                      <span class="pro-icon">✅</span>
+                      <span><strong>Snapshots instantanés :</strong> Restauration système sans dupliquer l'espace.</span>
+                    </div>
+                    <div class="fs-pro-item">
+                      <span class="pro-icon">✅</span>
+                      <span><strong>Checksums CRC32c :</strong> Détection de la corruption silencieuse.</span>
+                    </div>
+                    <div class="fs-con-item">
+                      <span class="con-icon">⚠️</span>
+                      <span><strong>Légère surcharge CPU :</strong> Lors de l'écriture compressée (minime avec zstd:1).</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="fs-radio-indicator">
+                  <input type="radio" name="fs-choice" value="btrfs">
+                  <span class="fs-radio-custom"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sous-bloc conditionnel : Compression Btrfs -->
+            <div class="btrfs-compression-container hidden" id="btrfs-compression-container">
+              <div class="btrfs-comp-header">
+                <span class="btrfs-comp-icon">🗜️</span>
+                <div class="btrfs-comp-info">
+                  <strong>Taux de Compression Btrfs (Algorithme Zstandard / zstd)</strong>
+                  <p>La compression est transparente en temps réel. Elle augmente la durée de vie des SSD en réduisant le volume d'octets écrits.</p>
+                </div>
+              </div>
+
+              <div class="btrfs-comp-options-grid">
+                <label class="comp-option-card active" id="comp-opt-zstd-1">
+                  <input type="radio" name="btrfs-comp" value="zstd:1" checked>
+                  <div class="comp-option-header">
+                    <span class="comp-level">zstd:1</span>
+                    <span class="comp-tag tag-recommended">Recommandé</span>
+                  </div>
+                  <div class="comp-speed">Débit : > 2.5 Go/s</div>
+                  <div class="comp-desc">Performances maximales, impact CPU imperceptible, gain d'espace de ~20-25%. Idéal gaming & SSD NVMe.</div>
+                </label>
+
+                <label class="comp-option-card" id="comp-opt-zstd-3">
+                  <input type="radio" name="btrfs-comp" value="zstd:3">
+                  <div class="comp-option-header">
+                    <span class="comp-level">zstd:3</span>
+                    <span class="comp-tag tag-balanced">Équilibré</span>
+                  </div>
+                  <div class="comp-speed">Débit : > 1.8 Go/s</div>
+                  <div class="comp-desc">Niveau standard de zstd, bon équilibre vitesse/taille (~25-30% de gain d'espace).</div>
+                </label>
+
+                <label class="comp-option-card" id="comp-opt-zstd-6">
+                  <input type="radio" name="btrfs-comp" value="zstd:6">
+                  <div class="comp-option-header">
+                    <span class="comp-level">zstd:6</span>
+                    <span class="comp-tag tag-high">Élevé</span>
+                  </div>
+                  <div class="comp-speed">Débit : ~1.0 Go/s</div>
+                  <div class="comp-desc">Compression accrue pour disques de stockage lents ou espace très restreint (gain jusqu'à 35%).</div>
+                </label>
+
+                <label class="comp-option-card" id="comp-opt-none">
+                  <input type="radio" name="btrfs-comp" value="none">
+                  <div class="comp-option-header">
+                    <span class="comp-level">none</span>
+                    <span class="comp-tag tag-off">Désactivée</span>
+                  </div>
+                  <div class="comp-speed">Débit : Vitesse brute</div>
+                  <div class="comp-desc">Btrfs sans compression. Les fichiers sont enregistrés sous leur forme brute 1:1.</div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Choix de la taille du Swap en dessous -->
+          <div class="form-section-block" style="margin-top: 24px;">
+            <div class="section-subtitle">
+              <span class="subtitle-badge">3</span>
               <span>Configuration de la taille du Swap</span>
             </div>
             <div class="swap-config-card">

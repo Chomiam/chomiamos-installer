@@ -47,6 +47,53 @@ async function listen(event, cb) {
 }
 
 
+// ── Sélection du Système de Fichiers (ext4 vs Btrfs) & Compression (v1.2.21) ─
+let selectedFilesystem = "ext4";
+let selectedBtrfsCompression = "zstd:1";
+
+function initFilesystemHandlers() {
+  const fsCards = document.querySelectorAll('.fs-tile-card');
+  const compCards = document.querySelectorAll('.comp-option-card');
+  const compContainer = document.getElementById('btrfs-compression-container');
+
+  fsCards.forEach(card => {
+    card.addEventListener('click', () => {
+      fsCards.forEach(c => {
+        c.classList.remove('active');
+        const radio = c.querySelector('input[type="radio"]');
+        if (radio) radio.checked = false;
+      });
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+
+      selectedFilesystem = card.dataset.fs || "ext4";
+
+      if (selectedFilesystem === "btrfs") {
+        if (compContainer) compContainer.classList.remove('hidden');
+      } else {
+        if (compContainer) compContainer.classList.add('hidden');
+      }
+    });
+  });
+
+  compCards.forEach(card => {
+    card.addEventListener('click', () => {
+      compCards.forEach(c => {
+        c.classList.remove('active');
+        const radio = c.querySelector('input[type="radio"]');
+        if (radio) radio.checked = false;
+      });
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+        selectedBtrfsCompression = radio.value;
+      }
+    });
+  });
+}
+
 // ── Gestionnaires Interactifs Navigateurs & Mail (v1.2.18) ───────────────────
 let selectedBrowser = "chrome";
 let browserPkgTypes = {
@@ -234,6 +281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initHostnameValidation();
   initBrowserAndMailHandlers();
   initDavinciResolveHandlers();
+  initFilesystemHandlers();
   initSummaryTrigger();
   initConfirmationModal();
   initTerminalActions();
@@ -892,6 +940,8 @@ function collectSelections() {
     keyboard_variant: document.getElementById('keyboard-variant-select')?.value || "",
     timezone: document.getElementById('timezone-select')?.value || "Europe/Paris",
     target_disk: diskPath,
+    filesystem: selectedFilesystem || "ext4",
+    btrfs_compression: (selectedFilesystem === "btrfs" ? (selectedBtrfsCompression || "zstd:1") : "none"),
     swap_size_mb: getSwapSizeMb(),
     gpu_driver: detectedGpuDriver || "amd",
 
@@ -958,6 +1008,7 @@ function updateSummary() {
 
   box.innerHTML = `
     <div class="summary-item"><label>Disque cible</label><span>${s.target_disk || 'Non sélectionné'}</span></div>
+    <div class="summary-item"><label>Système de fichiers</label><span>${s.filesystem === 'btrfs' ? 'Btrfs (Compression ' + s.btrfs_compression + ', sous-volumes @, @home, @nix, @swap)' : 'ext4 (Standard journalisé)'}</span></div>
     <div class="summary-item"><label>Fichier de Swap</label><span>${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}</span></div>
     <div class="summary-item"><label>Disposition Clavier</label><span>${s.keyboard_layout.toUpperCase()} ${s.keyboard_variant ? '(' + s.keyboard_variant + ')' : ''}</span></div>
     <div class="summary-item"><label>Fuseau Horaire</label><span>${s.timezone}</span></div>
@@ -1184,6 +1235,7 @@ async function startInstallation(s) {
     initMirrorDetection();
     appendLog("🚀 Démarrage du processus d'installation...");
     appendLog(`Disque cible configuré : ${s.target_disk}`);
+    appendLog(`Système de fichiers : ${s.filesystem.toUpperCase()}${s.filesystem === 'btrfs' ? ' (compression ' + s.btrfs_compression + ', sous-volumes @, @home, @nix, @swap)' : ' (ext4)'}`);
     appendLog(`Taille de Swap sélectionnée : ${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}`);
     appendLog(`Environnement de bureau : ${s.desktop_env} | Pilote GPU : ${s.gpu_driver || 'amd'}`);
 

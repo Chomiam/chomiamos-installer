@@ -58,3 +58,46 @@ pub fn recommend_swap_size_mb(total_ram_gb: f64) -> u64 {
         4096 // 4 GB for 32GB+ (emergency suspend only)
     }
 }
+
+/// Creates a swapfile of  Megabytes on Btrfs at .
+/// Uses btrfs filesystem mkswapfile with robust fallback (truncate + chattr +C + fallocate + chmod 600 + mkswap).
+pub fn create_btrfs_swapfile(path: &Path, size_mb: u64) -> Result<(), String> {
+    if size_mb == 0 {
+        return Ok(());
+    }
+
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    // 1. Essai de l'outil natif officiel btrfs-progs (btrfs filesystem mkswapfile)
+    let btrfs_status = Command::new("btrfs")
+        .args(["filesystem", "mkswapfile", "-s", &format!("{}m", size_mb), path.to_str().unwrap()])
+        .status();
+
+    if let Ok(st) = btrfs_status {
+        if st.success() {
+            return Ok(());
+        }
+    }
+
+    // 2. Fallback Linux robuste
+    let size_bytes = size_mb * 1024 * 1024;
+    let _ = Command::new("truncate").args(["-s", "0", path.to_str().unwrap()]).status();
+    let _ = Command::new("chattr").args(["+C", path.to_str().unwrap()]).status();
+
+    let falloc = Command::new("fallocate").args(["-l", &size_bytes.to_string(), path.to_str().unwrap()]).status();
+    if falloc.map_or(true, |s| !s.success()) {
+        let _ = Command::new("dd")
+            .args(["if=/dev/zero", &format!("of={}", path.display()), "bs=1M", &format!("count={}", size_mb)])
+            .status();
+    }
+
+    let _ = Command::new("chmod").args(["600", path.to_str().unwrap()]).status();
+    let mkswap = Command::new("mkswap").arg(path).status().map_err(|e| e.to_string())?;
+    if !mkswap.success() {
+        return Err(format!("mkswap a échoué avec le code {:?}", mkswap.code()));
+    }
+
+    Ok(())
+}

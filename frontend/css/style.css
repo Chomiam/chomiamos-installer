@@ -3200,3 +3200,306 @@ select option:checked, .form-select option:checked {
 .btn-diag-copy:hover {
   background: rgba(137, 180, 250, 0.25);
 }
+
+
+/* ==========================================================================
+   Catppuccin Mocha - Filesystem Selection (ext4 vs Btrfs) & Compression UI
+   ========================================================================== */
+
+.fs-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.fs-tile-card {
+  background: var(--mocha-surface0);
+  border: 2px solid var(--mocha-surface1);
+  border-radius: 14px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  gap: 14px;
+}
+
+.fs-tile-card:hover {
+  border-color: var(--mocha-lavender);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.fs-tile-card.active {
+  border-color: var(--mocha-mauve);
+  background: rgba(30, 30, 46, 0.9);
+  box-shadow: 0 8px 28px rgba(203, 166, 247, 0.15);
+}
+
+.fs-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fs-icon-wrap {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(203, 166, 247, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fs-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fs-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-name {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--mocha-text);
+}
+
+.fs-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fs-badge-stable {
+  background: rgba(166, 227, 161, 0.15);
+  color: var(--mocha-green);
+  border: 1px solid rgba(166, 227, 161, 0.3);
+}
+
+.fs-badge-modern {
+  background: rgba(203, 166, 247, 0.18);
+  color: var(--mocha-mauve);
+  border: 1px solid rgba(203, 166, 247, 0.35);
+}
+
+.fs-subtext {
+  font-size: 0.80rem;
+  color: var(--mocha-subtext0);
+}
+
+.fs-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--mocha-subtext1);
+  margin: 0 0 12px 0;
+}
+
+.fs-pros-cons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(17, 17, 27, 0.5);
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.fs-pro-item {
+  font-size: 0.81rem;
+  color: var(--mocha-subtext0);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.fs-pro-item strong {
+  color: var(--mocha-text);
+}
+
+.fs-con-item {
+  font-size: 0.80rem;
+  color: var(--mocha-overlay2);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.fs-con-item strong {
+  color: var(--mocha-subtext1);
+}
+
+.fs-radio-indicator {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.fs-radio-indicator input[type="radio"] {
+  display: none;
+}
+
+.fs-radio-custom {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--mocha-overlay0);
+  display: inline-block;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.fs-tile-card.active .fs-radio-custom {
+  border-color: var(--mocha-mauve);
+}
+
+.fs-tile-card.active .fs-radio-custom::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--mocha-mauve);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Btrfs Compression Block */
+.btrfs-compression-container {
+  margin-top: 16px;
+  background: rgba(17, 17, 27, 0.7);
+  border: 1px solid rgba(203, 166, 247, 0.25);
+  border-left: 4px solid var(--mocha-mauve);
+  border-radius: 12px;
+  padding: 16px 20px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.btrfs-compression-container.hidden {
+  display: none !important;
+}
+
+.btrfs-comp-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btrfs-comp-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.btrfs-comp-info strong {
+  font-size: 0.95rem;
+  color: var(--mocha-text);
+}
+
+.btrfs-comp-info p {
+  margin: 3px 0 0 0;
+  font-size: 0.81rem;
+  color: var(--mocha-subtext0);
+}
+
+.btrfs-comp-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.comp-option-card {
+  background: var(--mocha-surface0);
+  border: 2px solid var(--mocha-surface1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.comp-option-card:hover {
+  border-color: var(--mocha-lavender);
+  transform: translateY(-1px);
+}
+
+.comp-option-card.active {
+  border-color: var(--mocha-mauve);
+  background: rgba(203, 166, 247, 0.1);
+  box-shadow: 0 4px 14px rgba(203, 166, 247, 0.15);
+}
+
+.comp-option-card input[type="radio"] {
+  display: none;
+}
+
+.comp-option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.comp-level {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--mocha-text);
+}
+
+.comp-tag {
+  font-size: 0.70rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.tag-recommended {
+  background: rgba(166, 227, 161, 0.2);
+  color: var(--mocha-green);
+}
+
+.tag-balanced {
+  background: rgba(137, 180, 250, 0.2);
+  color: var(--mocha-sapphire);
+}
+
+.tag-high {
+  background: rgba(249, 226, 175, 0.2);
+  color: var(--mocha-yellow);
+}
+
+.tag-off {
+  background: rgba(108, 112, 134, 0.2);
+  color: var(--mocha-overlay1);
+}
+
+.comp-speed {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--mocha-peach);
+}
+
+.comp-desc {
+  font-size: 0.79rem;
+  line-height: 1.4;
+  color: var(--mocha-subtext0);
+}

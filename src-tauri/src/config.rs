@@ -17,6 +17,8 @@ pub struct InstallerSelections {
     pub keyboard_variant: String,
     pub timezone: String,
     pub target_disk: String,
+    pub filesystem: String, // "ext4" or "btrfs"
+    pub btrfs_compression: String, // "zstd:1", "zstd:3", "zstd:6", "none"
     pub swap_size_mb: u64,
     pub gpu_driver: Option<String>,
 
@@ -93,6 +95,8 @@ impl Default for InstallerSelections {
             keyboard_variant: "".into(),
             timezone: "Europe/Paris".into(),
             target_disk: "".into(),
+            filesystem: "ext4".into(),
+            btrfs_compression: "zstd:1".into(),
             swap_size_mb: 8192,
             gpu_driver: None,
             emu_es_de: false,
@@ -226,6 +230,12 @@ r#"{{
   # Pare-feu réseau
   firewall = false;
 
+  # Système de fichiers principal
+  fileSystem = {{
+    type = "{filesystem}";
+    compression = "{btrfs_compression}";
+  }};
+
   # Environnement de bureau
   desktopEnv = "{desktop_env}";
 
@@ -343,6 +353,8 @@ r#"{{
         browser_type = if s.browser_type.is_empty() { "system" } else { &s.browser_type },
         mail_client = if s.mail_client.is_empty() { "thunderbird" } else { &s.mail_client },
         discord_client = s.discord_client,
+        filesystem = s.filesystem,
+        btrfs_compression = s.btrfs_compression,
         desktop_env = s.desktop_env,
         gpu_driver = active_gpu,
         gamescope_session = gamescope_session,
@@ -410,6 +422,7 @@ mod tests {
         assert!(out.contains("duckstation = true;"));
         assert!(out.contains("rpcs3 = false;"));
         assert!(out.contains("gamescopeSession = true;"));
+        assert!(out.contains("type = \"ext4\";"));
 
         selections.emu_es_de = false;
         selections.emu_retroarch = false;
