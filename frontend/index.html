@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.17-testing (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.18-testing (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.17)</span>
+          <span id="update-status-text">À jour (v1.2.18)</span>
         </button>
 
         <div class="session-badge">
@@ -62,47 +62,54 @@
         <div class="step-item" data-step="4">
           <div class="step-num">4</div>
           <div class="step-info">
-            <span class="step-label">Bureau & Web</span>
-            <span class="step-desc">Bureau, Web & Discord</span>
+            <span class="step-label">Bureau</span>
+            <span class="step-desc">Environnement graphique</span>
           </div>
         </div>
         <div class="step-item" data-step="5">
           <div class="step-num">5</div>
           <div class="step-info">
-            <span class="step-label">Gaming</span>
-            <span class="step-desc">Steam, Sunshine & Outils</span>
+            <span class="step-label">Web & Mail</span>
+            <span class="step-desc">Navigateur, Mail & Discord</span>
           </div>
         </div>
         <div class="step-item" data-step="6">
           <div class="step-num">6</div>
           <div class="step-info">
-            <span class="step-label">Rétro Gaming</span>
-            <span class="step-desc">ES-DE & Émulateurs</span>
+            <span class="step-label">Gaming</span>
+            <span class="step-desc">Steam, Sunshine & Outils</span>
           </div>
         </div>
         <div class="step-item" data-step="7">
           <div class="step-num">7</div>
           <div class="step-info">
-            <span class="step-label">Multimédia</span>
-            <span class="step-desc">VLC, DaVinci & Audio</span>
+            <span class="step-label">Rétro Gaming</span>
+            <span class="step-desc">ES-DE & Émulateurs</span>
           </div>
         </div>
         <div class="step-item" data-step="8">
           <div class="step-num">8</div>
           <div class="step-info">
-            <span class="step-label">Productivité</span>
-            <span class="step-desc">OBS, 3D & Outils</span>
+            <span class="step-label">Multimédia</span>
+            <span class="step-desc">VLC, DaVinci & Audio</span>
           </div>
         </div>
         <div class="step-item" data-step="9">
           <div class="step-num">9</div>
           <div class="step-info">
-            <span class="step-label">Utilisateur</span>
-            <span class="step-desc">Compte & Sécurité</span>
+            <span class="step-label">Productivité</span>
+            <span class="step-desc">OBS, 3D & Outils</span>
           </div>
         </div>
         <div class="step-item" data-step="10">
           <div class="step-num">10</div>
+          <div class="step-info">
+            <span class="step-label">Utilisateur</span>
+            <span class="step-desc">Compte & Sécurité</span>
+          </div>
+        </div>
+        <div class="step-item" data-step="11">
+          <div class="step-num">11</div>
           <div class="step-info">
             <span class="step-label">Résumé</span>
             <span class="step-desc">Validation & Déploiement</span>
@@ -273,68 +280,384 @@
         <!-- Step 4: Desktop Environment -->
         <section class="step-panel" id="panel-step-4">
           <div class="panel-header">
-            <h2>Environnement de Bureau & Navigateur</h2>
-            <p>Choisissez votre environnement initial. Grâce à l'architecture modulaire ChomiamOS, vous pourrez changer de bureau à tout moment.</p>
+            <h2>Environnement de Bureau (Desktop Environment)</h2>
+            <p>Choisissez votre environnement initial. Grâce à l'architecture modulaire de ChomiamOS, vous pourrez changer de bureau à tout moment.</p>
           </div>
-          <div class="cards-grid de-grid">
-            <label class="selection-card active">
+          <div class="de-comparison-grid">
+            <!-- GNOME 48 -->
+            <label class="de-comparison-card active" data-de="gnome">
               <input type="radio" name="desktop_env" value="gnome" checked>
-              <div class="card-inner">
-                <span class="card-icon">🔵</span>
-                <span class="card-title" id="de-title-gnome">GNOME</span>
-                <span class="card-desc">Thème Catppuccin Mocha, extensions Blur & Dash-to-Dock préconfigurées.</span>
+              <div class="de-card-header">
+                <div class="de-header-left">
+                  <span class="de-icon">🔵</span>
+                  <div class="de-title-wrap">
+                    <span class="de-title">GNOME 48</span>
+                    <span class="de-badge badge-recommended">Recommandé / Éprouvé</span>
+                  </div>
+                </div>
+                <div class="selection-radio-indicator"></div>
+              </div>
+              <p class="de-summary">Environnement moderne et raffiné avec thème Catppuccin Mocha, extensions Dash-to-Dock et Blur My Shell intégrées.</p>
+              <div class="de-specs">
+                <div class="de-pros">
+                  <span class="spec-label">✨ Avantages</span>
+                  <ul>
+                    <li>Intégration Wayland la plus mature et stable de Linux</li>
+                    <li>Ergonomie gestuelle fluide et intuitive au trackpad</li>
+                    <li>Écosystème logiciel soigné et cohérent</li>
+                  </ul>
+                </div>
+                <div class="de-cons">
+                  <span class="spec-label">⚠️ Points d'attention</span>
+                  <ul>
+                    <li>Consommation mémoire un peu plus élevée (1.2 - 1.6 Go au repos)</li>
+                    <li>Personnalisation d'interface dépendante des extensions</li>
+                  </ul>
+                </div>
               </div>
             </label>
-            <label class="selection-card">
-              <input type="radio" name="desktop_env" value="cinnamon">
-              <div class="card-inner">
-                <span class="card-icon">🌿</span>
-                <span class="card-title" id="de-title-cinnamon">Cinnamon 6.6</span>
-                <span class="card-desc">Bureau traditionnel ultra-rapide avec fonds d'écran officiels intégrés.</span>
-              </div>
-            </label>
-            <label class="selection-card">
+
+            <!-- KDE Plasma 6 -->
+            <label class="de-comparison-card" data-de="kde">
               <input type="radio" name="desktop_env" value="kde">
-              <div class="card-inner">
-                <span class="card-icon">❄️</span>
-                <span class="card-title" id="de-title-kde">KDE Plasma 6</span>
-                <span class="card-desc">Personnalisation extrême, Catppuccin Lavender et Wayland HDR.</span>
+              <div class="de-card-header">
+                <div class="de-header-left">
+                  <span class="de-icon">❄️</span>
+                  <div class="de-title-wrap">
+                    <span class="de-title">KDE Plasma 6</span>
+                    <span class="de-badge badge-customizable">Hyper Personnalisable</span>
+                  </div>
+                </div>
+                <div class="selection-radio-indicator"></div>
+              </div>
+              <p class="de-summary">Bureau ultra-modulable sous Qt 6 avec thème Catppuccin Lavender, support HDR et performances gaming de premier ordre.</p>
+              <div class="de-specs">
+                <div class="de-pros">
+                  <span class="spec-label">✨ Avantages</span>
+                  <ul>
+                    <li>Très léger et réactif (700 - 900 Mo de RAM au repos)</li>
+                    <li>Personnalisation esthétique et fonctionnelle absolue</li>
+                    <li>Prise en charge native avancée des écrans HDR et VRR</li>
+                  </ul>
+                </div>
+                <div class="de-cons">
+                  <span class="spec-label">⚠️ Points d'attention</span>
+                  <ul>
+                    <li>Nombreuses options et menus pouvant intimider un nouvel utilisateur</li>
+                  </ul>
+                </div>
               </div>
             </label>
-            <label class="selection-card">
+
+            <!-- COSMIC Desktop 1.5+ -->
+            <label class="de-comparison-card" data-de="cosmic">
               <input type="radio" name="desktop_env" value="cosmic">
-              <div class="card-inner">
-                <span class="card-icon">🚀</span>
-                <span class="card-title" id="de-title-cosmic">COSMIC Desktop (Alpha)</span>
-                <span class="card-desc">Nouvelle génération écrite en Rust par System76 avec fenêtrage dynamique.</span>
+              <div class="de-card-header">
+                <div class="de-header-left">
+                  <span class="de-icon">🚀</span>
+                  <div class="de-title-wrap">
+                    <span class="de-title">COSMIC Desktop 1.5+</span>
+                    <span class="de-badge badge-experimental">Écrit en Rust • Expérimental</span>
+                  </div>
+                </div>
+                <div class="selection-radio-indicator"></div>
+              </div>
+              <p class="de-summary">Nouvelle génération de bureau développée par System76 en 100% Rust avec fenêtrage dynamique natif.</p>
+              <div class="de-specs">
+                <div class="de-pros">
+                  <span class="spec-label">✨ Avantages</span>
+                  <ul>
+                    <li>Moteur 100% Rust : haute sécurité mémoire et réactivité</li>
+                    <li>Mode Tiling (pavage automatique de fenêtres) exceptionnel</li>
+                    <li>Applets modulaires et design épuré ultra-moderne</li>
+                  </ul>
+                </div>
+                <div class="de-cons">
+                  <span class="spec-label">⚠️ Points d'attention</span>
+                  <ul>
+                    <li><strong>Statut expérimental (Alpha/Beta)</strong> : écosystème en plein essor</li>
+                    <li>Certaines applications tierces peuvent présenter des bugs de jeunesse</li>
+                  </ul>
+                </div>
+              </div>
+            </label>
+
+            <!-- Cinnamon 6.6 -->
+            <label class="de-comparison-card" data-de="cinnamon">
+              <input type="radio" name="desktop_env" value="cinnamon">
+              <div class="de-card-header">
+                <div class="de-header-left">
+                  <span class="de-icon">🌿</span>
+                  <div class="de-title-wrap">
+                    <span class="de-title">Cinnamon 6.6</span>
+                    <span class="de-badge badge-classic">Léger & Traditionnel</span>
+                  </div>
+                </div>
+                <div class="selection-radio-indicator"></div>
+              </div>
+              <p class="de-summary">Interface traditionnelle inspirée de Linux Mint et Windows. Prise en main instantanée et consommation de ressources minime.</p>
+              <div class="de-specs">
+                <div class="de-pros">
+                  <span class="spec-label">✨ Avantages</span>
+                  <ul>
+                    <li>Prise en main immédiate sans courbe d'apprentissage</li>
+                    <li>Consommation de ressources très basse, idéal pour toutes configurations</li>
+                    <li>Stabilité éprouvée et simplicité exemplaire</li>
+                  </ul>
+                </div>
+                <div class="de-cons">
+                  <span class="spec-label">⚠️ Points d'attention</span>
+                  <ul>
+                    <li>Architecture conçue pour X11 (support Wayland encore en intégration)</li>
+                    <li>Look classique moins axé sur les animations futuristes</li>
+                  </ul>
+                </div>
               </div>
             </label>
           </div>
+        </section>
 
-          <div class="form-group" style="margin-top: 20px;">
-            <label for="browser-select">Navigateur Web principal</label>
-            <select id="browser-select" class="form-select">
-              <option value="chrome" selected>Google Chrome (Natif)</option>
-              <option value="firefox">Mozilla Firefox (Natif)</option>
-              <option value="brave">Brave Browser (Flatpak)</option>
-              <option value="zen">Zen Browser (Flatpak)</option>
-              <option value="librewolf">LibreWolf (Natif respect de la vie privée)</option>
-            </select>
+        <!-- Step 5: Web Browsers, Mail Client & Discord -->
+        <section class="step-panel" id="panel-step-5">
+          <div class="panel-header">
+            <h2>Navigateurs Internet & Messagerie</h2>
+            <p>Sélectionnez vos logiciels web et de messagerie avec choix entre paquet Système et Flatpak.</p>
           </div>
 
-          <div class="form-group" style="margin-top: 16px;">
-            <label for="discord-select">Client de Communication Discord</label>
-            <select id="discord-select" class="form-select">
-              <option value="discord" selected>Discord (Client officiel)</option>
-              <option value="vesktop">Vesktop (Vencord + Optimisation Linux & Screenshare Wayland)</option>
-              <option value="equibop">Equibop (Client alternatif léger)</option>
-              <option value="none">Aucun (Ne pas installer Discord)</option>
-            </select>
+          <!-- Section 1 : Navigateurs Web -->
+          <div class="section-subblock">
+            <div class="subblock-header">
+              <h3 class="subblock-title">🌐 Navigateur Web Principal</h3>
+              <span class="subblock-hint">Sélectionnez le navigateur et son mode d'empaquetage</span>
+            </div>
+
+            <div class="browser-tiles-grid">
+              <!-- Google Chrome -->
+              <div class="browser-tile-card active" data-browser="chrome">
+                <div class="browser-tile-main">
+                  <span class="browser-icon">🌐</span>
+                  <div class="browser-info">
+                    <div class="browser-title-line">
+                      <strong class="browser-title">Google Chrome</strong>
+                      <span class="browser-tag">Blink</span>
+                    </div>
+                    <small class="browser-desc">Moteur Blink, compatibilité web maximale et synchronisation Google.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+                <div class="pkg-switcher-row">
+                  <button type="button" class="btn-pkg-pill active" data-browser="chrome" data-type="system">
+                    <span class="bullet"></span> Système (Nix)
+                  </button>
+                  <button type="button" class="btn-pkg-pill" data-browser="chrome" data-type="flatpak">
+                    <span class="bullet"></span> Flatpak
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mozilla Firefox -->
+              <div class="browser-tile-card" data-browser="firefox">
+                <div class="browser-tile-main">
+                  <span class="browser-icon">🦊</span>
+                  <div class="browser-info">
+                    <div class="browser-title-line">
+                      <strong class="browser-title">Mozilla Firefox</strong>
+                      <span class="browser-tag">Gecko</span>
+                    </div>
+                    <small class="browser-desc">Moteur Gecko indépendant, respect de la vie privée et accélération Wayland.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+                <div class="pkg-switcher-row">
+                  <button type="button" class="btn-pkg-pill active" data-browser="firefox" data-type="system">
+                    <span class="bullet"></span> Système (Nix)
+                  </button>
+                  <button type="button" class="btn-pkg-pill" data-browser="firefox" data-type="flatpak">
+                    <span class="bullet"></span> Flatpak
+                  </button>
+                </div>
+              </div>
+
+              <!-- Brave Browser -->
+              <div class="browser-tile-card" data-browser="brave">
+                <div class="browser-tile-main">
+                  <span class="browser-icon">🦁</span>
+                  <div class="browser-info">
+                    <div class="browser-title-line">
+                      <strong class="browser-title">Brave Browser</strong>
+                      <span class="browser-tag">Shields</span>
+                    </div>
+                    <small class="browser-desc">Moteur Chromium avec bloqueur Brave Shields natif, navigation rapide et sécurisée.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+                <div class="pkg-switcher-row">
+                  <button type="button" class="btn-pkg-pill active" data-browser="brave" data-type="system">
+                    <span class="bullet"></span> Système (Nix)
+                  </button>
+                  <button type="button" class="btn-pkg-pill" data-browser="brave" data-type="flatpak">
+                    <span class="bullet"></span> Flatpak
+                  </button>
+                </div>
+              </div>
+
+              <!-- Zen Browser -->
+              <div class="browser-tile-card" data-browser="zen">
+                <div class="browser-tile-main">
+                  <span class="browser-icon">☯️</span>
+                  <div class="browser-info">
+                    <div class="browser-title-line">
+                      <strong class="browser-title">Zen Browser</strong>
+                      <span class="browser-tag">Productivité</span>
+                    </div>
+                    <small class="browser-desc">Basé sur Firefox, onglets verticaux, espaces de travail et interface épurée.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+                <div class="pkg-switcher-row">
+                  <span class="pill-locked">📦 Flatpak uniquement</span>
+                </div>
+              </div>
+
+              <!-- LibreWolf -->
+              <div class="browser-tile-card" data-browser="librewolf">
+                <div class="browser-tile-main">
+                  <span class="browser-icon">🐺</span>
+                  <div class="browser-info">
+                    <div class="browser-title-line">
+                      <strong class="browser-title">LibreWolf</strong>
+                      <span class="browser-tag">Privacy</span>
+                    </div>
+                    <small class="browser-desc">Version durcie de Firefox, anti-télémétrie et protection maximale de la vie privée.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+                <div class="pkg-switcher-row">
+                  <span class="pill-locked">📦 Flatpak uniquement</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2 : Client de Messagerie E-mail -->
+          <div class="section-subblock" style="margin-top: 26px;">
+            <div class="subblock-header">
+              <h3 class="subblock-title">📧 Client de Messagerie E-mail (Client Mail)</h3>
+              <span class="subblock-hint">Application de bureau pour vos boîtes de réception</span>
+            </div>
+
+            <div class="mail-tiles-grid">
+              <!-- Thunderbird -->
+              <label class="mail-tile-card active" data-mail="thunderbird">
+                <input type="radio" name="mail_client" value="thunderbird" checked>
+                <div class="mail-tile-main">
+                  <span class="mail-icon">📧</span>
+                  <div class="mail-info">
+                    <div class="mail-title-line">
+                      <strong class="mail-title">Mozilla Thunderbird</strong>
+                      <span class="mail-badge badge-recommended">Recommandé</span>
+                    </div>
+                    <small class="mail-desc">Client complet multi-comptes, calendrier, carnet d'adresses et chiffrement OpenPGP.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+
+              <!-- Mailspring -->
+              <label class="mail-tile-card" data-mail="mailspring">
+                <input type="radio" name="mail_client" value="mailspring">
+                <div class="mail-tile-main">
+                  <span class="mail-icon">📬</span>
+                  <div class="mail-info">
+                    <div class="mail-title-line">
+                      <strong class="mail-title">Mailspring</strong>
+                      <span class="mail-badge badge-modern">Design Moderne</span>
+                    </div>
+                    <small class="mail-desc">Client élégant avec recherche unifiée, signatures multiples et thèmes graphiques.</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+
+              <!-- Aucun -->
+              <label class="mail-tile-card" data-mail="none">
+                <input type="radio" name="mail_client" value="none">
+                <div class="mail-tile-main">
+                  <span class="mail-icon">🚫</span>
+                  <div class="mail-info">
+                    <div class="mail-title-line">
+                      <strong class="mail-title">Aucun client mail</strong>
+                      <span class="mail-badge badge-none">Webmail</span>
+                    </div>
+                    <small class="mail-desc">Ne pas installer de client lourd (consultation des e-mails via navigateur).</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 3 : Client Discord -->
+          <div class="section-subblock" style="margin-top: 26px;">
+            <div class="subblock-header">
+              <h3 class="subblock-title">💬 Client de Communication Discord</h3>
+              <span class="subblock-hint">Plateforme communautaire et vocale</span>
+            </div>
+
+            <div class="discord-tiles-grid">
+              <label class="discord-tile-card active" data-discord="discord">
+                <input type="radio" name="discord_client" value="discord" checked>
+                <div class="discord-card-inner">
+                  <span class="discord-icon">🎮</span>
+                  <div class="discord-info">
+                    <strong>Discord Officiel</strong>
+                    <small>Client officiel natif</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+
+              <label class="discord-tile-card" data-discord="vesktop">
+                <input type="radio" name="discord_client" value="vesktop">
+                <div class="discord-card-inner">
+                  <span class="discord-icon">⚡</span>
+                  <div class="discord-info">
+                    <strong>Vesktop (Vencord)</strong>
+                    <small>Screenshare Wayland & plugins</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+
+              <label class="discord-tile-card" data-discord="equibop">
+                <input type="radio" name="discord_client" value="equibop">
+                <div class="discord-card-inner">
+                  <span class="discord-icon">🕊️</span>
+                  <div class="discord-info">
+                    <strong>Equibop</strong>
+                    <small>Client alternatif léger</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+
+              <label class="discord-tile-card" data-discord="none">
+                <input type="radio" name="discord_client" value="none">
+                <div class="discord-card-inner">
+                  <span class="discord-icon">🚫</span>
+                  <div class="discord-info">
+                    <strong>Aucun</strong>
+                    <small>Ne pas installer Discord</small>
+                  </div>
+                  <div class="tile-radio-dot"></div>
+                </div>
+              </label>
+            </div>
           </div>
         </section>
 
         <!-- Step 5: Gaming -->
-        <section class="step-panel" id="panel-step-5">
+        <section class="step-panel" id="panel-step-6">
           <div class="panel-header">
             <h2>Suite Gaming & Lanceurs</h2>
             <p>Activez les plateformes et outils que vous souhaitez retrouver sur votre machine.</p>
@@ -439,7 +762,7 @@
         </section>
 
         <!-- Step 6: Rétro Gaming -->
-        <section class="step-panel" id="panel-step-6">
+        <section class="step-panel" id="panel-step-7">
           <div class="panel-header">
             <h2>Suite d'Émulation & Rétrogaming</h2>
             <p>Configurez l'interface universelle ES-DE et les émulateurs dédiés pour l'ensemble de vos consoles de jeux rétro.</p>
@@ -588,7 +911,7 @@
         </section>
 
         <!-- Step 7: Multimédia -->
-        <section class="step-panel" id="panel-step-7">
+        <section class="step-panel" id="panel-step-8">
           <div class="panel-header">
             <h2>Multimédia & Audio</h2>
             <p>Sélectionnez les lecteurs, outils de streaming et suites de production audiovisuelle.</p>
@@ -671,7 +994,7 @@
         </section>
 
         <!-- Step 7: Productivité & Création -->
-        <section class="step-panel" id="panel-step-8">
+        <section class="step-panel" id="panel-step-9">
           <div class="panel-header">
             <h2>Productivité & Création</h2>
             <p>Outils de capture, création graphique, impression 3D, réseau et intelligence artificielle.</p>
@@ -871,7 +1194,7 @@
         </section>
 
         <!-- Step 8: User -->
-        <section class="step-panel" id="panel-step-9">
+        <section class="step-panel" id="panel-step-10">
           <div class="panel-header">
             <h2>Compte Utilisateur & Sécurité</h2>
             <p>Configurez le profil administrateur principal du système avec authentification sécurisée.</p>
@@ -982,7 +1305,7 @@
         </section>
 
         <!-- Step 10: Summary & Install -->
-        <section class="step-panel" id="panel-step-10">
+        <section class="step-panel" id="panel-step-11">
           <div class="panel-header">
             <h2>Résumé de l'Installation</h2>
             <p>Vérifiez vos sélections avant de lancer le déploiement sur le disque.</p>
@@ -997,14 +1320,14 @@
         </section>
 
         
-        <!-- Step 11: Installation in progress -->
-        <section class="step-panel" id="panel-step-11">
+        <!-- Installation in progress -->
+        <section class="step-panel" id="panel-step-install">
           <div class="panel-header">
             <h2 id="install-heading">Installation de ChomiamOS</h2>
             <p id="install-subheading">Veuillez patienter pendant le déploiement sur votre disque...</p>
           </div>
 
-          <!-- Network Mirror & Cache Status Bar (v1.2.17) -->
+          <!-- Network Mirror & Cache Status Bar (v1.2.18) -->
           <div class="mirror-status-bar">
             <div class="mirror-status-pill" id="install-mirror-pill" title="Miroir sélectionné automatiquement selon votre géolocalisation pour un débit maximal">
               <span class="status-dot green pulse" id="mirror-dot"></span>

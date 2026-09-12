@@ -3,7 +3,7 @@
 // ==========================================================================
 
 let currentStep = 1;
-const totalSteps = 10;
+const totalSteps = 11;
 let availableLayouts = [];
 let detectedGpuDriver = "amd";
 let availableDisks = [];
@@ -46,6 +46,99 @@ async function listen(event, cb) {
   return () => {};
 }
 
+
+// ── Gestionnaires Interactifs Navigateurs & Mail (v1.2.18) ───────────────────
+let selectedBrowser = "chrome";
+let browserPkgTypes = {
+  chrome: "system",
+  firefox: "system",
+  brave: "system",
+  zen: "flatpak",
+  librewolf: "flatpak"
+};
+let selectedMailClient = "thunderbird";
+let selectedDiscordClient = "discord";
+
+function initBrowserAndMailHandlers() {
+  // 1. Sélection de tuile navigateur
+  const browserCards = document.querySelectorAll('.browser-tile-card');
+  browserCards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      // Ne pas changer la sélection globale si le clic est sur un bouton de bille
+      if (e.target.closest('.btn-pkg-pill')) return;
+
+      browserCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selectedBrowser = card.dataset.browser || "chrome";
+    });
+  });
+
+  // 2. Commutateur de bille Système / Flatpak
+  const pillButtons = document.querySelectorAll('.btn-pkg-pill');
+  pillButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const browser = btn.dataset.browser;
+      const type = btn.dataset.type;
+      if (!browser || !type) return;
+
+      browserPkgTypes[browser] = type;
+
+      // Mettre à jour l'état visuel des boutons pour ce navigateur
+      const siblingPills = btn.closest('.pkg-switcher-row')?.querySelectorAll('.btn-pkg-pill');
+      siblingPills?.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Activer la carte parente
+      const parentCard = btn.closest('.browser-tile-card');
+      if (parentCard) {
+        browserCards.forEach(c => c.classList.remove('active'));
+        parentCard.classList.add('active');
+        selectedBrowser = browser;
+      }
+    });
+  });
+
+  // 3. Sélection de tuile Client Mail
+  const mailCards = document.querySelectorAll('.mail-tile-card');
+  mailCards.forEach(card => {
+    card.addEventListener('click', () => {
+      mailCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+        selectedMailClient = radio.value;
+      }
+    });
+  });
+
+  // 4. Sélection de tuile Discord
+  const discordCards = document.querySelectorAll('.discord-tile-card');
+  discordCards.forEach(card => {
+    card.addEventListener('click', () => {
+      discordCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+        selectedDiscordClient = radio.value;
+      }
+    });
+  });
+
+  // 5. Gestion des cartes DE
+  const deCards = document.querySelectorAll('.de-comparison-card');
+  deCards.forEach(card => {
+    card.addEventListener('click', () => {
+      deCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialisations synchrones immédiates de l'UI (aucune attente réseau)
   initNavigation();
@@ -54,6 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initKeyboardModifiers();
   initPasswordVisibilityToggles();
   initHostnameValidation();
+  initBrowserAndMailHandlers();
   initSummaryTrigger();
   initConfirmationModal();
   initTerminalActions();
@@ -189,7 +283,7 @@ function validateStep(step) {
       return false;
     }
   }
-  if (step === 9) {
+  if (step === 10) {
     const hostnameInput = document.getElementById('input-hostname');
     let hostname = hostnameInput?.value.trim().toLowerCase() || "";
     hostname = hostname.replace(/^-+|-+$/g, '');
@@ -300,7 +394,7 @@ function goToStep(step) {
     scrollArea.scrollTop = 0;
   }
 
-  if (step === 9 && typeof window.syncKeyboardHardwareLocks === 'function') {
+  if (step === 10 && typeof window.syncKeyboardHardwareLocks === 'function') {
     window.syncKeyboardHardwareLocks();
   }
 }
@@ -693,8 +787,10 @@ function collectSelections() {
     fullname: document.getElementById('input-fullname')?.value || "ChomiamOS User",
     password: document.getElementById('input-password')?.value || null,
     desktop_env: document.querySelector('input[name="desktop_env"]:checked')?.value || "gnome",
-    browser: document.getElementById('browser-select')?.value || "chrome",
-    discord_client: document.getElementById('discord-select')?.value || "discord",
+    browser: selectedBrowser || "chrome",
+    browser_type: browserPkgTypes[selectedBrowser] || "system",
+    mail_client: selectedMailClient || "thunderbird",
+    discord_client: selectedDiscordClient || "discord",
     keyboard_layout: document.getElementById('keyboard-layout-select')?.value || "fr",
     keyboard_variant: document.getElementById('keyboard-variant-select')?.value || "",
     timezone: document.getElementById('timezone-select')?.value || "Europe/Paris",
@@ -770,7 +866,8 @@ function updateSummary() {
     <div class="summary-item"><label>Bureau Choisi</label><span>${s.desktop_env.toUpperCase()}</span></div>
     <div class="summary-item"><label>Pilote Graphique (GPU)</label><span>${(s.gpu_driver || 'amd').toUpperCase()}</span></div>
     <div class="summary-item"><label>Utilisateur / Hôte</label><span>${s.username} @ ${s.hostname}</span></div>
-    <div class="summary-item"><label>Navigateur & Discord</label><span>${s.browser} • ${s.discord_client}</span></div>
+    <div class="summary-item"><label>Navigateur Web</label><span>${s.browser.toUpperCase()} (${s.browser_type === 'flatpak' ? 'Flatpak' : 'Système'})</span></div>
+    <div class="summary-item"><label>Messagerie & Discord</label><span>${s.mail_client === 'none' ? 'Webmail (aucun)' : s.mail_client.charAt(0).toUpperCase() + s.mail_client.slice(1)} • ${s.discord_client}</span></div>
     <div class="summary-item"><label>Rétro Gaming & Émulation</label><span>${[
       s.emu_es_de ? 'ES-DE' : null,
       s.emu_retroarch ? 'RetroArch' : null,
@@ -937,7 +1034,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.17-testing (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.18-testing (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -978,7 +1075,7 @@ async function startInstallation(s) {
     const curPanel = document.getElementById(`panel-step-${currentStep}`);
     if (curPanel) curPanel.classList.remove('active');
 
-    const installPanel = document.getElementById('panel-step-11') || document.getElementById('panel-step-10');
+    const installPanel = document.getElementById('panel-step-install');
     if (installPanel) installPanel.classList.add('active');
 
     // Verrouillage du scroll sur le conteneur parent pour forcer le scroll uniquement dans le terminal
@@ -1504,7 +1601,7 @@ function initKeyboardModifiers() {
 
   // Polling doux périodique spécifiquement sur l'étape 9
   setInterval(() => {
-    if (currentStep === 9) {
+    if (currentStep === 10) {
       syncHardwareLocks();
     }
   }, 800);
@@ -1607,7 +1704,7 @@ function initPasswordVisibilityToggles() {
   });
 }
 
-// ── Détection du Miroir NixOS et Latence (v1.2.17) ──────────────────────────
+// ── Détection du Miroir NixOS et Latence (v1.2.18) ──────────────────────────
 async function initMirrorDetection() {
   try {
     const info = await invoke('get_mirror_info');

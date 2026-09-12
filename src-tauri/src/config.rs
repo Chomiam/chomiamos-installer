@@ -9,6 +9,8 @@ pub struct InstallerSelections {
     pub password: Option<String>,
     pub desktop_env: String, // "gnome", "cinnamon", "kde", "cosmic"
     pub browser: String,
+    pub browser_type: String, // "system" | "flatpak"
+    pub mail_client: String,  // "thunderbird" | "mailspring" | "none"
     pub discord_client: String,
     pub keyboard_layout: String,
     pub keyboard_variant: String,
@@ -83,6 +85,8 @@ impl Default for InstallerSelections {
             password: None,
             desktop_env: "gnome".into(),
             browser: "chrome".into(),
+            browser_type: "system".into(),
+            mail_client: "thunderbird".into(),
             discord_client: "discord".into(),
             keyboard_layout: "fr".into(),
             keyboard_variant: "".into(),
@@ -205,8 +209,12 @@ r#"{{
     enable = true;
   }};
 
-  # Navigateur web principal
+  # Navigateur web principal & mode d'installation
   browser = "{browser}";
+  browserPackageType = "{browser_type}";
+
+  # Client de messagerie e-mail
+  mailClient = "{mail_client}";
 
   # Client Discord
   discordClient = "{discord_client}";
@@ -328,6 +336,8 @@ r#"{{
         fullname = s.fullname,
         pwd_field = pwd_field,
         browser = s.browser,
+        browser_type = if s.browser_type.is_empty() { "system" } else { &s.browser_type },
+        mail_client = if s.mail_client.is_empty() { "thunderbird" } else { &s.mail_client },
         discord_client = s.discord_client,
         desktop_env = s.desktop_env,
         gpu_driver = active_gpu,
@@ -391,6 +401,8 @@ mod tests {
         selections.emu_rpcs3 = false;
         let out = generate_vars_nix(&selections, None, "amd");
         assert!(out.contains("frontend = \"es-de\";"));
+        assert!(out.contains("browserPackageType = \"system\";"));
+        assert!(out.contains("mailClient = \"thunderbird\";"));
         assert!(out.contains("duckstation = true;"));
         assert!(out.contains("rpcs3 = false;"));
 
