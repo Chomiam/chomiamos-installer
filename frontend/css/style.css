@@ -639,7 +639,7 @@ body {
   background: rgba(203, 166, 247, 0.05);
 }
 
-/* Summary Box */
+/* Summary Box (avec défilement fluide et barre de scroll Catppuccin) */
 .summary-box {
   background: var(--mocha-surface0);
   border: 1px solid var(--mocha-surface1);
@@ -649,6 +649,29 @@ body {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  max-height: clamp(280px, 45vh, 420px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mocha-surface2) var(--mocha-surface0);
+}
+
+.summary-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.summary-box::-webkit-scrollbar-track {
+  background: var(--mocha-surface0);
+  border-radius: 4px;
+}
+
+.summary-box::-webkit-scrollbar-thumb {
+  background: var(--mocha-surface2);
+  border-radius: 4px;
+}
+
+.summary-box::-webkit-scrollbar-thumb:hover {
+  background: var(--mocha-overlay0);
 }
 
 .summary-item {
