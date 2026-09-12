@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.15 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.16-testing (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.15)</span>
+          <span id="update-status-text">À jour (v1.2.16)</span>
         </button>
 
         <div class="session-badge">
@@ -1068,6 +1068,41 @@
         <h3>Mise à jour de l'Installateur</h3>
       </div>
       <div class="modal-body">
+        <!-- Channel Switcher (Stable vs Testing) -->
+        <div class="channel-selector-wrap">
+          <div class="channel-selector-header">
+            <span class="channel-selector-label">Branche de l'installateur :</span>
+            <span class="channel-badge" id="modal-active-channel-badge">Stable</span>
+          </div>
+          <div class="channel-toggle-group">
+            <button type="button" class="btn-channel active" id="btn-channel-stable" data-channel="stable">
+              <span class="channel-dot green"></span>
+              <span class="channel-btn-text">
+                <strong>Stable</strong>
+                <small>Versions validées (v1.2.15)</small>
+              </span>
+            </button>
+            <button type="button" class="btn-channel" id="btn-channel-testing" data-channel="testing">
+              <span class="channel-dot orange"></span>
+              <span class="channel-btn-text">
+                <strong>Testing</strong>
+                <small>Pré-versions & Nouveautés</small>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Downgrade Banner (hidden by default) -->
+        <div class="downgrade-alert-box hidden" id="downgrade-alert-box">
+          <div class="downgrade-alert-icon">⚠️</div>
+          <div class="downgrade-alert-content">
+            <strong class="downgrade-alert-title">Rétrogradation vers la version Stable disponible</strong>
+            <p class="downgrade-alert-desc">
+              Votre version actuelle (<span id="downgrade-cur-ver"></span>) est issue du canal de test. Le canal <strong>Stable</strong> est actuellement en <span id="downgrade-target-ver"></span>. En confirmant, l'installateur sera rétrogradé vers la version stable officielle.
+            </p>
+          </div>
+        </div>
+
         <p id="update-status-message">Recherche des dernières mises à jour...</p>
 
         <!-- Version Comparison Card -->

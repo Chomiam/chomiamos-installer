@@ -231,8 +231,8 @@ fn poweroff_system() -> Result<(), String> {
 
 
 #[tauri::command]
-fn check_installer_update() -> UpdateInfo {
-    check_update()
+fn check_installer_update(channel: Option<String>) -> UpdateInfo {
+    check_update(channel.as_deref().unwrap_or("stable"))
 }
 
 #[tauri::command]

@@ -1828,3 +1828,153 @@ select option:checked, .form-select option:checked {
   opacity: 1;
   font-weight: 700;
 }
+
+/* ==========================================================================
+   v1.2.16: CHANNEL SWITCHER & DOWNGRADE HANDLING
+   ========================================================================== */
+
+.channel-selector-wrap {
+  margin-bottom: 14px;
+  background: var(--mocha-surface0);
+  border: 1px solid var(--mocha-surface1);
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.channel-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.channel-selector-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mocha-subtext1);
+}
+
+.channel-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(166, 227, 161, 0.15);
+  color: var(--mocha-green);
+  border: 1px solid rgba(166, 227, 161, 0.3);
+}
+
+.channel-badge.testing {
+  background: rgba(250, 179, 135, 0.15);
+  color: var(--mocha-peach);
+  border-color: rgba(250, 179, 135, 0.3);
+}
+
+.channel-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-channel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--mocha-mantle);
+  border: 1px solid var(--mocha-surface1);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  color: var(--mocha-text);
+}
+
+.btn-channel:hover {
+  background: var(--mocha-surface1);
+  border-color: var(--mocha-subtext0);
+}
+
+.btn-channel.active {
+  background: rgba(137, 180, 250, 0.12);
+  border-color: var(--mocha-blue);
+  box-shadow: 0 0 0 1px var(--mocha-blue);
+}
+
+.btn-channel.active[data-channel="stable"] {
+  background: rgba(166, 227, 161, 0.12);
+  border-color: var(--mocha-green);
+  box-shadow: 0 0 0 1px var(--mocha-green);
+}
+
+.btn-channel.active[data-channel="testing"] {
+  background: rgba(250, 179, 135, 0.12);
+  border-color: var(--mocha-peach);
+  box-shadow: 0 0 0 1px var(--mocha-peach);
+}
+
+.channel-btn-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.channel-btn-text strong {
+  font-size: 0.86rem;
+  line-height: 1.2;
+}
+
+.channel-btn-text small {
+  font-size: 0.72rem;
+  color: var(--mocha-subtext0);
+  margin-top: 2px;
+}
+
+/* Downgrade Warning Banner */
+.downgrade-alert-box {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgba(250, 179, 135, 0.12);
+  border: 1px solid rgba(250, 179, 135, 0.35);
+  border-left: 4px solid var(--mocha-peach);
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.downgrade-alert-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.downgrade-alert-content {
+  flex: 1;
+}
+
+.downgrade-alert-title {
+  color: var(--mocha-peach);
+  font-size: 0.88rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.downgrade-alert-desc {
+  font-size: 0.82rem;
+  color: var(--mocha-subtext1);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.btn.btn-downgrade {
+  background: linear-gradient(135deg, var(--mocha-peach), var(--mocha-maroon)) !important;
+  color: var(--mocha-crust) !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(250, 179, 135, 0.3) !important;
+}
+
+.btn.btn-downgrade:hover {
+  filter: brightness(1.1) !important;
+}

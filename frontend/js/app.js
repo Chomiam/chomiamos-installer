@@ -918,7 +918,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.15 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.16-testing (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -1203,6 +1203,8 @@ function showUpdateError(errorMessage) {
   errorBox.classList.remove('hidden');
 }
 
+let currentChannel = localStorage.getItem('chomiamos_update_channel') || 'stable';
+
 async function initUpdateManager() {
   const pillBtn = document.getElementById('btn-update-pill');
 
@@ -1216,6 +1218,7 @@ async function initUpdateManager() {
 
   // Initialise le modal dans le DOM
   ensureUpdateModalExists();
+  initChannelButtons();
 
   // Écoute des événements de progression en direct depuis Rust
   listen('update_progress', (event) => {
@@ -1237,13 +1240,46 @@ async function initUpdateManager() {
   await checkAndUpdatePill();
 }
 
-async function checkAndUpdatePill() {
+function initChannelButtons() {
+  document.querySelectorAll('.btn-channel').forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const newChan = btn.dataset.channel;
+      if (newChan === currentChannel && currentUpdateInfo) return;
+      currentChannel = newChan;
+      localStorage.setItem('chomiamos_update_channel', currentChannel);
+
+      updateChannelButtonsUI();
+      const msg = document.getElementById('update-status-message');
+      if (msg) msg.textContent = `Vérification du canal ${currentChannel === 'testing' ? 'Testing' : 'Stable'}...`;
+
+      await checkAndUpdatePill(currentChannel);
+      renderUpdateModalContent();
+    });
+  });
+}
+
+function updateChannelButtonsUI() {
+  document.querySelectorAll('.btn-channel').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.channel === currentChannel);
+  });
+  const badge = document.getElementById('modal-active-channel-badge');
+  if (badge) {
+    badge.textContent = currentChannel === 'testing' ? 'Testing' : 'Stable';
+    badge.className = `channel-badge ${currentChannel}`;
+  }
+}
+
+async function checkAndUpdatePill(channelOverride) {
+  const channel = channelOverride || currentChannel;
   const dot = document.getElementById('update-dot');
   const text = document.getElementById('update-status-text');
   const pillBtn = document.getElementById('btn-update-pill');
 
   try {
-    const info = await invoke('check_installer_update');
+    const info = await invoke('check_installer_update', { channel });
     currentUpdateInfo = info;
 
     if (info && info.has_update) {
@@ -1251,37 +1287,41 @@ async function checkAndUpdatePill() {
         dot.className = 'status-dot orange';
       }
       if (text) {
-        text.textContent = `Mise à jour v${info.latest_version}`;
+        text.textContent = info.is_downgrade 
+          ? `Rétrogradation v${info.latest_version}` 
+          : `Mise à jour v${info.latest_version}`;
       }
       if (pillBtn) {
         pillBtn.className = 'update-pill-btn update-available';
-        pillBtn.title = `Mise à jour v${info.latest_version} disponible ! Cliquez pour installer.`;
+        pillBtn.title = info.is_downgrade
+          ? `Rétrogradation disponible vers la version Stable (v${info.latest_version}). Cliquez pour installer.`
+          : `Mise à jour v${info.latest_version} (${channel}) disponible ! Cliquez pour installer.`;
       }
     } else {
-      const curVer = info ? info.current_version : "1.2.2";
+      const curVer = info ? info.current_version : "1.2.16";
       if (dot) {
         dot.className = 'status-dot green';
       }
       if (text) {
-        text.textContent = `À jour (v${curVer})`;
+        text.textContent = `À jour (v${curVer} • ${channel === 'testing' ? 'Testing' : 'Stable'})`;
       }
       if (pillBtn) {
         pillBtn.className = 'update-pill-btn up-to-date';
-        pillBtn.title = `L'installateur est à jour (v${curVer}).`;
+        pillBtn.title = `L'installateur est à jour sur la branche ${channel} (v${curVer}).`;
       }
     }
+    return info;
   } catch (err) {
     console.warn("Check update error:", err);
+    return null;
   }
 }
 
-function openUpdateModal() {
-  const modal = ensureUpdateModalExists();
-  if (!modal) return;
-
-  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.2";
-  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.2";
+function renderUpdateModalContent() {
+  const curVer = currentUpdateInfo ? currentUpdateInfo.current_version : "1.2.16";
+  const latestVer = currentUpdateInfo ? currentUpdateInfo.latest_version : "1.2.16";
   const hasUpdate = currentUpdateInfo ? currentUpdateInfo.has_update : false;
+  const isDowngrade = currentUpdateInfo ? currentUpdateInfo.is_downgrade : false;
 
   const elCur = document.getElementById('modal-current-ver');
   const elLat = document.getElementById('modal-latest-ver');
@@ -1290,6 +1330,11 @@ function openUpdateModal() {
   const elNotes = document.getElementById('update-notes-content');
   const btnStart = document.getElementById('btn-start-update');
   const progSection = document.getElementById('update-progress-section');
+  const downgradeBanner = document.getElementById('downgrade-alert-box');
+  const downgradeCur = document.getElementById('downgrade-cur-ver');
+  const downgradeTarget = document.getElementById('downgrade-target-ver');
+
+  updateChannelButtonsUI();
 
   if (elCur) elCur.textContent = `v${curVer}`;
   if (elLat) {
@@ -1300,12 +1345,31 @@ function openUpdateModal() {
   if (progSection) progSection.classList.add('hidden');
 
   if (hasUpdate) {
-    if (elMsg) elMsg.textContent = `Une nouvelle version de l'installateur (v${latestVer}) est disponible avec les derniers correctifs.`;
-    if (btnStart) {
-      btnStart.classList.remove('hidden');
-      btnStart.disabled = false;
-      btnStart.textContent = `Mettre à jour vers v${latestVer}`;
+    if (isDowngrade) {
+      // Cas de rétrogradation (Downgrade vers Stable)
+      if (downgradeBanner) downgradeBanner.classList.remove('hidden');
+      if (downgradeCur) downgradeCur.textContent = `v${curVer}`;
+      if (downgradeTarget) downgradeTarget.textContent = `v${latestVer}`;
+
+      if (elMsg) elMsg.textContent = `Vous êtes sur une version testing (v${curVer}). Le canal Stable officiel est actuellement en v${latestVer}.`;
+      if (btnStart) {
+        btnStart.classList.remove('hidden');
+        btnStart.className = 'btn btn-downgrade';
+        btnStart.disabled = false;
+        btnStart.textContent = `Rétrograder vers la version Stable (v${latestVer})`;
+      }
+    } else {
+      // Cas de mise à jour classique (Upgrade)
+      if (downgradeBanner) downgradeBanner.classList.add('hidden');
+      if (elMsg) elMsg.textContent = `Une nouvelle version de l'installateur (v${latestVer}) est disponible sur le canal ${currentChannel === 'testing' ? 'Testing' : 'Stable'}.`;
+      if (btnStart) {
+        btnStart.classList.remove('hidden');
+        btnStart.className = 'btn btn-primary';
+        btnStart.disabled = false;
+        btnStart.textContent = `Mettre à jour vers v${latestVer}`;
+      }
     }
+
     if (currentUpdateInfo.notes && elNotes && elNotesWrap) {
       elNotes.textContent = currentUpdateInfo.notes;
       elNotesWrap.classList.remove('hidden');
@@ -1313,11 +1377,20 @@ function openUpdateModal() {
       elNotesWrap.classList.add('hidden');
     }
   } else {
-    if (elMsg) elMsg.textContent = "Votre installateur ChomiamOS est parfaitement à jour. Aucune mise à jour requise.";
+    // Cas à jour
+    if (downgradeBanner) downgradeBanner.classList.add('hidden');
+    if (elMsg) {
+      elMsg.textContent = `Votre installateur ChomiamOS est parfaitement à jour sur la branche ${currentChannel === 'testing' ? 'Testing' : 'Stable'} (v${curVer}).`;
+    }
     if (btnStart) btnStart.classList.add('hidden');
     if (elNotesWrap) elNotesWrap.classList.add('hidden');
   }
+}
 
+function openUpdateModal() {
+  const modal = ensureUpdateModalExists();
+  if (!modal) return;
+  renderUpdateModalContent();
   modal.classList.remove('hidden');
 }
 

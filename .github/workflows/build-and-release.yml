@@ -2,10 +2,10 @@ name: 🚀 Build ChomiamOS Installer & Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, testing ]
     tags: [ "v*" ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, testing ]
   workflow_dispatch:
 
 permissions:
@@ -160,6 +160,13 @@ jobs:
           fi
           echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "🏷️ Release tag: ${TAG_NAME}"
+          if [[ "$TAG_NAME" == *"testing"* || "$TAG_NAME" == *"rc"* || "${{ github.ref }}" == "refs/heads/testing" ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "🧪 Canal: Testing (pre-release)"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "🟢 Canal: Stable (production)"
+          fi
 
       - name: 📥 Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -173,7 +180,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "ChomiamOS Installer ${{ steps.version.outputs.tag }}"
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
           generate_release_notes: true
           files: |
             chomiamos-installer-release.tar.gz
