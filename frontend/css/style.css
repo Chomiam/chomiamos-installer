@@ -1978,3 +1978,77 @@ select option:checked, .form-select option:checked {
 .btn.btn-downgrade:hover {
   filter: brightness(1.1) !important;
 }
+
+/* ==========================================================================
+   v1.2.17: NETWORK MIRROR & CACHIX BADGES
+   ========================================================================== */
+
+.mirror-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.mirror-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mocha-surface0);
+  border: 1px solid var(--mocha-surface1);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.84rem;
+  color: var(--mocha-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s ease;
+}
+
+.mirror-status-pill:hover {
+  border-color: var(--mocha-blue);
+  background: var(--mocha-surface1);
+}
+
+.mirror-status-pill .mirror-icon {
+  font-size: 0.95rem;
+}
+
+.mirror-status-pill .mirror-label {
+  font-weight: 600;
+  color: var(--mocha-subtext1);
+}
+
+.mirror-status-pill .mirror-text {
+  font-weight: 500;
+  color: var(--mocha-lavender);
+}
+
+.mirror-status-pill.cachix-pill {
+  border-color: rgba(203, 166, 247, 0.35);
+  background: rgba(203, 166, 247, 0.08);
+}
+
+.mirror-status-pill.cachix-pill .mirror-text {
+  color: var(--mocha-mauve);
+  font-weight: 600;
+}
+
+.status-dot.pulse {
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(166, 227, 161, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(166, 227, 161, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(166, 227, 161, 0);
+  }
+}

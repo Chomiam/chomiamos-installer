@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initKeyboardModifiers();
   initPasswordVisibilityToggles();
   initSummaryTrigger();
+  initMirrorDetection();
   initConfirmationModal();
   initTerminalActions();
   await initUpdateManager();
@@ -918,7 +919,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.16 (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.17-testing (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -967,6 +968,7 @@ async function startInstallation(s) {
     document.querySelector('.wizard-actions')?.classList.add('hidden');
     document.querySelector('.stepper-sidebar')?.classList.add('hidden');
 
+    initMirrorDetection();
     appendLog("🚀 Démarrage du processus d'installation...");
     appendLog(`Disque cible configuré : ${s.target_disk}`);
     appendLog(`Taille de Swap sélectionnée : ${s.swap_size_mb === 0 ? 'Désactivé' : (s.swap_size_mb / 1024) + ' Go'}`);
@@ -1465,4 +1467,28 @@ function initPasswordVisibilityToggles() {
       input.focus();
     });
   });
+}
+
+// ── Détection du Miroir NixOS et Latence (v1.2.17) ──────────────────────────
+async function initMirrorDetection() {
+  try {
+    const info = await invoke('get_mirror_info');
+    if (info) {
+      const textEl = document.getElementById('install-mirror-text');
+      const dotEl = document.getElementById('mirror-dot');
+      const pillEl = document.getElementById('install-mirror-pill');
+
+      if (textEl) {
+        textEl.textContent = `Fastly CDN • ${info.location} (${info.latency_ms} ms)`;
+      }
+      if (pillEl) {
+        pillEl.title = `Miroir optimal détecté : ${info.location} (Latence : ${info.latency_ms} ms)`;
+      }
+      if (dotEl) {
+        dotEl.className = `status-dot ${info.quality === 'optimal' ? 'green' : (info.quality === 'good' ? 'green' : 'orange')} pulse`;
+      }
+    }
+  } catch (e) {
+    console.warn("Erreur détection miroir:", e);
+  }
 }

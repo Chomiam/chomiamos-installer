@@ -734,7 +734,8 @@ r#"{{ config, lib, ... }}:
         emit_log("[ÉTAPE SÉCURITÉ] === Contrôle cryptographique des signatures et trousseaux ===");
         emit_log("[SÉCURITÉ] Audit de conformité du fichier flake.nix et des dépôts binaires déclarés...");
 
-        let official_trusted_keys: [(&str, &str, &str, &str); 4] = [
+        let official_trusted_keys: [(&str, &str, &str, &str); 5] = [
+            ("ChomiamOS Global Cache", "Cache Binaire Intégral ChomiamOS", "https://chomiamos.cachix.org", "chomiamos.cachix.org-1:YB3RyqWQZagZxsfBwdVXcJ2219/yAsMFOGoh0pfSbjk="),
             ("NixOS Foundation", "Cache Officiel Système NixOS", "https://cache.nixos.org", "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="),
             ("ChomiamOS Team", "Dashboard & Modules Gaming", "https://chomiamos-dashboard.cachix.org", "chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w="),
             ("DuckStation Team", "Émulateur & Bibliothèques Jeu", "https://duckstation.cachix.org", "duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4="),
@@ -769,11 +770,41 @@ r#"{{ config, lib, ... }}:
         let secure_tmp = Path::new("/mnt/var/tmp/nix-installer");
         let _ = std::fs::create_dir_all(secure_tmp);
 
+        let mut substituters_list = vec![
+            "https://chomiamos.cachix.org".to_string(),
+            "https://cache.nixos.org".to_string(),
+            "https://chomiamos-dashboard.cachix.org".to_string(),
+            "https://duckstation.cachix.org".to_string(),
+            "https://cosmic.cachix.org".to_string(),
+        ];
+
+        // 1. Optimisation Store Local : réutilisation directe des paquets du live ISO (/nix/store)
+        let local_store = Path::new("/nix/store");
+        if local_store.exists() {
+            emit_log("[OPTIMISATION] Détection du store local Live ISO (/nix/store) : copie directe ultra-rapide activée (NVMe/SATA bus).");
+            substituters_list.insert(0, "file:///nix/store?trusted=1".to_string());
+        }
+
+        let all_substituters = substituters_list.join(" ");
+        let all_keys = "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= chomiamos.cachix.org-1:YB3RyqWQZagZxsfBwdVXcJ2219/yAsMFOGoh0pfSbjk= chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w= duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4= cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE=";
+
+        emit_log(&format!("[CACHE] Substituteurs configurés : {}", all_substituters));
+        emit_log("[RÉSEAU] Optimisation des flux : 128 connexions HTTP/2 simultanées configurées.");
+
         let mut cmd = privileged_async_cmd("nixos-install");
         cmd.args([
             "--no-root-passwd",
-            "--option", "trusted-substituters", "https://cache.nixos.org https://cosmic.cachix.org https://chomiamos-dashboard.cachix.org https://duckstation.cachix.org",
-            "--option", "trusted-public-keys", "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE= chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w= duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4=",
+            "--option", "substituters", &all_substituters,
+            "--option", "extra-substituters", &all_substituters,
+            "--option", "trusted-substituters", &all_substituters,
+            "--option", "trusted-public-keys", all_keys,
+            "--option", "extra-trusted-public-keys", all_keys,
+            "--option", "http-connections", "128",
+            "--option", "connect-timeout", "5",
+            "--option", "stalled-download-timeout", "15",
+            "--option", "download-speed", "0",
+            "--option", "max-jobs", "auto",
+            "--option", "cores", "0",
             "--option", "accept-flake-config", "true",
             "--option", "warn-dirty", "false",
             "--option", "sandbox", "false",

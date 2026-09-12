@@ -6,6 +6,7 @@ mod swap;
 mod config;
 mod install;
 mod updater;
+mod network_mirror;
 
 use system::{check_prerequisites, detect_gpu, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, GpuInfo, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo, TimezoneInfo};
 use config::{InstallerSelections, generate_vars_nix};
@@ -231,6 +232,11 @@ fn poweroff_system() -> Result<(), String> {
 
 
 #[tauri::command]
+async fn get_mirror_info() -> network_mirror::MirrorInfo {
+    network_mirror::detect_best_mirror().await
+}
+
+#[tauri::command]
 fn check_installer_update(channel: Option<String>) -> UpdateInfo {
     check_update(channel.as_deref().unwrap_or("stable"))
 }
@@ -370,6 +376,7 @@ fn main() {
             reboot_system,
             poweroff_system,
             check_installer_update,
+            get_mirror_info,
             apply_installer_update,
             save_installation_logs,
         ])

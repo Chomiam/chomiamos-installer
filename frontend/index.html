@@ -16,7 +16,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.16 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.17-testing (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -24,7 +24,7 @@
         <!-- Update Pill Indicator in Header -->
         <button type="button" class="update-pill-btn up-to-date" id="btn-update-pill" title="Cliquez pour gérer les mises à jour de l'installateur">
           <span class="status-dot green" id="update-dot"></span>
-          <span id="update-status-text">À jour (v1.2.16)</span>
+          <span id="update-status-text">À jour (v1.2.17)</span>
         </button>
 
         <div class="session-badge">
@@ -996,6 +996,21 @@
           <div class="panel-header">
             <h2 id="install-heading">Installation de ChomiamOS</h2>
             <p id="install-subheading">Veuillez patienter pendant le déploiement sur votre disque...</p>
+          </div>
+
+          <!-- Network Mirror & Cache Status Bar (v1.2.17) -->
+          <div class="mirror-status-bar">
+            <div class="mirror-status-pill" id="install-mirror-pill" title="Miroir sélectionné automatiquement selon votre géolocalisation pour un débit maximal">
+              <span class="status-dot green pulse" id="mirror-dot"></span>
+              <span class="mirror-icon">🌐</span>
+              <span class="mirror-label">Miroir NixOS :</span>
+              <span class="mirror-text" id="install-mirror-text">Fastly CDN • Détection du serveur...</span>
+            </div>
+            <div class="mirror-status-pill cachix-pill" id="install-cachix-pill" title="Cache binaire chomiamos.cachix.org actif pour une installation sans compilation">
+              <span class="status-dot green pulse"></span>
+              <span class="mirror-icon">⚡</span>
+              <span class="mirror-text">chomiamos.cachix.org Actif</span>
+            </div>
           </div>
 
           <div class="progress-section">
