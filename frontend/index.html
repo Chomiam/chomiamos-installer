@@ -909,14 +909,16 @@
             <!-- Indicateurs de verrouillage clavier en direct (Verr Maj / Caps Lock & Verr Num / Num Lock) -->
             <div class="keyboard-indicators-row">
               <span class="keyboard-indicator-pill" id="indicator-caps-lock" title="État des majuscules">
+                <span class="indicator-dot" id="dot-caps-lock"></span>
                 <span class="indicator-icon">🔠</span>
                 <span class="indicator-label">Verr Maj</span>
                 <span class="indicator-status" id="status-caps-lock">Désactivé</span>
               </span>
               <span class="keyboard-indicator-pill" id="indicator-num-lock" title="État du pavé numérique">
+                <span class="indicator-dot" id="dot-num-lock"></span>
                 <span class="indicator-icon">🔢</span>
                 <span class="indicator-label">Verr Num</span>
-                <span class="indicator-status" id="status-num-lock">Inconnu</span>
+                <span class="indicator-status" id="status-num-lock">Inactif</span>
               </span>
             </div>
 
@@ -969,8 +971,12 @@
 
           <div class="form-row" style="margin-top: 18px;">
             <div class="form-group" style="width: 100%;">
-              <label for="input-hostname">Nom de la machine (Hostname réseau)</label>
-              <input type="text" id="input-hostname" class="form-input" value="chomiamos">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label for="input-hostname">Nom de la machine (Hostname réseau)</label>
+                <small style="color: var(--mocha-subtext0); font-size: 0.78rem;">Minuscules (a-z), chiffres (0-9) et tirets (-) uniquement</small>
+              </div>
+              <input type="text" id="input-hostname" class="form-input" value="chomiamos" maxlength="63" placeholder="ex: chomiamos-gaming" autocomplete="off" spellcheck="false">
+              <span id="hostname-validation-msg" class="field-validation-error hidden" style="color: var(--mocha-peach); font-size: 0.8rem; margin-top: 4px; display: block;"></span>
             </div>
           </div>
         </section>

@@ -754,3 +754,59 @@ pub fn get_desktop_environments() -> Vec<DesktopEnvInfo> {
         },
     ]
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyboardLocks {
+    pub caps_lock: bool,
+    pub num_lock: bool,
+}
+
+pub fn detect_keyboard_locks() -> KeyboardLocks {
+    let mut caps_lock = false;
+    let mut num_lock = false;
+
+    // 1. Lire directement depuis /sys/class/leds/
+    if let Ok(entries) = std::fs::read_dir("/sys/class/leds") {
+        for entry in entries.flatten() {
+            let file_name = entry.file_name();
+            let name_str = file_name.to_string_lossy();
+            if name_str.contains("capslock") {
+                let bright_path = entry.path().join("brightness");
+                if let Ok(val) = std::fs::read_to_string(bright_path) {
+                    if let Ok(n) = val.trim().parse::<i32>() {
+                        if n > 0 { caps_lock = true; }
+                    }
+                }
+            } else if name_str.contains("numlock") {
+                let bright_path = entry.path().join("brightness");
+                if let Ok(val) = std::fs::read_to_string(bright_path) {
+                    if let Ok(n) = val.trim().parse::<i32>() {
+                        if n > 0 { num_lock = true; }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Fallback via xset q si disponible pour ce qui n'a pas été détecté
+    if !caps_lock || !num_lock {
+        if let Ok(out) = std::process::Command::new("xset").arg("q").output() {
+            let s = String::from_utf8_lossy(&out.stdout);
+            if !caps_lock && s.contains("Caps Lock:   on") { caps_lock = true; }
+            if !num_lock && s.contains("Num Lock:    on") { num_lock = true; }
+        }
+    }
+
+    KeyboardLocks { caps_lock, num_lock }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_detect_keyboard_locks() {
+        let locks = detect_keyboard_locks();
+        println!("Test locks: caps={}, num={}", locks.caps_lock, locks.num_lock);
+    }
+}

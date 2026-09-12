@@ -47,21 +47,25 @@ async function listen(event, cb) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Initialisations synchrones immédiates de l'UI (aucune attente réseau)
   initNavigation();
-  await loadPrerequisites();
-  await loadDesktops();
-  await loadKeyboardLayouts();
-  await loadTimezones();
-  await loadDisks();
   initSwapSlider();
   initPasswordSecurity();
   initKeyboardModifiers();
   initPasswordVisibilityToggles();
+  initHostnameValidation();
   initSummaryTrigger();
-  initMirrorDetection();
   initConfirmationModal();
   initTerminalActions();
-  await initUpdateManager();
+
+  // 2. Chargements asynchrones en arrière-plan
+  loadPrerequisites();
+  loadDesktops();
+  loadKeyboardLayouts();
+  loadTimezones();
+  loadDisks();
+  initMirrorDetection();
+  initUpdateManager();
 });
 
 
@@ -186,6 +190,16 @@ function validateStep(step) {
     }
   }
   if (step === 9) {
+    const hostnameInput = document.getElementById('input-hostname');
+    let hostname = hostnameInput?.value.trim().toLowerCase() || "";
+    hostname = hostname.replace(/^-+|-+$/g, '');
+    if (!hostname || !/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(hostname)) {
+      alert("Le nom d'hôte de la machine (hostname) n'est pas valide.\nUtilisez uniquement des lettres minuscules (a-z), chiffres (0-9) et tirets (-), sans espace, et ne commencez ni ne terminez par un tiret.");
+      if (hostnameInput) hostnameInput.focus();
+      return false;
+    }
+    if (hostnameInput) hostnameInput.value = hostname;
+
     const username = document.getElementById('input-username')?.value.trim();
     if (!username) {
       alert("Veuillez saisir un nom d'utilisateur (login).");
@@ -284,6 +298,10 @@ function goToStep(step) {
   const scrollArea = document.querySelector('.step-content-area');
   if (scrollArea) {
     scrollArea.scrollTop = 0;
+  }
+
+  if (step === 9 && typeof window.syncKeyboardHardwareLocks === 'function') {
+    window.syncKeyboardHardwareLocks();
   }
 }
 
@@ -670,7 +688,7 @@ function collectSelections() {
   const diskPath = selectedDisk ? selectedDisk.dataset.path : (availableDisks[0] ? availableDisks[0].path : "/dev/sda");
 
   return {
-    hostname: document.getElementById('input-hostname')?.value || "chomiamos",
+    hostname: (document.getElementById('input-hostname')?.value.trim().toLowerCase().replace(/^-+|-+$/g, '') || "chomiamos"),
     username: document.getElementById('input-username')?.value || "chomiam",
     fullname: document.getElementById('input-fullname')?.value || "ChomiamOS User",
     password: document.getElementById('input-password')?.value || null,
@@ -1398,20 +1416,16 @@ function openUpdateModal() {
 
 // ── Indicateurs Clavier (Verr Maj / Caps Lock & Verr Num / Num Lock) ─────────
 function initKeyboardModifiers() {
-  function updateModifiers(e) {
-    if (!e || !e.getModifierState) return;
-    const capsLock = e.getModifierState('CapsLock');
-    const numLock = e.getModifierState('NumLock');
-
+  function updatePills(capsLock, numLock) {
     const capsPill = document.getElementById('indicator-caps-lock');
     const capsStatus = document.getElementById('status-caps-lock');
     if (capsPill && capsStatus) {
       if (capsLock) {
-        capsPill.classList.add('caps-active');
+        capsPill.className = 'keyboard-indicator-pill caps-active';
         capsStatus.textContent = 'Actif (Maj)';
         capsPill.title = 'Attention : les majuscules sont actives, le mot de passe est sensible à la casse';
       } else {
-        capsPill.classList.remove('caps-active');
+        capsPill.className = 'keyboard-indicator-pill';
         capsStatus.textContent = 'Désactivé';
         capsPill.title = 'Majuscules désactivées';
       }
@@ -1421,27 +1435,151 @@ function initKeyboardModifiers() {
     const numStatus = document.getElementById('status-num-lock');
     if (numPill && numStatus) {
       if (numLock) {
-        numPill.classList.add('num-active');
+        numPill.className = 'keyboard-indicator-pill num-active';
         numStatus.textContent = 'Actif';
         numPill.title = 'Pavé numérique actif';
       } else {
-        numPill.classList.remove('num-active');
+        numPill.className = 'keyboard-indicator-pill';
         numStatus.textContent = 'Inactif';
         numPill.title = 'Pavé numérique inactif';
       }
     }
   }
 
+  async function syncHardwareLocks() {
+    try {
+      const locks = await invoke('get_keyboard_locks');
+      if (locks) {
+        updatePills(locks.caps_lock, locks.num_lock);
+      }
+    } catch (err) {
+      // Ignorer si non disponible
+    }
+  }
+
+  window.syncKeyboardHardwareLocks = syncHardwareLocks;
+
+  function handleKeyEvent(e) {
+    if (!e) return;
+    let caps = null;
+    let num = null;
+
+    if (e.getModifierState) {
+      caps = e.getModifierState('CapsLock');
+      num = e.getModifierState('NumLock');
+    }
+
+    // Heuristique de détection de frappe directe
+    if (e.key && e.key.length === 1 && !e.shiftKey) {
+      if (e.key >= 'A' && e.key <= 'Z') caps = true;
+      else if (e.key >= 'a' && e.key <= 'z') caps = false;
+    }
+
+    if (caps !== null || num !== null) {
+      const currentCaps = caps !== null ? caps : (document.getElementById('indicator-caps-lock')?.classList.contains('caps-active') ?? false);
+      const currentNum = num !== null ? num : (document.getElementById('indicator-num-lock')?.classList.contains('num-active') ?? false);
+      updatePills(currentCaps, currentNum);
+    }
+
+    // Si CapsLock ou NumLock a été pressé, interroger le hardware avec double vérification
+    if (e.key === 'CapsLock' || e.key === 'NumLock') {
+      setTimeout(syncHardwareLocks, 30);
+      setTimeout(syncHardwareLocks, 120);
+    }
+  }
+
   const pwdInputs = [document.getElementById('input-password'), document.getElementById('input-password-confirm')];
   pwdInputs.forEach(input => {
     if (!input) return;
-    input.addEventListener('keydown', updateModifiers);
-    input.addEventListener('keyup', updateModifiers);
-    input.addEventListener('focus', updateModifiers);
-    input.addEventListener('blur', updateModifiers);
+    input.addEventListener('keydown', handleKeyEvent);
+    input.addEventListener('keyup', handleKeyEvent);
+    input.addEventListener('input', handleKeyEvent);
+    input.addEventListener('focus', () => syncHardwareLocks());
   });
-  window.addEventListener('keydown', updateModifiers);
-  window.addEventListener('keyup', updateModifiers);
+
+  // Écouteurs globaux en mode capture
+  window.addEventListener('keydown', handleKeyEvent, true);
+  window.addEventListener('keyup', handleKeyEvent, true);
+  window.addEventListener('focus', () => syncHardwareLocks());
+
+  // Polling doux périodique spécifiquement sur l'étape 9
+  setInterval(() => {
+    if (currentStep === 9) {
+      syncHardwareLocks();
+    }
+  }, 800);
+
+  // Synchronisation matérielle immédiate
+  syncHardwareLocks();
+}
+
+// ── Validation et Sanitisation en direct du Hostname (RFC 1123) ──────────────
+function initHostnameValidation() {
+  const input = document.getElementById('input-hostname');
+  const errorMsg = document.getElementById('hostname-validation-msg');
+  if (!input) return;
+
+  let errorTimeout = null;
+  function showHostnameError(msg) {
+    if (!errorMsg) return;
+    errorMsg.textContent = msg;
+    errorMsg.classList.remove('hidden');
+    if (errorTimeout) clearTimeout(errorTimeout);
+    errorTimeout = setTimeout(() => {
+      if (errorMsg) errorMsg.classList.add('hidden');
+    }, 2800);
+  }
+
+  function sanitize(val) {
+    let s = val.toLowerCase();
+    // Remplacer espaces, underscores et points par des tirets
+    s = s.replace(/[\s_.]+/g, '-');
+    // Supprimer tout caractère qui n'est pas a-z, 0-9 ou tiret
+    s = s.replace(/[^a-z0-9-]/g, '');
+    // Ne pas commencer par un tiret
+    s = s.replace(/^-+/, '');
+    // Éviter les tirets consécutifs
+    s = s.replace(/--+/g, '-');
+    return s.slice(0, 63);
+  }
+
+  // Bloquer immédiatement toute frappe de touche interdite
+  input.addEventListener('keydown', (e) => {
+    // Laisser passer les touches de commande et de contrôle
+    if (e.ctrlKey || e.altKey || e.metaKey || e.key.length > 1) {
+      return;
+    }
+
+    const char = e.key;
+    // Caractères permis : a-z, A-Z (qui sera transformé en minuscule), 0-9, et le tiret '-'
+    if (!/^[a-zA-Z0-9-]$/.test(char)) {
+      e.preventDefault();
+      showHostnameError("Caractère '" + char + "' non autorisé. Seules les lettres (a-z), chiffres (0-9) et tirets (-) sont acceptés.");
+      return;
+    }
+
+    // Empêcher de commencer par un tiret
+    if (char === '-' && (input.selectionStart === 0 || input.value.length === 0)) {
+      e.preventDefault();
+      showHostnameError("Le nom d'hôte ne peut pas commencer par un tiret.");
+    }
+  });
+
+  // Sanitisation instantanée lors de la saisie ou d'un coller
+  input.addEventListener('input', () => {
+    const original = input.value;
+    const cleaned = sanitize(original);
+    if (original !== cleaned) {
+      input.value = cleaned;
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    input.value = input.value.replace(/-+$/, '');
+    if (!input.value.trim()) {
+      input.value = 'chomiamos';
+    }
+  });
 }
 
 // ── Bouton œil pour afficher / masquer le mot de passe ──────────────────────

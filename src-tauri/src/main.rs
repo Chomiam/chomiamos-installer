@@ -8,7 +8,7 @@ mod install;
 mod updater;
 mod network_mirror;
 
-use system::{check_prerequisites, detect_gpu, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, GpuInfo, DiskInfo, KeyboardLayoutInfo, DesktopEnvInfo, TimezoneInfo};
+use system::{check_prerequisites, detect_gpu, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, GpuInfo, DiskInfo, KeyboardLayoutInfo, KeyboardLocks, DesktopEnvInfo, TimezoneInfo};
 use config::{InstallerSelections, generate_vars_nix};
 use install::{execute_installation, InstallStateSnapshot, SharedInstallState};
 use updater::{check_update, download_and_restart, UpdateInfo};
@@ -237,6 +237,11 @@ async fn get_mirror_info() -> network_mirror::MirrorInfo {
 }
 
 #[tauri::command]
+fn get_keyboard_locks() -> KeyboardLocks {
+    system::detect_keyboard_locks()
+}
+
+#[tauri::command]
 fn check_installer_update(channel: Option<String>) -> UpdateInfo {
     check_update(channel.as_deref().unwrap_or("stable"))
 }
@@ -377,6 +382,7 @@ fn main() {
             poweroff_system,
             check_installer_update,
             get_mirror_info,
+            get_keyboard_locks,
             apply_installer_update,
             save_installation_logs,
         ])

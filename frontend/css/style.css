@@ -1804,16 +1804,34 @@ select option:checked, .form-select option:checked {
 .keyboard-indicator-pill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 12px;
+  gap: 8px;
+  padding: 5px 14px;
   border-radius: 20px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   background: var(--mocha-surface0);
   border: 1px solid var(--mocha-surface1);
   color: var(--mocha-subtext0);
   transition: all 0.25s ease;
   user-select: none;
+}
+
+.keyboard-indicator-pill .indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mocha-overlay0);
+  transition: all 0.2s ease;
+}
+
+.keyboard-indicator-pill.caps-active .indicator-dot {
+  background: var(--mocha-peach);
+  box-shadow: 0 0 8px var(--mocha-peach);
+}
+
+.keyboard-indicator-pill.num-active .indicator-dot {
+  background: var(--mocha-green);
+  box-shadow: 0 0 8px var(--mocha-green);
 }
 
 .keyboard-indicator-pill .indicator-icon {
