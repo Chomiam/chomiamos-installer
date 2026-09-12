@@ -143,6 +143,50 @@ fn hash_user_password(password: &str) -> Result<String, String> {
     }
 }
 
+fn unmount_and_clean_target_disk(disk: &str, emit_log_fn: &dyn Fn(&str)) {
+    emit_log_fn(&format!("[INFO] Recherche et libération de tous les verrous et montages sur {}...", disk));
+
+    // 1. Désactiver tous les swaps
+    let _ = privileged_cmd("swapoff").arg("-a").status();
+
+    // 2. Parcourir /proc/mounts pour démonter tout point actif lié au disque ou sous /mnt
+    if let Ok(mounts) = std::fs::read_to_string("/proc/mounts") {
+        for line in mounts.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if let (Some(dev), Some(mount_point)) = (parts.get(0), parts.get(1)) {
+                if dev.starts_with(disk) || mount_point.starts_with("/mnt") || mount_point.starts_with("/run/media") {
+                    if dev.starts_with(disk) || mount_point.starts_with("/mnt") {
+                        emit_log_fn(&format!("[INFO] Démontage forcé de {} ({})", mount_point, dev));
+                        let _ = privileged_cmd("umount").args(["-l", "-f", mount_point]).status();
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Tuer d'éventuels processus bloquants
+    let _ = privileged_cmd("fuser").args(["-k", "-9", "-m", disk]).status();
+
+    // 4. Démonter et nettoyer les signatures sur chaque partition potentielle
+    for i in 1..=16 {
+        let p = if disk.chars().last().unwrap_or(' ').is_ascii_digit() {
+            format!("{}p{}", disk, i)
+        } else {
+            format!("{}{}", disk, i)
+        };
+        if Path::new(&p).exists() {
+            let _ = privileged_cmd("swapoff").arg(&p).status();
+            let _ = privileged_cmd("umount").args(["-l", "-f", &p]).status();
+            let _ = privileged_cmd("wipefs").args(["-a", "-f", &p]).status();
+        }
+    }
+
+    // 5. Informer le noyau de détruire la table de partitions existante
+    let _ = privileged_cmd("partx").args(["-d", disk]).status();
+    let _ = privileged_cmd("sync").status();
+    let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
+}
+
 fn get_partition_names(disk: &str) -> (String, String) {
     let last_char = disk.chars().last().unwrap_or(' ');
     if last_char.is_ascii_digit() {
@@ -250,13 +294,7 @@ pub async fn execute_installation(
     emit_log("[ÉTAPE 1/8] === Préparation et nettoyage des points de montage ===");
 
     if !effective_dry_run {
-        emit_log("[INFO] Désactivation de tous les swaps existants (swapoff -a)...");
-        let _ = privileged_cmd("swapoff").arg("-a").status();
-
-        emit_log("[INFO] Démontage propre récursif de /mnt si déjà actif...");
-        let _ = privileged_cmd("umount").args(["-R", "-q", "/mnt"]).status();
-        let _ = privileged_cmd("umount").args(["-l", "-R", "-q", "/mnt"]).status();
-
+        unmount_and_clean_target_disk(&s.target_disk, &|m| emit_log(m));
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         emit_log("[OK] Environnement nettoyé et prêt pour le partitionnement.");
     } else {
@@ -271,63 +309,99 @@ pub async fn execute_installation(
     emit_log("[ÉTAPE 2/8] === Partitionnement GPT du disque cible ===");
 
     if !effective_dry_run {
+        unmount_and_clean_target_disk(&s.target_disk, &|m| emit_log(m));
+
         emit_log(&format!("[INFO] Suppression des signatures de systèmes de fichiers (wipefs sur {})...", s.target_disk));
         let _ = privileged_cmd("wipefs").args(["-a", "-f", &s.target_disk]).status();
 
-        emit_log(&format!("[INFO] Création d'une table de partitions GPT vierge sur {}...", s.target_disk));
-        let parted_gpt = privileged_cmd("parted")
-            .args(["-s", &s.target_disk, "--", "mklabel", "gpt"])
+        // ── Effacement préventif des premiers mégaoctets du disque ──
+        // Élimine toute table MBR/GPT corrompue et débloque parted
+        emit_log(&format!("[INFO] Réinitialisation des secteurs de démarrage (16 Mo) sur {}...", s.target_disk));
+        let _ = privileged_cmd("dd")
+            .args(["if=/dev/zero", &format!("of={}", s.target_disk), "bs=1M", "count=16", "conv=notrunc,fdatasync"])
             .status();
-        // Vérification robuste : Err (commande introuvable) ET code de sortie non nul
-        match parted_gpt {
-            Ok(st) if st.success() => {},
-            other => {
-                let detail = match other {
-                    Ok(st) => format!("code de sortie: {:?}", st.code()),
-                    Err(e) => format!("erreur d'exécution: {}", e),
-                };
-                let err = format!("Échec de création du label GPT sur {} ({})", s.target_disk, detail);
-                emit_log(&format!("[ERREUR FATALE] {}", err));
-                let mut st = state.lock().await;
-                st.is_running = false;
-                st.is_finished = true;
-                st.success = false;
-                st.error = Some(err.clone());
-                let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
-                return Err(err);
+
+        let _ = privileged_cmd("sync").status();
+        let _ = privileged_cmd("partprobe").arg(&s.target_disk).status();
+        let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+        emit_log(&format!("[INFO] Création d'une table de partitions GPT vierge sur {}...", s.target_disk));
+        let mut gpt_ok = false;
+        let mut gpt_err = String::new();
+
+        for attempt in 1..=3 {
+            let parted_gpt = privileged_cmd("parted")
+                .args(["-s", &s.target_disk, "--", "mklabel", "gpt"])
+                .output();
+
+            match parted_gpt {
+                Ok(o) if o.status.success() => {
+                    gpt_ok = true;
+                    break;
+                }
+                Ok(o) => {
+                    gpt_err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                    emit_log(&format!("[WARN] Tentative {}/3 création GPT échouée ({}). Nouvelle tentative...", attempt, gpt_err));
+                }
+                Err(e) => {
+                    gpt_err = e.to_string();
+                    emit_log(&format!("[WARN] Tentative {}/3 erreur exécution parted: {}", attempt, gpt_err));
+                }
+            }
+
+            if attempt < 3 {
+                unmount_and_clean_target_disk(&s.target_disk, &|m| emit_log(m));
+                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
             }
         }
+
+        if !gpt_ok {
+            let err = format!("Échec de création du label GPT sur {} ({})", s.target_disk, gpt_err);
+            emit_log(&format!("[ERREUR FATALE] {}", err));
+            let mut st = state.lock().await;
+            st.is_running = false;
+            st.is_finished = true;
+            st.success = false;
+            st.error = Some(err.clone());
+            let _ = app.emit("install_finished", InstallFinished { success: false, error: Some(err.clone()) });
+            return Err(err);
+        }
+        emit_log("[OK] Table de partitions GPT initialisée avec succès.");
 
         emit_log("[INFO] Création de la partition EFI (1024 Mo - ESP/FAT32)...");
         let parted_esp = privileged_cmd("parted")
             .args(["-s", &s.target_disk, "--", "mkpart", "ESP", "fat32", "1MiB", "1025MiB"])
-            .status();
+            .output();
         match parted_esp {
-            Ok(st) if st.success() => {},
-            other => {
-                let detail = match other {
-                    Ok(st) => format!("code de sortie: {:?}", st.code()),
-                    Err(e) => format!("erreur d'exécution: {}", e),
-                };
-                let err = format!("Échec de création de la partition ESP ({})", detail);
+            Ok(o) if o.status.success() => {},
+            Ok(o) => {
+                let err = format!("Échec de création de la partition ESP ({})", String::from_utf8_lossy(&o.stderr).trim());
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            Err(e) => {
+                let err = format!("Échec de création de la partition ESP ({})", e);
                 emit_log(&format!("[ERREUR FATALE] {}", err));
                 return Err(err);
             }
         }
         let _ = privileged_cmd("parted").args(["-s", &s.target_disk, "--", "set", "1", "esp", "on"]).status();
 
-        emit_log("[INFO] Création de la partition racine Root (ext4 - 100% de l'espace)...");
+        let fs_type_parted = if s.filesystem == "btrfs" { "btrfs" } else { "ext4" };
+        emit_log(&format!("[INFO] Création de la partition racine Root ({} - 100% de l'espace)...", fs_type_parted));
         let parted_root = privileged_cmd("parted")
-            .args(["-s", &s.target_disk, "--", "mkpart", "root", "ext4", "1025MiB", "100%"])
-            .status();
+            .args(["-s", &s.target_disk, "--", "mkpart", "root", fs_type_parted, "1025MiB", "100%"])
+            .output();
         match parted_root {
-            Ok(st) if st.success() => {},
-            other => {
-                let detail = match other {
-                    Ok(st) => format!("code de sortie: {:?}", st.code()),
-                    Err(e) => format!("erreur d'exécution: {}", e),
-                };
-                let err = format!("Échec de création de la partition Root ({})", detail);
+            Ok(o) if o.status.success() => {},
+            Ok(o) => {
+                let err = format!("Échec de création de la partition Root ({})", String::from_utf8_lossy(&o.stderr).trim());
+                emit_log(&format!("[ERREUR FATALE] {}", err));
+                return Err(err);
+            }
+            Err(e) => {
+                let err = format!("Échec de création de la partition Root ({})", e);
                 emit_log(&format!("[ERREUR FATALE] {}", err));
                 return Err(err);
             }

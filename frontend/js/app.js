@@ -1901,7 +1901,28 @@ function diagnoseInstallationLogs(fatalError, logs = []) {
   ];
   let recommendedStep = 11;
 
-  // 1. Détection Out Of Memory (OOM-Killer / Saturation RAM & Swap)
+  // 0.5 Détection Erreur de Partitionnement / GPT / Parted / Disque Occupé
+  if (/Échec de création du label GPT|Partition\(s\) on .* are being used|Échec de création de la partition/i.test(allText)) {
+    type = "PARTITIONING_ERROR";
+    title = "Conflit de Partitionnement Disque (Parted)";
+    icon = "💽";
+    badge = "Disque Occupé (Partition active)";
+    culprit = "Disque cible verrouillé par le système";
+    rawCulprit = "Partitions déjà montées ou verrouillées par le bureau live";
+    explanation = "Le partitionneur (parted) n'a pas pu initialiser la table GPT car une ou plusieurs partitions de ce disque étaient encore montées ou utilisées par le système.";
+    recommendations = [
+      "Le programme force désormais le démontage et l'effacement propre des verrous du disque.",
+      "Cliquez sur <strong>« Modifier mes choix & Réessayer »</strong> pour relancer l'installation sans encombre."
+    ];
+    recommendedStep = 3;
+    return {
+      type, title, icon, badge, culprit, rawCulprit, explanation, recommendations, recommendedStep,
+      relevantLines: logs.filter(l => /ERREUR FATALE|parted|label GPT|wipefs/i.test(l)).slice(-5),
+      fullLogText: allText
+    };
+  }
+
+    // 1. Détection Out Of Memory (OOM-Killer / Saturation RAM & Swap)
   const isOOM = /Killed\s+(npm|cargo|rustc|vite|node|\$npmBuildScript|\$\{npmWorkspace)/i.test(allText)
     || /line\s+\d+:\s+\d+\s+Killed/i.test(allText)
     || /Out of memory/i.test(allText)
