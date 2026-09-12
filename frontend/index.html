@@ -766,11 +766,14 @@
               <div class="gamescope-hero-title-row">
                 <span class="gamescope-hero-icon">🎮</span>
                 <div>
-                  <h3 class="gamescope-hero-title">Session Steam Gamescope — Mode Console (Steam Deck)</h3>
+                  <div class="gamescope-title-wrap">
+                    <h3 class="gamescope-hero-title">Session Steam Gamescope — Mode Console (Steam Deck)</h3>
+                    <span id="gamescope-lock-badge" class="gamescope-lock-badge hidden">🔒 Non supporté sur NVIDIA</span>
+                  </div>
                   <p class="gamescope-hero-sub">Démarrage direct dans l'interface Steam Big Picture plein écran sous micro-compositeur Wayland Gamescope</p>
                 </div>
               </div>
-              <label class="toggle-switch-wrap" title="Activer la session Steam Gamescope">
+              <label class="toggle-switch-wrap" id="wrap-gamescope-session" title="Activer la session Steam Gamescope">
                 <input type="checkbox" id="chk-gamescope-session" checked>
                 <div class="switch"></div>
               </label>
@@ -795,7 +798,7 @@
                 </div>
               </div>
 
-              <div class="gamescope-gpu-note">
+              <div class="gamescope-gpu-note" id="gamescope-gpu-note">
                 <span class="note-icon">💡</span>
                 <span>Optimisé pour les cartes graphiques <strong>AMD Radeon</strong> et <strong>Intel Arc</strong>. Désactivé automatiquement sur GPU NVIDIA en raison des limitations des pilotes propriétaires sur le DRM Gamescope.</span>
               </div>

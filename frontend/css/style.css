@@ -2641,6 +2641,73 @@ select option:checked, .form-select option:checked {
 }
 
 /* ── Grande Tuile Session Steam Gamescope Hero (v1.2.18) ───────────────────── */
+/* ── Toggle Switch & Lock pour Gamescope Hero (v1.2.18) ────────────────────── */
+.gamescope-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.gamescope-lock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(243, 139, 168, 0.18);
+  color: var(--mocha-red);
+  border: 1px solid rgba(243, 139, 168, 0.4);
+  letter-spacing: 0.02em;
+}
+
+.toggle-switch-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Supprimer strictement la case à cocher native pour ne laisser QUE le switch visuel */
+.toggle-switch-wrap input[type="checkbox"] {
+  display: none !important;
+}
+
+.toggle-switch-wrap input:checked ~ .switch {
+  background: var(--mocha-mauve);
+}
+
+.toggle-switch-wrap input:checked ~ .switch::after {
+  transform: translateX(20px);
+  background: var(--mocha-crust);
+}
+
+.toggle-switch-wrap.disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.toggle-switch-wrap.disabled .switch {
+  background: var(--mocha-surface1) !important;
+  cursor: not-allowed !important;
+}
+
+.toggle-switch-wrap.disabled .switch::after {
+  background: var(--mocha-overlay0) !important;
+}
+
+.gamescope-gpu-note.warning-nvidia {
+  border-color: rgba(243, 139, 168, 0.5);
+  background: rgba(243, 139, 168, 0.1);
+  color: var(--mocha-red);
+}
+
 .gamescope-hero-card {
   margin-top: 24px;
   background: linear-gradient(145deg, rgba(30, 30, 46, 0.95), rgba(24, 24, 37, 0.98));

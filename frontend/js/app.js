@@ -168,6 +168,49 @@ async function initDesktopVersionsDetection() {
   }
 }
 
+
+// ── Verrouillage Sécurisé de la Session Gamescope sur GPU NVIDIA (v1.2.18) ──
+function applyGamescopeGpuLock() {
+  const isNvidia = detectedGpuDriver === 'nvidia' || detectedGpuDriver === 'nvidia-legacy';
+  const gsChk = document.getElementById('chk-gamescope-session');
+  const wrap = document.getElementById('wrap-gamescope-session');
+  const lockBadge = document.getElementById('gamescope-lock-badge');
+  const note = document.getElementById('gamescope-gpu-note');
+
+  if (isNvidia) {
+    if (gsChk) {
+      gsChk.checked = false;
+      gsChk.disabled = true;
+    }
+    if (wrap) {
+      wrap.classList.add('disabled');
+      wrap.title = "Session verrouillée : le pilote propriétaire NVIDIA ne prend pas en charge de manière stable le micro-compositeur Wayland Gamescope";
+    }
+    if (lockBadge) {
+      lockBadge.classList.remove('hidden');
+    }
+    if (note) {
+      note.classList.add('warning-nvidia');
+      note.innerHTML = '<span class="note-icon">⚠️</span><span><strong>GPU NVIDIA Détecté :</strong> La session Gamescope en mode console est <strong>bloquée et désactivée</strong> par mesure de sécurité en raison d\'incompatibilités critiques du pilote propriétaire NVIDIA avec le gestionnaire de tampons DRM Gamescope.</span>';
+    }
+  } else {
+    if (gsChk) {
+      gsChk.disabled = false;
+    }
+    if (wrap) {
+      wrap.classList.remove('disabled');
+      wrap.title = "Activer la session Steam Gamescope";
+    }
+    if (lockBadge) {
+      lockBadge.classList.add('hidden');
+    }
+    if (note) {
+      note.classList.remove('warning-nvidia');
+      note.innerHTML = '<span class="note-icon">💡</span><span>Optimisé pour les cartes graphiques <strong>AMD Radeon</strong> et <strong>Intel Arc</strong>. Désactivé automatiquement sur GPU NVIDIA en raison des limitations des pilotes propriétaires sur le DRM Gamescope.</span>';
+    }
+  }
+}
+
 let selectedDavinciResolve = "none";
 
 function initDavinciResolveHandlers() {
@@ -438,6 +481,10 @@ function goToStep(step) {
     scrollArea.scrollTop = 0;
   }
 
+  if (step === 6) {
+    applyGamescopeGpuLock();
+  }
+
   if (step === 10 && typeof window.syncKeyboardHardwareLocks === 'function') {
     window.syncKeyboardHardwareLocks();
   }
@@ -494,10 +541,7 @@ async function loadPrerequisites() {
     // 4. GPU : VM, Intel, Nvidia Moderne, Nvidia Legacy, AMD
     if (pre.gpu) {
       detectedGpuDriver = pre.gpu.driver_type || "amd";
-      if (detectedGpuDriver === 'nvidia' || detectedGpuDriver === 'nvidia-legacy') {
-        const gsChk = document.getElementById('chk-gamescope-session');
-        if (gsChk) gsChk.checked = false;
-      }
+      applyGamescopeGpuLock();
       const driverLabels = {
         'vm': 'Machine Virtuelle (VM)',
         'nvidia': 'NVIDIA Moderne (Propriétaire)',
@@ -865,7 +909,7 @@ function collectSelections() {
     heroic: document.getElementById('chk-heroic')?.checked ?? true,
     faugus: document.getElementById('chk-faugus')?.checked ?? true,
     decky_loader: false,
-    gamescope_session: document.getElementById('chk-gamescope-session')?.checked ?? true,
+    gamescope_session: (detectedGpuDriver === 'nvidia' || detectedGpuDriver === 'nvidia-legacy') ? false : (document.getElementById('chk-gamescope-session')?.checked ?? true),
     geforce_now: document.getElementById('chk-geforce')?.checked ?? false,
     sunshine: document.getElementById('chk-sunshine')?.checked ?? false,
     sober: document.getElementById('chk-sober')?.checked ?? false,
@@ -934,7 +978,7 @@ function updateSummary() {
     <div class="summary-item"><label>Création & Vidéo</label><span>${[s.davinci_resolve !== 'none' ? 'DaVinci Resolve (' + (s.davinci_resolve === 'studio' ? 'Studio' : 'Gratuit') + ')' : null, s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Impression 3D</label><span>${[s.slicer_orcaslicer?'OrcaSlicer':null, s.slicer_prusaslicer?'Prusa':null, s.slicer_bambustudio?'Bambu':null, s.slicer_cura?'Cura':null].filter(Boolean).join(', ') || 'Aucun'}</span></div>
     <div class="summary-item"><label>Suite IA Locale</label><span>${s.ai_suite_enable ? 'Ollama + Open-WebUI (Activé)' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Options Gaming</label><span>Mode Console: ${s.gamescope_session ? 'Activé' : 'Désactivé'} | Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'}</span></div>
+    <div class="summary-item"><label>Options Gaming</label><span>Mode Console: ${(s.gpu_driver === 'nvidia' || s.gpu_driver === 'nvidia-legacy') ? 'Bloqué (NVIDIA)' : s.gamescope_session ? 'Activé' : 'Désactivé'} | Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'}</span></div>
   `;
 }
 
