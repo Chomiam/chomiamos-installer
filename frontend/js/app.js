@@ -237,6 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSummaryTrigger();
   initConfirmationModal();
   initTerminalActions();
+  initDiagnosticHandlers();
 
   // 2. Chargements asynchrones en arrière-plan
   loadPrerequisites();
@@ -1255,7 +1256,7 @@ async function startInstallation(s) {
             if (sub) sub.textContent = "ChomiamOS Gaming Edition est prêt.";
           } else {
             appendLog(`[ERREUR FATALE] ${snap.error || 'Erreur inconnue'}`);
-            alert(`Erreur d'installation: ${snap.error}`);
+            showInstallationErrorDiagnostic(snap.error, rawInstallationLogs);
           }
         }
       } catch (err) {
@@ -1265,7 +1266,7 @@ async function startInstallation(s) {
   } catch (err) {
     console.error("Fatal startInstallation error:", err);
     appendLog(`[ERREUR FATALE LANCEMENT] ${err}`);
-    alert(`Erreur lors du lancement de l'installation: ${err}`);
+    showInstallationErrorDiagnostic(String(err), rawInstallationLogs);
   }
 }
 
@@ -1823,4 +1824,295 @@ async function initMirrorDetection() {
   } catch (e) {
     console.warn("Erreur détection miroir:", e);
   }
+}
+
+
+// ==========================================================================
+// 🔍 Système de Diagnostic Intelligent des Pannes d'Installation
+// ==========================================================================
+
+let lastDiagnosticData = null;
+
+function diagnoseInstallationLogs(fatalError, logs = []) {
+  const allText = logs.join('\n');
+
+  let type = "GENERIC_BUILD";
+  let title = "Échec de la Dérivation Système";
+  let icon = "⚠️";
+  let badge = "Erreur Dérivation";
+  let culprit = "Processus d'installation NixOS";
+  let rawCulprit = "nixos-install";
+  let explanation = "Une étape exécutée par le gestionnaire de paquets Nix a retourné un code de sortie d'erreur non nul.";
+  let recommendations = [
+    "Consultez les lignes d'erreur dans le terminal ci-dessous pour identifier le composant précis.",
+    "Enregistrez le journal complet des logs avec le bouton ci-dessous pour le transmettre au support ChomiamOS."
+  ];
+  let recommendedStep = 11;
+
+  // 1. Détection Out Of Memory (OOM-Killer / Saturation RAM & Swap)
+  const isOOM = /Killed\s+(npm|cargo|rustc|vite|node|\$npmBuildScript|\$\{npmWorkspace)/i.test(allText)
+    || /line\s+\d+:\s+\d+\s+Killed/i.test(allText)
+    || /Out of memory/i.test(allText)
+    || /signal 9/i.test(allText)
+    || /exit code:?\s*(Some\(137\)|137)/i.test(allText)
+    || /JavaScript heap out of memory/i.test(allText);
+
+  if (isOOM) {
+    type = "OOM_KILLER";
+    title = "Saturation de la Mémoire Vive (Out Of Memory)";
+    icon = "🧠";
+    badge = "OOM-Killer (RAM saturée)";
+    recommendedStep = 9;
+
+    if (allText.includes("open-webui") || allText.includes("CellEditor.svelte") || allText.includes("vite-plugin-svelte")) {
+      culprit = "Suite IA Locale (Interface Web Open-WebUI)";
+      rawCulprit = "open-webui-frontend-0.11.3.drv (Vite / Node.js)";
+      explanation = "La compilation locale du frontend d'Open-WebUI (plus de 6 300 modules TypeScript et Svelte) a dépassé la mémoire vive disponible. Le noyau Linux a brutalement arrêté le processus (signal SIGKILL / 989 Killed) pour protéger le système.";
+      recommendations = [
+        "<strong>Action immédiate :</strong> Cliquez sur <em>« Modifier mes choix & Réessayer »</em> pour <strong>décocher la Suite IA Locale</strong> à l'Étape 9. Vous pourrez l'installer facilement une fois votre système prêt.",
+        "Si vous installez ChomiamOS dans une <strong>Machine Virtuelle (VM)</strong>, allouez-lui au moins <strong>8 à 10 Go de RAM</strong>.",
+        "À l'Étape 3 (Disque), allouez un fichier ou une partition <strong>Swap d'au moins 4 à 8 Go</strong>."
+      ];
+    } else {
+      culprit = "Compilation d'un composant lourd";
+      rawCulprit = "Processus arrêté par le noyau (OOM)";
+      explanation = "Un processus de compilation a saturé l'intégralité de la RAM et du Swap de votre machine, forçant le noyau Linux à intervenir.";
+      recommendations = [
+        "Désactivez les options ou outils facultatifs lourds pour cette première installation.",
+        "Augmentez la mémoire RAM allouée ou prévoyez un espace de Swap plus spacieux à l'Étape 3."
+      ];
+    }
+  }
+  // 2. Détection Erreur Réseau / Miroir / Téléchargement
+  else if (/download failed|stalled-download-timeout|Could not resolve host|temporary failure in name resolution|Failed to connect to|Connection refused|timed out|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout/i.test(allText)) {
+    type = "NETWORK_ERROR";
+    title = "Interruption de la Connexion Réseau";
+    icon = "🌐";
+    badge = "Erreur Réseau / Miroir";
+    culprit = "Serveur de Téléchargement des Paquets (Cache / Miroir)";
+    rawCulprit = "Cachix / cache.nixos.org";
+    explanation = "L'installateur n'a pas pu récupérer les archives binaires indispensables en raison d'une déconnexion Internet ou d'un serveur de cache temporairement injoignable.";
+    recommendations = [
+      "Vérifiez que votre connexion Internet filaire ou Wi-Fi est stable et active.",
+      "À l'Étape 1 (Prérequis), vérifiez le test de vitesse et assurez-vous que les serveurs sont opérationnels.",
+      "Assurez-vous qu'aucun pare-feu d'entreprise ou portail captif ne bloque les requêtes HTTP/HTTPS vers <code>cache.nixos.org</code> ou <code>chomiamos.cachix.org</code>."
+    ];
+    recommendedStep = 1;
+  }
+  // 3. Détection Espace Disque Saturé
+  else if (/No space left on device|ENOSPC|disk full|write error: No space/i.test(allText)) {
+    type = "DISK_FULL";
+    title = "Espace Disque Insuffisant";
+    icon = "💾";
+    badge = "Disque Saturé (ENOSPC)";
+    culprit = "Partition Racine (/mnt)";
+    rawCulprit = "Espace disque libre épuisé";
+    explanation = "L'espace disponible sur la partition cible est insuffisant pour extraire et stocker l'intégralité de l'image système de ChomiamOS.";
+    recommendations = [
+      "Choisissez un disque de destination disposant d'au moins 60 à 80 Go d'espace libre.",
+      "À l'Étape 3 (Disque), supprimez les anciennes partitions ou réduisez la taille du Swap si votre disque est trop exigu."
+    ];
+    recommendedStep = 3;
+  }
+  // 4. Détection Problème Bootloader / EFI
+  else if (/bootloader failed|efibootmgr|Failed to install bootloader|no efi system partition|ESP|systemd-boot/i.test(allText)) {
+    type = "BOOTLOADER_ERROR";
+    title = "Échec de l'Amorçage EFI (Bootloader)";
+    icon = "⚡";
+    badge = "Erreur Chargeur EFI";
+    culprit = "Gestionnaire de démarrage UEFI (systemd-boot)";
+    rawCulprit = "Inscription NVRAM EFI rejetée";
+    explanation = "Le programme d'installation n'a pas pu enregistrer les entrées de démarrage EFI dans la carte mère de l'ordinateur.";
+    recommendations = [
+      "Accédez aux réglages du BIOS de votre ordinateur et <strong>désactivez le Secure Boot</strong>.",
+      "Assurez-vous que la machine a bien démarré la clé d'installation en mode <strong>UEFI</strong> natif (et non en mode Legacy / CSM)."
+    ];
+    recommendedStep = 3;
+  }
+  // 5. Détection Hash Mismatch
+  else if (/hash mismatch|sha256 mismatch/i.test(allText)) {
+    type = "HASH_MISMATCH";
+    title = "Incompatibilité de Condensat Cryptographique";
+    icon = "🔒";
+    badge = "Hash Mismatch";
+    culprit = "Fichier source d'archive corrompu";
+    rawCulprit = "Condensat SHA256 inattendu";
+    explanation = "Un fichier téléchargé ne correspond pas à l'empreinte de sécurité attendue (paquet altéré lors du transit réseau ou mise à jour amont non répercutée).";
+    recommendations = [
+      "Relancez l'installation pour retélécharger proprement le fichier.",
+      "Basculez sur un autre miroir réseau à l'Étape 1."
+    ];
+    recommendedStep = 1;
+  }
+  // 6. Détection Erreur de build générique
+  else if (/Cannot build '([^']+)'/i.test(allText) || /builder for '([^']+)' failed/i.test(allText)) {
+    const match = allText.match(/Cannot build '([^']+)'/) || allText.match(/builder for '([^']+)' failed/);
+    const drv = match ? match[1].split('/').pop().replace('.drv', '') : "Dérivation inconnue";
+    culprit = `Échec sur le paquet : ${drv}`;
+    rawCulprit = match ? match[1].split('/').pop() : drv;
+    explanation = `La compilation du paquet source <code>${drv}</code> a échoué et ce binaire n'était pas disponible dans le cache.`;
+    recommendations = [
+      "Vérifiez si ce paquet correspond à une option facultative sélectionnée et décochez-la temporairement.",
+      "Enregistrez les logs complets pour demander de l'aide à la communauté ChomiamOS."
+    ];
+    recommendedStep = 11;
+  }
+
+  // Filtrage des 8 dernières lignes techniques d'erreur
+  const errorLines = logs.filter(l => l.includes("[ERR]") || l.includes("error:") || l.includes("Killed") || l.includes("FATALE")).slice(-8);
+  const rawSnippet = errorLines.length > 0 ? errorLines.join('\n') : (fatalError || "Aucun détail supplémentaire capturé.");
+
+  return {
+    type,
+    title,
+    icon,
+    badge,
+    culprit,
+    rawCulprit,
+    explanation,
+    recommendations,
+    recommendedStep,
+    rawSnippet,
+    fatalError
+  };
+}
+
+function showInstallationErrorDiagnostic(fatalError, logs = []) {
+  const diag = diagnoseInstallationLogs(fatalError, logs);
+  lastDiagnosticData = diag;
+
+  // 1. Mettre à jour et afficher la bannière persistante
+  const banner = document.getElementById('install-diagnostic-banner');
+  if (banner) {
+    const iconEl = document.getElementById('diag-banner-icon');
+    const titleEl = document.getElementById('diag-banner-title-text');
+    const badgeEl = document.getElementById('diag-banner-badge');
+    const subEl = document.getElementById('diag-banner-sub');
+
+    if (iconEl) iconEl.textContent = diag.icon;
+    if (titleEl) titleEl.textContent = diag.title;
+    if (badgeEl) badgeEl.textContent = diag.badge;
+    if (subEl) subEl.textContent = diag.culprit ? `Composant : ${diag.culprit}` : "Cause identifiée par l'analyse des journaux.";
+    banner.classList.remove('hidden');
+  }
+
+  // 2. Mettre à jour les données de la fenêtre modale
+  const modal = document.getElementById('modal-install-diagnostic');
+  if (modal) {
+    const iconEl = document.getElementById('diag-icon-badge');
+    const titleEl = document.getElementById('diag-modal-title');
+    const badgeEl = document.getElementById('diag-modal-badge');
+    const valEl = document.getElementById('diag-culprit-val');
+    const rawEl = document.getElementById('diag-culprit-raw');
+    const explEl = document.getElementById('diag-explanation-text');
+
+    if (iconEl) iconEl.textContent = diag.icon;
+    if (titleEl) titleEl.textContent = diag.title;
+    if (badgeEl) badgeEl.textContent = diag.badge;
+    if (valEl) valEl.textContent = diag.culprit;
+    if (rawEl) rawEl.textContent = diag.rawCulprit;
+    if (explEl) explEl.innerHTML = diag.explanation;
+
+    const list = document.getElementById('diag-solutions-list');
+    if (list) {
+      list.innerHTML = diag.recommendations.map((rec, i) => `
+        <li class="diag-solution-item">
+          <div class="diag-solution-num">${i + 1}</div>
+          <div class="diag-solution-content">${rec}</div>
+        </li>
+      `).join('');
+    }
+
+    const snippet = document.getElementById('diag-snippet-box');
+    if (snippet) {
+      snippet.textContent = diag.rawSnippet;
+    }
+
+    // Afficher la modale
+    modal.classList.remove('hidden');
+  }
+}
+
+function restoreWizardFromInstallation(targetStep = 11) {
+  // 1. Fermer la modale et cacher la bannière
+  document.getElementById('modal-install-diagnostic')?.classList.add('hidden');
+
+  // 2. Désactiver le panneau d'installation
+  document.getElementById('panel-step-install')?.classList.remove('active');
+
+  // 3. Réactiver la navigation complète du wizard
+  document.querySelector('.step-content-area')?.classList.remove('no-scroll');
+  document.querySelector('.wizard-actions')?.classList.remove('hidden');
+  document.querySelector('.stepper-sidebar')?.classList.remove('hidden');
+
+  // 4. Naviguer vers l'étape recommandée
+  goToStep(targetStep);
+}
+
+function initDiagnosticHandlers() {
+  // 1. Ouvrir la modale depuis la bannière
+  document.getElementById('btn-diag-banner-open')?.addEventListener('click', () => {
+    document.getElementById('modal-install-diagnostic')?.classList.remove('hidden');
+  });
+
+  // 2. Boutons "Modifier mes choix & Réessayer"
+  const handleRetry = () => {
+    const target = lastDiagnosticData ? lastDiagnosticData.recommendedStep : 11;
+    restoreWizardFromInstallation(target);
+  };
+  document.getElementById('btn-diag-banner-retry')?.addEventListener('click', handleRetry);
+  document.getElementById('btn-diag-retry')?.addEventListener('click', handleRetry);
+
+  // 3. Fermer la modale pour voir le terminal
+  document.getElementById('btn-diag-close')?.addEventListener('click', () => {
+    document.getElementById('modal-install-diagnostic')?.classList.add('hidden');
+  });
+
+  // 4. Sauvegarder les logs
+  document.getElementById('btn-diag-export-logs')?.addEventListener('click', async () => {
+    try {
+      const content = rawInstallationLogs.join('\n');
+      const savedPath = await invoke('save_installation_logs', { content });
+      alert(`Journal sauvegardé avec succès dans :\n${savedPath}`);
+    } catch (err) {
+      if (!String(err).includes('Annulé')) {
+        alert(`Erreur lors de la sauvegarde: ${err}`);
+      }
+    }
+  });
+
+  // 5. Copier le rapport d'incident dans le presse-papier
+  document.getElementById('btn-diag-copy')?.addEventListener('click', async () => {
+    if (!lastDiagnosticData) return;
+    const btn = document.getElementById('btn-diag-copy');
+    const originalText = btn ? btn.textContent : "📋 Copier le rapport d'incident";
+
+    const report = [
+      "### 🚨 Rapport d'Incident d'Installation ChomiamOS",
+      `- **Horodatage** : ${new Date().toLocaleString()}`,
+      `- **Type de panne** : ${lastDiagnosticData.title} (${lastDiagnosticData.badge})`,
+      `- **Composant concerné** : ${lastDiagnosticData.culprit} (\`${lastDiagnosticData.rawCulprit}\`)`,
+      "",
+      "#### 📖 Explication",
+      lastDiagnosticData.explanation.replace(/<[^>]*>/g, ''),
+      "",
+      "#### 💡 Solutions suggérées",
+      ...lastDiagnosticData.recommendations.map((r, i) => `${i + 1}. ${r.replace(/<[^>]*>/g, '')}`),
+      "",
+      "#### 🔍 Dernières lignes d'erreurs capturées",
+      "```text",
+      lastDiagnosticData.rawSnippet,
+      "```"
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(report);
+      if (btn) btn.textContent = "✓ Rapport Copié !";
+      setTimeout(() => {
+        if (btn) btn.textContent = originalText;
+      }, 3000);
+    } catch (e) {
+      alert("Impossible de copier automatiquement dans le presse-papier.");
+    }
+  });
 }

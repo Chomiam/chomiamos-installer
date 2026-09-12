@@ -17,7 +17,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.19-testing (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.20-testing (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -1434,6 +1434,24 @@
             </div>
           </div>
 
+                    <!-- Diagnostic Banner (Shown on error) -->
+          <div class="install-diagnostic-banner hidden" id="install-diagnostic-banner">
+            <div class="diag-banner-content">
+              <span class="diag-banner-icon" id="diag-banner-icon">🧠</span>
+              <div class="diag-banner-text">
+                <span class="diag-banner-title">
+                  <span id="diag-banner-title-text">Saturation de la Mémoire Vive (Out Of Memory)</span>
+                  <span class="diag-modal-badge" id="diag-banner-badge">OOM-Killer</span>
+                </span>
+                <span class="diag-banner-sub" id="diag-banner-sub">L'analyse intelligente des journaux a identifié la cause exacte du blocage.</span>
+              </div>
+            </div>
+            <div class="diag-banner-actions">
+              <button type="button" class="btn btn-secondary" id="btn-diag-banner-open">🔍 Voir l'Analyse Détaillée</button>
+              <button type="button" class="btn btn-primary btn-diag-retry" id="btn-diag-banner-retry">🔄 Modifier mes choix & Réessayer</button>
+            </div>
+          </div>
+
           <div class="terminal-wrapper" id="install-terminal-wrapper">
             <div class="terminal-header">
               <div class="terminal-dots">
@@ -1619,6 +1637,66 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btn-modal-cancel">Annuler</button>
         <button type="button" class="btn btn-danger" id="btn-modal-proceed">Effacer le disque et Installer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catppuccin Mocha Installation Error Diagnostic Modal -->
+  <div class="modal-backdrop hidden" id="modal-install-diagnostic">
+    <div class="modal-card diagnostic-modal">
+      <div class="diag-modal-header">
+        <div class="modal-icon-badge diagnostic-icon-badge" id="diag-icon-badge">🧠</div>
+        <div class="diag-modal-title-wrap">
+          <h3 id="diag-modal-title">Diagnostic Intelligent de l'Échec</h3>
+          <span class="diag-modal-badge" id="diag-modal-badge">Saturation Mémoire (OOM-Killer)</span>
+        </div>
+      </div>
+      <div class="diag-modal-body">
+        <!-- Culprit Component Card -->
+        <div class="diag-culprit-card" id="diag-culprit-card">
+          <span class="diag-culprit-label">Composant ou Paquet Défaillant Identifié</span>
+          <span class="diag-culprit-val" id="diag-culprit-val">Suite IA Locale (Interface Web Open-WebUI)</span>
+          <code class="diag-culprit-raw" id="diag-culprit-raw">open-webui-frontend-0.11.3.drv</code>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="diag-section">
+          <div class="diag-section-title">
+            <span>📖</span>
+            <span>Que s'est-il passé ?</span>
+          </div>
+          <div class="diag-explanation-text" id="diag-explanation-text">
+            La compilation locale a saturé la mémoire vive (RAM + Swap). Le noyau Linux a arrêté le processus.
+          </div>
+        </div>
+
+        <!-- Solutions List Section -->
+        <div class="diag-section">
+          <div class="diag-section-title">
+            <span>💡</span>
+            <span>Solutions Recommandées</span>
+          </div>
+          <ul class="diag-solutions-list" id="diag-solutions-list">
+            <!-- Dynamically injected solutions -->
+          </ul>
+        </div>
+
+        <!-- Technical Log Snippet -->
+        <div class="diag-section">
+          <div class="diag-section-title">
+            <span>🔍</span>
+            <span>Extrait Technique Pertinent des Journaux</span>
+          </div>
+          <div class="diag-snippet-box" id="diag-snippet-box">
+            <!-- Extracted log lines -->
+          </div>
+        </div>
+      </div>
+      <div class="diag-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-diag-close">Consulter le Terminal</button>
+        <button type="button" class="btn btn-secondary btn-diag-copy" id="btn-diag-copy">📋 Copier le rapport d'incident</button>
+        <button type="button" class="btn btn-secondary" id="btn-diag-export-logs">💾 Enregistrer les logs</button>
+        <button type="button" class="btn btn-primary btn-diag-retry" id="btn-diag-retry">🔄 Modifier mes choix & Réessayer</button>
       </div>
     </div>
   </div>

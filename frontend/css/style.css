@@ -2916,3 +2916,287 @@ select option:checked, .form-select option:checked {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================================
+   Catppuccin Mocha - Intelligent Error Diagnostic Modal & Banner
+   ========================================================================== */
+
+.install-diagnostic-banner {
+  background: linear-gradient(135deg, rgba(243, 139, 168, 0.12), rgba(30, 30, 46, 0.95));
+  border: 1px solid rgba(243, 139, 168, 0.4);
+  border-left: 5px solid var(--mocha-red);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.install-diagnostic-banner.hidden {
+  display: none !important;
+}
+
+.diag-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.diag-banner-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(243, 139, 168, 0.5));
+}
+
+.diag-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.diag-banner-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mocha-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diag-banner-sub {
+  font-size: 0.82rem;
+  color: var(--mocha-subtext0);
+}
+
+.diag-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Modal Diagnostic Window */
+.modal-card.diagnostic-modal {
+  border-color: rgba(243, 139, 168, 0.5);
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.diag-modal-header {
+  padding: 22px 26px 14px 26px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--mocha-surface0);
+}
+
+.modal-icon-badge.diagnostic-icon-badge {
+  background: rgba(243, 139, 168, 0.15);
+  border-color: rgba(243, 139, 168, 0.4);
+  color: var(--mocha-red);
+  font-size: 1.6rem;
+}
+
+.diag-modal-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diag-modal-title-wrap h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--mocha-text);
+  font-weight: 700;
+}
+
+.diag-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(243, 139, 168, 0.2);
+  color: var(--mocha-red);
+  align-self: flex-start;
+}
+
+.diag-modal-body {
+  padding: 18px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(90vh - 160px);
+}
+
+/* Culprit Card */
+.diag-culprit-card {
+  background: rgba(17, 17, 27, 0.6);
+  border: 1px solid var(--mocha-surface1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.diag-culprit-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 800;
+  color: var(--mocha-subtext1);
+}
+
+.diag-culprit-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--mocha-peach);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diag-culprit-raw {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  color: var(--mocha-overlay2);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 6px;
+  word-break: break-all;
+}
+
+/* Diagnostic Sections */
+.diag-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.diag-section-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--mocha-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diag-explanation-text {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--mocha-subtext0);
+  background: var(--mocha-surface0);
+  padding: 12px 16px;
+  border-radius: 10px;
+  border-left: 3px solid var(--mocha-sapphire);
+}
+
+/* Solutions List */
+.diag-solutions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diag-solution-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--mocha-surface0);
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.diag-solution-num {
+  background: var(--mocha-mauve);
+  color: var(--mocha-crust);
+  font-weight: 800;
+  font-size: 0.74rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.diag-solution-content {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--mocha-subtext1);
+  flex: 1;
+}
+
+.diag-solution-content strong {
+  color: var(--mocha-text);
+}
+
+/* Log Snippet Box */
+.diag-snippet-box {
+  background: #11111b;
+  border: 1px solid var(--mocha-surface0);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  color: var(--mocha-subtext0);
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+.diag-modal-footer {
+  padding: 14px 26px 18px 26px;
+  border-top: 1px solid var(--mocha-surface0);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-diag-retry {
+  background: linear-gradient(135deg, var(--mocha-mauve), #b4befe);
+  color: var(--mocha-crust);
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 14px rgba(203, 166, 247, 0.35);
+}
+
+.btn-diag-retry:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-diag-copy {
+  background: rgba(137, 180, 250, 0.15);
+  border: 1px solid rgba(137, 180, 250, 0.4);
+  color: var(--mocha-sapphire);
+  font-weight: 600;
+}
+
+.btn-diag-copy:hover {
+  background: rgba(137, 180, 250, 0.25);
+}
