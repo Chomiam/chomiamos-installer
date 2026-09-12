@@ -46,7 +46,7 @@ let
 in
 rustPlatform.buildRustPackage rec {
   pname = "chomiamos-installer";
-  version = "1.2.25";
+  version = "1.2.26";
 
   src = ./.;
 
