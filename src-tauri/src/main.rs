@@ -242,8 +242,13 @@ fn get_keyboard_locks() -> KeyboardLocks {
 }
 
 #[tauri::command]
-fn check_installer_update(channel: Option<String>) -> UpdateInfo {
-    check_update(channel.as_deref().unwrap_or("stable"))
+async fn check_installer_update(channel: Option<String>) -> UpdateInfo {
+    let ch = channel.unwrap_or_else(|| "stable".into());
+    tokio::task::spawn_blocking(move || {
+        check_update(&ch)
+    })
+    .await
+    .unwrap_or_else(|_| UpdateInfo::default())
 }
 
 #[tauri::command]
@@ -323,8 +328,17 @@ async fn save_installation_logs(content: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_desktop_versions() -> system::DesktopVersions {
-    system::detect_desktop_versions()
+async fn get_desktop_versions() -> system::DesktopVersions {
+    tokio::task::spawn_blocking(|| {
+        system::detect_desktop_versions()
+    })
+    .await
+    .unwrap_or_else(|_| system::DesktopVersions {
+        gnome: "50.4".into(),
+        kde: "6.6.6".into(),
+        cosmic: "1.6.0".into(),
+        cinnamon: "6.6.3".into(),
+    })
 }
 
 fn main() {

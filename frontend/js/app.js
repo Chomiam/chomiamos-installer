@@ -234,7 +234,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initHostnameValidation();
   initBrowserAndMailHandlers();
   initDavinciResolveHandlers();
-  initDesktopVersionsDetection();
   initSummaryTrigger();
   initConfirmationModal();
   initTerminalActions();
@@ -247,6 +246,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadDisks();
   initMirrorDetection();
   initUpdateManager();
+
+  // Détection des versions DE en arrière-plan sans bloquer l'affichage initial
+  setTimeout(() => {
+    initDesktopVersionsDetection();
+  }, 1000);
 });
 
 
@@ -1447,7 +1451,7 @@ async function initUpdateManager() {
     if (progSub && p.percent >= 98) progSub.textContent = "Redémarrage de l'installateur dans quelques instants...";
   });
 
-  await checkAndUpdatePill();
+  checkAndUpdatePill();
 }
 
 function initChannelButtons() {

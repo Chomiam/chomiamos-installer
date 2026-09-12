@@ -801,7 +801,7 @@ pub fn detect_keyboard_locks() -> KeyboardLocks {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DesktopVersions {
     pub gnome: String,
     pub kde: String,
@@ -839,7 +839,7 @@ else
 "#;
 
     if let Ok(output) = Command::new("nix")
-        .args(["eval", "--impure", "--json", "--expr", nix_expr])
+        .args(["eval", "--offline", "--impure", "--json", "--expr", nix_expr])
         .output()
     {
         if output.status.success() {

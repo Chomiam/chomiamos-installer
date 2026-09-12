@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const REPO: &str = "Chomiam/chomiamos-installer";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateInfo {
     pub has_update: bool,
     pub is_downgrade: bool,
