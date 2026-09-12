@@ -800,9 +800,77 @@ pub fn detect_keyboard_locks() -> KeyboardLocks {
     KeyboardLocks { caps_lock, num_lock }
 }
 
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DesktopVersions {
+    pub gnome: String,
+    pub kde: String,
+    pub cosmic: String,
+    pub cinnamon: String,
+}
+
+pub fn detect_desktop_versions() -> DesktopVersions {
+    // 1. Tenter d'évaluer dynamiquement via nix eval
+    let nix_expr = r#"
+let
+  system = builtins.currentSystem;
+  hasFlake = builtins.pathExists /etc/nixos/flake.nix;
+in
+if hasFlake then
+  let
+    flake = builtins.getFlake "git+file:///etc/nixos";
+    pkgs = flake.inputs.nixpkgs.legacyPackages.${system};
+    pkgs-unstable = flake.inputs.nixpkgs-unstable.legacyPackages.${system};
+  in {
+    gnome = pkgs.gnome-shell.version or "50.4";
+    kde = pkgs.kdePackages.plasma-desktop.version or "6.6.6";
+    cinnamon = pkgs.cinnamon-session.version or "6.6.3";
+    cosmic = pkgs-unstable.cosmic-session.version or "1.6.0";
+  }
+else
+  let
+    pkgs = import <nixpkgs> {};
+  in {
+    gnome = pkgs.gnome-shell.version or "50.4";
+    kde = pkgs.kdePackages.plasma-desktop.version or "6.6.6";
+    cinnamon = pkgs.cinnamon-session.version or "6.6.3";
+    cosmic = "1.6.0";
+  }
+"#;
+
+    if let Ok(output) = Command::new("nix")
+        .args(["eval", "--impure", "--json", "--expr", nix_expr])
+        .output()
+    {
+        if output.status.success() {
+            if let Ok(parsed) = serde_json::from_slice::<DesktopVersions>(&output.stdout) {
+                return parsed;
+            }
+        }
+    }
+
+    // Fallback de sécurité immédiat
+    DesktopVersions {
+        gnome: "50.4".into(),
+        kde: "6.6.6".into(),
+        cosmic: "1.6.0".into(),
+        cinnamon: "6.6.3".into(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_detect_desktop_versions() {
+        let v = detect_desktop_versions();
+        println!("Detected versions: gnome={}, kde={}, cosmic={}, cinnamon={}", v.gnome, v.kde, v.cosmic, v.cinnamon);
+        assert!(!v.gnome.is_empty());
+        assert!(!v.kde.is_empty());
+        assert!(!v.cosmic.is_empty());
+        assert!(!v.cinnamon.is_empty());
+    }
 
     #[test]
     fn test_detect_keyboard_locks() {

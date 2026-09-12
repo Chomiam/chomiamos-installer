@@ -291,7 +291,7 @@
                 <div class="de-header-left">
                   <span class="de-icon">🔵</span>
                   <div class="de-title-wrap">
-                    <span class="de-title">GNOME 48</span>
+                    <span class="de-title">GNOME <span class="de-version-badge" id="de-ver-gnome">v50.4</span></span>
                     <span class="de-badge badge-recommended">Recommandé / Éprouvé</span>
                   </div>
                 </div>
@@ -324,7 +324,7 @@
                 <div class="de-header-left">
                   <span class="de-icon">❄️</span>
                   <div class="de-title-wrap">
-                    <span class="de-title">KDE Plasma 6</span>
+                    <span class="de-title">KDE Plasma <span class="de-version-badge" id="de-ver-kde">v6.6.6</span></span>
                     <span class="de-badge badge-customizable">Hyper Personnalisable</span>
                   </div>
                 </div>
@@ -356,8 +356,8 @@
                 <div class="de-header-left">
                   <span class="de-icon">🚀</span>
                   <div class="de-title-wrap">
-                    <span class="de-title">COSMIC Desktop 1.5+</span>
-                    <span class="de-badge badge-experimental">Écrit en Rust • Expérimental</span>
+                    <span class="de-title">COSMIC Desktop <span class="de-version-badge cosmic-unstable-badge" id="de-ver-cosmic">v1.6.0 (unstable)</span></span>
+                    <span class="de-badge badge-experimental">100% Rust • nixpkgs-unstable</span>
                   </div>
                 </div>
                 <div class="selection-radio-indicator"></div>
@@ -389,7 +389,7 @@
                 <div class="de-header-left">
                   <span class="de-icon">🌿</span>
                   <div class="de-title-wrap">
-                    <span class="de-title">Cinnamon 6.6</span>
+                    <span class="de-title">Cinnamon <span class="de-version-badge" id="de-ver-cinnamon">v6.6.3</span></span>
                     <span class="de-badge badge-classic">Léger & Traditionnel</span>
                   </div>
                 </div>
@@ -669,7 +669,7 @@
                 <span class="toggle-icon">💨</span>
                 <div class="toggle-text">
                   <strong>Steam & Proton</strong>
-                  <small>Plateforme Valve avec MangoHud & GameMode</small>
+                  <small>Plateforme Valve avec ProtonPlus, MangoHud & GameMode</small>
                 </div>
               </div>
               <div class="switch"></div>
@@ -759,6 +759,48 @@
               <div class="switch"></div>
             </label>
           </div>
+
+          <!-- Grande Tuile Session Steam Gamescope - Mode Console (v1.2.18) -->
+          <div class="gamescope-hero-card">
+            <div class="gamescope-hero-header">
+              <div class="gamescope-hero-title-row">
+                <span class="gamescope-hero-icon">🎮</span>
+                <div>
+                  <h3 class="gamescope-hero-title">Session Steam Gamescope — Mode Console (Steam Deck)</h3>
+                  <p class="gamescope-hero-sub">Démarrage direct dans l'interface Steam Big Picture plein écran sous micro-compositeur Wayland Gamescope</p>
+                </div>
+              </div>
+              <label class="toggle-switch-wrap" title="Activer la session Steam Gamescope">
+                <input type="checkbox" id="chk-gamescope-session" checked>
+                <div class="switch"></div>
+              </label>
+            </div>
+
+            <div class="gamescope-info-content">
+              <div class="gamescope-pill-row">
+                <span class="gamescope-pill">⚡ Zéro latence compositeur</span>
+                <span class="gamescope-pill">🚀 Zéro charge de bureau</span>
+                <span class="gamescope-pill">📺 HDR & VRR natif</span>
+                <span class="gamescope-pill">🔄 Choix à la connexion</span>
+              </div>
+
+              <div class="gamescope-desc-grid">
+                <div class="gamescope-desc-col">
+                  <strong>✨ Pourquoi utiliser la session console ?</strong>
+                  <p>Comme sur Steam Deck et SteamOS, vos jeux tournent directement dans un conteneur Wayland dédié sans aucun bureau en tâche de fond. Cela libère 100% du GPU et du CPU pour des performances maximales.</p>
+                </div>
+                <div class="gamescope-desc-col">
+                  <strong>🔑 Choix à l'écran de connexion</strong>
+                  <p>Cette session s'ajoute à votre gestionnaire de connexion (GDM / SDDM). Vous conservez votre bureau complet (GNOME, KDE, etc.) et pouvez basculer d'un mode à l'autre en un simple clic lors du login.</p>
+                </div>
+              </div>
+
+              <div class="gamescope-gpu-note">
+                <span class="note-icon">💡</span>
+                <span>Optimisé pour les cartes graphiques <strong>AMD Radeon</strong> et <strong>Intel Arc</strong>. Désactivé automatiquement sur GPU NVIDIA en raison des limitations des pilotes propriétaires sur le DRM Gamescope.</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- Step 6: Rétro Gaming -->
@@ -771,7 +813,7 @@
           <div class="section-subtitle">🕹️ Frontend & Multi-Systèmes</div>
           <div class="toggles-grid">
             <label class="toggle-card highlight-card">
-              <input type="checkbox" id="chk-emu-es-de" checked>
+              <input type="checkbox" id="chk-emu-es-de">
               <div class="toggle-card-body">
                 <span class="toggle-icon">🎮</span>
                 <div class="toggle-text">
@@ -783,7 +825,7 @@
             </label>
 
             <label class="toggle-card highlight-card">
-              <input type="checkbox" id="chk-emu-retroarch" checked>
+              <input type="checkbox" id="chk-emu-retroarch">
               <div class="toggle-card-body">
                 <span class="toggle-icon">👾</span>
                 <div class="toggle-text">
@@ -798,7 +840,7 @@
           <div class="section-subtitle">💿 Émulateurs Sony PlayStation</div>
           <div class="toggles-grid">
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-duckstation" checked>
+              <input type="checkbox" id="chk-emu-duckstation">
               <div class="toggle-card-body">
                 <span class="toggle-icon">🕹️</span>
                 <div class="toggle-text">
@@ -810,7 +852,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-pcsx2" checked>
+              <input type="checkbox" id="chk-emu-pcsx2">
               <div class="toggle-card-body">
                 <span class="toggle-icon">📀</span>
                 <div class="toggle-text">
@@ -822,7 +864,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-ppsspp" checked>
+              <input type="checkbox" id="chk-emu-ppsspp">
               <div class="toggle-card-body">
                 <span class="toggle-icon">📱</span>
                 <div class="toggle-text">
@@ -849,7 +891,7 @@
           <div class="section-subtitle">🍄 Émulateurs Nintendo</div>
           <div class="toggles-grid">
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-dolphin" checked>
+              <input type="checkbox" id="chk-emu-dolphin">
               <div class="toggle-card-body">
                 <span class="toggle-icon">🐬</span>
                 <div class="toggle-text">
@@ -861,7 +903,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-eden" checked>
+              <input type="checkbox" id="chk-emu-eden">
               <div class="toggle-card-body">
                 <span class="toggle-icon">🔴</span>
                 <div class="toggle-text">
@@ -873,7 +915,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-azahar" checked>
+              <input type="checkbox" id="chk-emu-azahar">
               <div class="toggle-card-body">
                 <span class="toggle-icon">✨</span>
                 <div class="toggle-text">
@@ -885,7 +927,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-melonds" checked>
+              <input type="checkbox" id="chk-emu-melonds">
               <div class="toggle-card-body">
                 <span class="toggle-icon">📟</span>
                 <div class="toggle-text">
@@ -897,7 +939,7 @@
             </label>
 
             <label class="toggle-card">
-              <input type="checkbox" id="chk-emu-mgba" checked>
+              <input type="checkbox" id="chk-emu-mgba">
               <div class="toggle-card-body">
                 <span class="toggle-icon">🎮</span>
                 <div class="toggle-text">
@@ -956,15 +998,7 @@
             </label>
           </div>
 
-          <div class="section-subtitle" style="margin-top: 20px;">🎵 Production & Montage Audio / Vidéo</div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label for="davinci-select">🎬 Suite de Montage DaVinci Resolve (Blackmagic Design)</label>
-            <select id="davinci-select" class="form-select">
-              <option value="none" selected>Désactivé (Ne pas installer)</option>
-              <option value="free">DaVinci Resolve (Édition Gratuite avec accélération GPU)</option>
-              <option value="studio">DaVinci Resolve Studio (Édition Payante / Clé requise)</option>
-            </select>
-          </div>
+          <div class="section-subtitle" style="margin-top: 20px;">🎙️ Production & Montage Audio</div>
 
           <div class="toggles-grid">
             <label class="toggle-card">
@@ -1000,7 +1034,47 @@
             <p>Outils de capture, création graphique, impression 3D, réseau et intelligence artificielle.</p>
           </div>
 
-          <div class="section-subtitle">🎨 Création 3D, Montage Vidéo & Code</div>
+          <div class="section-subtitle">🎬 Suite de Montage DaVinci Resolve (Blackmagic Design)</div>
+          <p class="section-intro-text">Choisissez votre édition de la suite de montage et d'étalonnage professionnel DaVinci Resolve :</p>
+          <div class="davinci-tiles-grid">
+            <div class="davinci-tile-card active" data-davinci="none">
+              <div class="davinci-tile-header">
+                <span class="davinci-tile-icon">🚫</span>
+                <div>
+                  <span class="davinci-tile-title">Aucun DaVinci</span>
+                  <span class="davinci-tile-badge badge-none">Désactivé</span>
+                </div>
+              </div>
+              <p class="davinci-tile-desc">Ne pas installer la suite DaVinci Resolve (recommandé si vous n'avez pas de projets vidéo lourds, économise ~4 Go d'espace disque).</p>
+              <div class="selection-pill-indicator">Désactivé (Par défaut)</div>
+            </div>
+
+            <div class="davinci-tile-card" data-davinci="free">
+              <div class="davinci-tile-header">
+                <span class="davinci-tile-icon">🎬</span>
+                <div>
+                  <span class="davinci-tile-title">DaVinci Resolve</span>
+                  <span class="davinci-tile-badge badge-free">Gratuit</span>
+                </div>
+              </div>
+              <p class="davinci-tile-desc">Édition standard gratuite avec accélération matérielle GPU (OpenCL / ROCm pour AMD, CUDA pour NVIDIA). Montage professionnel 4K.</p>
+              <div class="selection-pill-indicator">Édition Gratuite</div>
+            </div>
+
+            <div class="davinci-tile-card" data-davinci="studio">
+              <div class="davinci-tile-header">
+                <span class="davinci-tile-icon">⭐</span>
+                <div>
+                  <span class="davinci-tile-title">DaVinci Studio</span>
+                  <span class="davinci-tile-badge badge-studio">Payant / Clé</span>
+                </div>
+              </div>
+              <p class="davinci-tile-desc">Édition Studio professionnelle avec Neural Engine IA, réduction de bruit avancée et effets ResolveFX (Clé d'activation physique Dongle requise).</p>
+              <div class="selection-pill-indicator">Édition Studio (Payante)</div>
+            </div>
+          </div>
+
+          <div class="section-subtitle" style="margin-top: 24px;">🎨 Création 3D, Montage Vidéo & Code</div>
           <div class="toggles-grid">
             <label class="toggle-card">
               <input type="checkbox" id="chk-obs" checked>

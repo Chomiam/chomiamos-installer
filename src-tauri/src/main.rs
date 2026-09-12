@@ -322,6 +322,11 @@ async fn save_installation_logs(content: String) -> Result<String, String> {
     Ok(target_path)
 }
 
+#[tauri::command]
+fn get_desktop_versions() -> system::DesktopVersions {
+    system::detect_desktop_versions()
+}
+
 fn main() {
     // Si l'installateur n'est pas root et que sudo sans mot de passe est actif (session Live),
     // s'élever automatiquement en root avec sudo -E pour avoir les droits d'accès directs aux disques
@@ -385,6 +390,7 @@ fn main() {
             get_keyboard_locks,
             apply_installer_update,
             save_installation_logs,
+            get_desktop_versions,
         ])
         .run(tauri::generate_context!())
         .expect("Erreur lors de l'exécution de l'installateur ChomiamOS");

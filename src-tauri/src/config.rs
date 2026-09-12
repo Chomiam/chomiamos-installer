@@ -11,6 +11,7 @@ pub struct InstallerSelections {
     pub browser: String,
     pub browser_type: String, // "system" | "flatpak"
     pub mail_client: String,  // "thunderbird" | "mailspring" | "none"
+    pub gamescope_session: bool,
     pub discord_client: String,
     pub keyboard_layout: String,
     pub keyboard_variant: String,
@@ -94,17 +95,18 @@ impl Default for InstallerSelections {
             target_disk: "".into(),
             swap_size_mb: 8192,
             gpu_driver: None,
-            emu_es_de: true,
-            emu_retroarch: true,
-            emu_duckstation: true,
-            emu_pcsx2: true,
+            emu_es_de: false,
+            emu_retroarch: false,
+            emu_duckstation: false,
+            emu_pcsx2: false,
             emu_rpcs3: false,
-            emu_dolphin: true,
-            emu_ppsspp: true,
-            emu_eden: true,
-            emu_azahar: true,
-            emu_melonds: true,
-            emu_mgba: true,
+            emu_dolphin: false,
+            emu_ppsspp: false,
+            emu_eden: false,
+            emu_azahar: false,
+            emu_melonds: false,
+            emu_mgba: false,
+            gamescope_session: true,
             steam: true,
             lutris: true,
             heroic: true,
@@ -149,8 +151,10 @@ pub fn generate_vars_nix(s: &InstallerSelections, hashed_password: Option<&str>,
     let active_gpu = s.gpu_driver.as_deref().unwrap_or(gpu_driver);
     let gamescope_session = if active_gpu == "nvidia" || active_gpu == "nvidia-legacy" {
         "false"
-    } else {
+    } else if s.gamescope_session {
         "true"
+    } else {
+        "false"
     };
 
     let emu_enable = s.emu_es_de
@@ -405,6 +409,7 @@ mod tests {
         assert!(out.contains("mailClient = \"thunderbird\";"));
         assert!(out.contains("duckstation = true;"));
         assert!(out.contains("rpcs3 = false;"));
+        assert!(out.contains("gamescopeSession = true;"));
 
         selections.emu_es_de = false;
         selections.emu_retroarch = false;

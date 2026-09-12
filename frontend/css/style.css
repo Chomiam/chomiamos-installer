@@ -2616,3 +2616,236 @@ select option:checked, .form-select option:checked {
   font-size: 0.72rem;
   color: var(--mocha-subtext0);
 }
+
+/* ── Badges Dynamiques de Version DE (v1.2.18) ─────────────────────────────── */
+.de-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(180, 190, 254, 0.15);
+  color: var(--mocha-lavender);
+  border: 1px solid rgba(180, 190, 254, 0.3);
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+}
+
+.cosmic-unstable-badge {
+  background: rgba(203, 166, 247, 0.18);
+  color: var(--mocha-mauve);
+  border-color: rgba(203, 166, 247, 0.4);
+}
+
+/* ── Grande Tuile Session Steam Gamescope Hero (v1.2.18) ───────────────────── */
+.gamescope-hero-card {
+  margin-top: 24px;
+  background: linear-gradient(145deg, rgba(30, 30, 46, 0.95), rgba(24, 24, 37, 0.98));
+  border: 1.5px solid rgba(137, 180, 250, 0.35);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.gamescope-hero-card:hover {
+  border-color: rgba(137, 180, 250, 0.6);
+  box-shadow: 0 12px 36px -8px rgba(137, 180, 250, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.gamescope-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.gamescope-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gamescope-hero-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(137, 180, 250, 0.4));
+}
+
+.gamescope-hero-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--mocha-text);
+  margin: 0 0 4px 0;
+}
+
+.gamescope-hero-sub {
+  font-size: 0.85rem;
+  color: var(--mocha-subtext0);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.gamescope-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.gamescope-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(137, 180, 250, 0.12);
+  color: var(--mocha-blue);
+  border: 1px solid rgba(137, 180, 250, 0.25);
+}
+
+.gamescope-desc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.gamescope-desc-col strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--mocha-sapphire);
+  margin-bottom: 6px;
+}
+
+.gamescope-desc-col p {
+  font-size: 0.8rem;
+  color: var(--mocha-subtext1);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.gamescope-gpu-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(17, 17, 27, 0.7);
+  border: 1px solid rgba(249, 226, 175, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  color: var(--mocha-subtext0);
+  line-height: 1.4;
+}
+
+.gamescope-gpu-note strong {
+  color: var(--mocha-yellow);
+}
+
+/* ── Tuiles DaVinci Resolve dans Productivité (v1.2.18) ─────────────────────── */
+.section-intro-text {
+  font-size: 0.85rem;
+  color: var(--mocha-subtext0);
+  margin: -8px 0 16px 0;
+}
+
+.davinci-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.davinci-tile-card {
+  background: var(--mocha-surface0);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.davinci-tile-card:hover {
+  border-color: rgba(137, 180, 250, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
+}
+
+.davinci-tile-card.active {
+  border-color: var(--mocha-mauve);
+  background: linear-gradient(145deg, rgba(203, 166, 247, 0.08), rgba(30, 30, 46, 0.95));
+  box-shadow: 0 8px 24px -6px rgba(203, 166, 247, 0.2), inset 0 0 0 1px rgba(203, 166, 247, 0.4);
+}
+
+.davinci-tile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.davinci-tile-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.davinci-tile-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mocha-text);
+  display: block;
+}
+
+.davinci-tile-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-block;
+  margin-top: 3px;
+}
+
+.davinci-tile-badge.badge-none {
+  background: rgba(108, 112, 134, 0.2);
+  color: var(--mocha-overlay1);
+}
+
+.davinci-tile-badge.badge-free {
+  background: rgba(166, 227, 161, 0.2);
+  color: var(--mocha-green);
+}
+
+.davinci-tile-badge.badge-studio {
+  background: rgba(249, 226, 175, 0.2);
+  color: var(--mocha-yellow);
+}
+
+.davinci-tile-desc {
+  font-size: 0.78rem;
+  color: var(--mocha-subtext0);
+  line-height: 1.45;
+  margin: 0 0 14px 0;
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .davinci-tiles-grid {
+    grid-template-columns: 1fr;
+  }
+  .gamescope-desc-grid {
+    grid-template-columns: 1fr;
+  }
+}

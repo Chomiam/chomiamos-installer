@@ -139,6 +139,48 @@ function initBrowserAndMailHandlers() {
   });
 }
 
+
+// ── Détection Dynamique des Versions DE via Nixpkgs (v1.2.18) ───────────────
+async function initDesktopVersionsDetection() {
+  try {
+    const vers = await invoke('get_desktop_versions');
+    if (vers) {
+      if (vers.gnome) {
+        const el = document.getElementById('de-ver-gnome');
+        if (el) el.textContent = 'v' + vers.gnome;
+      }
+      if (vers.kde) {
+        const el = document.getElementById('de-ver-kde');
+        if (el) el.textContent = 'v' + vers.kde;
+      }
+      if (vers.cosmic) {
+        const el = document.getElementById('de-ver-cosmic');
+        if (el) el.textContent = 'v' + vers.cosmic + ' (unstable)';
+      }
+      if (vers.cinnamon) {
+        const el = document.getElementById('de-ver-cinnamon');
+        if (el) el.textContent = 'v' + vers.cinnamon;
+      }
+      console.log('Versions DE détectées via nixpkgs:', vers);
+    }
+  } catch (err) {
+    console.warn('Impossible de détecter les versions DE via nixpkgs:', err);
+  }
+}
+
+let selectedDavinciResolve = "none";
+
+function initDavinciResolveHandlers() {
+  const cards = document.querySelectorAll('.davinci-tile-card');
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      cards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selectedDavinciResolve = card.dataset.davinci || "none";
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialisations synchrones immédiates de l'UI (aucune attente réseau)
   initNavigation();
@@ -148,6 +190,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPasswordVisibilityToggles();
   initHostnameValidation();
   initBrowserAndMailHandlers();
+  initDavinciResolveHandlers();
+  initDesktopVersionsDetection();
   initSummaryTrigger();
   initConfirmationModal();
   initTerminalActions();
@@ -450,6 +494,10 @@ async function loadPrerequisites() {
     // 4. GPU : VM, Intel, Nvidia Moderne, Nvidia Legacy, AMD
     if (pre.gpu) {
       detectedGpuDriver = pre.gpu.driver_type || "amd";
+      if (detectedGpuDriver === 'nvidia' || detectedGpuDriver === 'nvidia-legacy') {
+        const gsChk = document.getElementById('chk-gamescope-session');
+        if (gsChk) gsChk.checked = false;
+      }
       const driverLabels = {
         'vm': 'Machine Virtuelle (VM)',
         'nvidia': 'NVIDIA Moderne (Propriétaire)',
@@ -817,6 +865,7 @@ function collectSelections() {
     heroic: document.getElementById('chk-heroic')?.checked ?? true,
     faugus: document.getElementById('chk-faugus')?.checked ?? true,
     decky_loader: false,
+    gamescope_session: document.getElementById('chk-gamescope-session')?.checked ?? true,
     geforce_now: document.getElementById('chk-geforce')?.checked ?? false,
     sunshine: document.getElementById('chk-sunshine')?.checked ?? false,
     sober: document.getElementById('chk-sober')?.checked ?? false,
@@ -826,7 +875,7 @@ function collectSelections() {
     stremio: document.getElementById('chk-stremio')?.checked ?? true,
     vlc: document.getElementById('chk-vlc')?.checked ?? true,
     mpv: document.getElementById('chk-mpv')?.checked ?? true,
-    davinci_resolve: document.getElementById('davinci-select')?.value || "none",
+    davinci_resolve: selectedDavinciResolve || "none",
     audacity: document.getElementById('chk-audacity')?.checked ?? false,
     ardour: document.getElementById('chk-ardour')?.checked ?? false,
 
@@ -881,11 +930,11 @@ function updateSummary() {
       s.emu_mgba ? 'mGBA (GBA)' : null,
       s.emu_rpcs3 ? 'RPCS3 (PS3)' : null,
     ].filter(Boolean).join(', ') || 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null, s.davinci_resolve !== 'none'?'DaVinci ('+s.davinci_resolve+')':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
-    <div class="summary-item"><label>Création & Outils</label><span>${[s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
+    <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
+    <div class="summary-item"><label>Création & Vidéo</label><span>${[s.davinci_resolve !== 'none' ? 'DaVinci Resolve (' + (s.davinci_resolve === 'studio' ? 'Studio' : 'Gratuit') + ')' : null, s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Impression 3D</label><span>${[s.slicer_orcaslicer?'OrcaSlicer':null, s.slicer_prusaslicer?'Prusa':null, s.slicer_bambustudio?'Bambu':null, s.slicer_cura?'Cura':null].filter(Boolean).join(', ') || 'Aucun'}</span></div>
     <div class="summary-item"><label>Suite IA Locale</label><span>${s.ai_suite_enable ? 'Ollama + Open-WebUI (Activé)' : 'Désactivé'}</span></div>
-    <div class="summary-item"><label>Options Gaming</label><span>Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'} | Volants: ${s.steering_wheels ? 'Oui' : 'Non'}</span></div>
+    <div class="summary-item"><label>Options Gaming</label><span>Mode Console: ${s.gamescope_session ? 'Activé' : 'Désactivé'} | Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'}</span></div>
   `;
 }
 
