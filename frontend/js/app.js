@@ -279,6 +279,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initKeyboardModifiers();
   initPasswordVisibilityToggles();
   initHostnameValidation();
+  initUsernameValidation();
+  initFullnameValidation();
   initBrowserAndMailHandlers();
   initDavinciResolveHandlers();
   initFilesystemHandlers();
@@ -928,8 +930,14 @@ function collectSelections() {
 
   return {
     hostname: (document.getElementById('input-hostname')?.value.trim().toLowerCase().replace(/^-+|-+$/g, '') || "chomiamos"),
-    username: document.getElementById('input-username')?.value || "chomiam",
-    fullname: document.getElementById('input-fullname')?.value || "ChomiamOS User",
+    username: (document.getElementById('input-username')?.value.trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[\s.-]+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .replace(/^[^a-z_]+/, '')
+      .replace(/_+$/, '')
+      .slice(0, 32) || "chomiam"),
+    fullname: (document.getElementById('input-fullname')?.value.replace(/["\$`<>{};]/g, '').trim().slice(0, 64) || "ChomiamOS User"),
     password: document.getElementById('input-password')?.value || null,
     desktop_env: document.querySelector('input[name="desktop_env"]:checked')?.value || "gnome",
     browser: selectedBrowser || "chrome",
@@ -1830,6 +1838,105 @@ function initHostnameValidation() {
 }
 
 // ── Bouton œil pour afficher / masquer le mot de passe ──────────────────────
+// ── Validation et Sanitisation en direct du Nom d'Utilisateur (POSIX standard) ─
+function initUsernameValidation() {
+  const input = document.getElementById('input-username');
+  const errorMsg = document.getElementById('username-validation-msg');
+  if (!input) return;
+
+  let errorTimeout = null;
+  function showUsernameError(msg) {
+    if (!errorMsg) return;
+    errorMsg.textContent = msg;
+    errorMsg.classList.remove('hidden');
+    if (errorTimeout) clearTimeout(errorTimeout);
+    errorTimeout = setTimeout(() => {
+      if (errorMsg) errorMsg.classList.add('hidden');
+    }, 3000);
+  }
+
+  function sanitize(val) {
+    let s = val.toLowerCase();
+    // Suppression des accents (décomposition NFD et suppression des marques diacritiques)
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // Remplacement des espaces, points et tirets par des tirets bas
+    s = s.replace(/[\s.-]+/g, '_');
+    // Suppression stricte de tout caractère non a-z, 0-9 ou _
+    s = s.replace(/[^a-z0-9_]/g, '');
+    // Le nom d'utilisateur doit obligatoirement commencer par une lettre (a-z) ou un tiret bas (_)
+    s = s.replace(/^[^a-z_]+/, '');
+    // Éviter les tirets bas consécutifs multiples
+    s = s.replace(/__+/g, '_');
+    return s.slice(0, 32);
+  }
+
+  // Bloquer immédiatement toute frappe de caractère spécial ou accentué
+  input.addEventListener('keydown', (e) => {
+    // Laisser passer les touches système, navigation et copier/coller
+    if (e.ctrlKey || e.altKey || e.metaKey || e.key.length > 1) {
+      return;
+    }
+
+    const char = e.key;
+    // Caractères autorisés : a-z, A-Z (converti), 0-9 et _
+    if (!/^[a-zA-Z0-9_]$/.test(char)) {
+      e.preventDefault();
+      showUsernameError(`Caractère '${char}' interdit. Les accents, espaces et caractères spéciaux sont proscrits.`);
+      return;
+    }
+
+    // Empêcher de commencer par un chiffre
+    if (/^[0-9]$/.test(char) && (input.selectionStart === 0 || input.value.length === 0)) {
+      e.preventDefault();
+      showUsernameError("L'identifiant système doit commencer par une lettre (a-z) ou un tiret bas (_).");
+    }
+  });
+
+  // Nettoyage en temps réel à chaque saisie ou collage
+  input.addEventListener('input', () => {
+    const original = input.value;
+    const cleaned = sanitize(original);
+    if (original !== cleaned) {
+      input.value = cleaned;
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    input.value = input.value.replace(/_+$/, '');
+    if (!input.value.trim()) {
+      input.value = 'chomiam';
+    }
+  });
+}
+
+function initFullnameValidation() {
+  const input = document.getElementById('input-fullname');
+  if (!input) return;
+
+  input.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.altKey || e.metaKey || e.key.length > 1) {
+      return;
+    }
+    // Interdire les caractères dangereux pour la syntaxe Nix (guillemets, dollars, antislashs, accents graves)
+    if (/["\\$`<>{};]/.test(e.key)) {
+      e.preventDefault();
+    }
+  });
+
+  input.addEventListener('input', () => {
+    const clean = input.value.replace(/["\\$`<>{};]/g, '').slice(0, 64);
+    if (input.value !== clean) {
+      input.value = clean;
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    if (!input.value.trim()) {
+      input.value = 'ChomiamOS User';
+    }
+  });
+}
+
 function initPasswordVisibilityToggles() {
   document.querySelectorAll('.btn-toggle-password').forEach(btn => {
     btn.addEventListener('click', (e) => {

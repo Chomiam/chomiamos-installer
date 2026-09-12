@@ -174,6 +174,36 @@ pub fn generate_vars_nix(s: &InstallerSelections, hashed_password: Option<&str>,
         || s.emu_mgba;
     let emu_frontend = if s.emu_es_de { "es-de" } else { "none" };
 
+    // ── Assainissement strict du nom d'utilisateur (POSIX) et nom complet ──
+    let clean_username: String = s.username
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .collect();
+    let clean_username = if clean_username.is_empty() || !clean_username.chars().next().unwrap().is_ascii_alphabetic() {
+        if clean_username.is_empty() {
+            "chomiam".to_string()
+        } else {
+            format!("u_{}", clean_username)
+        }
+    } else {
+        clean_username
+    };
+
+    let clean_fullname = s.fullname
+        .replace('"', "")
+        .replace('\\', "")
+        .replace('$', "")
+        .replace('`', "")
+        .replace('<', "")
+        .replace('>', "")
+        .replace('{', "")
+        .replace('}', "")
+        .replace(';', "")
+        .trim()
+        .to_string();
+    let clean_fullname = if clean_fullname.is_empty() { "ChomiamOS User".to_string() } else { clean_fullname };
+
     format!(
 r#"{{
   # =========================================================================
@@ -346,8 +376,8 @@ r#"{{
         keyboard_layout = s.keyboard_layout,
         keyboard_variant = s.keyboard_variant,
         timezone = s.timezone,
-        username = s.username,
-        fullname = s.fullname,
+        username = clean_username,
+        fullname = clean_fullname,
         pwd_field = pwd_field,
         browser = s.browser,
         browser_type = if s.browser_type.is_empty() { "system" } else { &s.browser_type },
@@ -407,6 +437,18 @@ r#"{{
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_username_and_fullname_sanitization() {
+        let mut selections = InstallerSelections::default();
+        selections.username = "Stéphane! @Test$".into();
+        selections.fullname = r#"Stéphane "The Admin" $PWD;"#.into();
+        let out = generate_vars_nix(&selections, None, "amd");
+        assert!(out.contains(r#"username = "stphanetest";"#));
+        assert!(!out.contains(r#""The Admin""#));
+        assert!(!out.contains("$PWD"));
+        assert!(out.contains(r#"fullName = "Stéphane The Admin PWD";"#));
+    }
 
     #[test]
     fn test_generate_vars_nix_emulation() {

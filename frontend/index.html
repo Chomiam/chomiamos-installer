@@ -17,7 +17,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.23-testing (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.24-testing (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -1422,12 +1422,19 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="input-fullname">Nom complet</label>
-              <input type="text" id="input-fullname" class="form-input" value="ChomiamOS User">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label for="input-fullname">Nom complet</label>
+                <small style="color: var(--mocha-subtext0); font-size: 0.78rem;">Nom d'affichage libre</small>
+              </div>
+              <input type="text" id="input-fullname" class="form-input" value="ChomiamOS User" maxlength="64" spellcheck="false">
             </div>
             <div class="form-group">
-              <label for="input-username">Nom d'utilisateur (login)</label>
-              <input type="text" id="input-username" class="form-input" value="chomiam">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label for="input-username">Nom d'utilisateur (login système)</label>
+                <small style="color: var(--mocha-subtext0); font-size: 0.78rem;">Minuscules (a-z), chiffres (0-9) et tirets bas (_) uniquement</small>
+              </div>
+              <input type="text" id="input-username" class="form-input" value="chomiam" maxlength="32" placeholder="ex: chomiam" autocomplete="off" spellcheck="false">
+              <span id="username-validation-msg" class="field-validation-error hidden" style="color: var(--mocha-peach); font-size: 0.8rem; margin-top: 4px; display: block;"></span>
             </div>
           </div>
 
