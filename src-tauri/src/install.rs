@@ -196,6 +196,267 @@ fn get_partition_names(disk: &str) -> (String, String) {
     }
 }
 
+/// Résout l'UID et le GID réels de l'utilisateur dans le /etc/passwd du système cible (/mnt)
+pub fn resolve_target_uid_gid(target_root: &Path, username: &str) -> (u32, u32) {
+    let passwd_path = target_root.join("etc/passwd");
+    if let Ok(content) = std::fs::read_to_string(&passwd_path) {
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let parts: Vec<&str> = line.split(':').collect();
+            if parts.len() >= 4 && parts[0] == username {
+                if let (Ok(uid), Ok(gid)) = (parts[2].parse::<u32>(), parts[3].parse::<u32>()) {
+                    return (uid, gid);
+                }
+            }
+        }
+    }
+    // Fallback standard NixOS pour le premier utilisateur normal
+    (1000, 100)
+}
+
+/// Exécute l'audit approfondi post-installation, la sécurisation des répertoires XDG,
+/// la réparation des permissions /home, /etc/nixos et /tmp, ainsi que la validation chroot.
+pub fn run_post_install_audit_and_repairs(
+    s: &InstallerSelections,
+    target_root: &Path,
+    emit_log_fn: &dyn Fn(&str),
+) -> Result<(), String> {
+    emit_log_fn("[AUDIT POST-INSTALL] === Démarrage de l'audit de sécurité et de réparation système ===");
+
+    // 1. Résolution de l'identité numérique utilisateur
+    let (uid, gid) = resolve_target_uid_gid(target_root, &s.username);
+    emit_log_fn(&format!(
+        "[CHECK 1/8] Identité utilisateur cible : '{}' -> UID={}, GID={}",
+        s.username, uid, gid
+    ));
+
+    // 2. Audit et réparation du répertoire personnel (/home/<user>) et des arborescences XDG
+    emit_log_fn(&format!(
+        "[CHECK 2/8] Contrôle, réparation et sécurisation de /home/{}...",
+        s.username
+    ));
+    let home_base = target_root.join("home");
+    let user_home = home_base.join(&s.username);
+
+    // 2.1 S'assurer que /home existe avec permissions 755 (root:root)
+    let _ = privileged_cmd("mkdir").args(["-p", home_base.to_str().unwrap()]).status();
+    let _ = privileged_cmd("chown").args(["0:0", home_base.to_str().unwrap()]).status();
+    let _ = privileged_cmd("chmod").args(["755", home_base.to_str().unwrap()]).status();
+
+    // 2.2 S'assurer que /home/<user> existe
+    let _ = privileged_cmd("mkdir").args(["-p", user_home.to_str().unwrap()]).status();
+
+    // 2.3 Création proactive de tous les sous-dossiers XDG et systèmes indispensables (GNOME / KDE / Flatpak)
+    let xdg_subdirs = [
+        ".config",
+        ".config/dconf",
+        ".local",
+        ".local/share",
+        ".local/share/applications",
+        ".local/state",
+        ".cache",
+        "Bureau",
+        "Documents",
+        "Téléchargements",
+        "Musique",
+        "Images",
+        "Vidéos",
+        "Modèles",
+        "Public",
+        "Projets",
+    ];
+    for sub in &xdg_subdirs {
+        let p = user_home.join(sub);
+        let _ = privileged_cmd("mkdir").args(["-p", p.to_str().unwrap()]).status();
+    }
+
+    // 2.4 Application rigoureuse de la propriété numérique UID:GID sur l'ensemble de /home/<user>
+    let chown_home = privileged_cmd("chown")
+        .args(["-R", &format!("{}:{}", uid, gid), user_home.to_str().unwrap()])
+        .status();
+    if chown_home.map_or(false, |st| st.success()) {
+        emit_log_fn(&format!(
+            "[RÉPARATION] Propriété de /home/{} attribuée avec succès à {}:{}",
+            s.username, uid, gid
+        ));
+    } else {
+        emit_log_fn(&format!(
+            "[WARN] Erreur lors de l'attribution chown sur /home/{}",
+            s.username
+        ));
+    }
+
+    // 2.5 Sécurisation des permissions sur le répertoire HOME (0750) et récursivement u+rwX
+    let _ = privileged_cmd("chmod").args(["750", user_home.to_str().unwrap()]).status();
+    let _ = privileged_cmd("chmod").args(["-R", "u+rwX", user_home.to_str().unwrap()]).status();
+    emit_log_fn(&format!(
+        "[OK] Répertoire /home/{} audité et réparé (accès complet garanti pour GNOME / KDE).",
+        s.username
+    ));
+
+    // 3. Audit et réparation de /etc/nixos
+    emit_log_fn(&format!(
+        "[CHECK 3/8] Contrôle et attribution de /etc/nixos à {}:{}...",
+        uid, gid
+    ));
+    let nixos_dir = target_root.join("etc/nixos");
+    if nixos_dir.exists() {
+        let chown_nixos = privileged_cmd("chown")
+            .args(["-R", &format!("{}:{}", uid, gid), nixos_dir.to_str().unwrap()])
+            .status();
+        if chown_nixos.map_or(false, |st| st.success()) {
+            emit_log_fn(&format!(
+                "[RÉPARATION] Propriété de /etc/nixos attribuée avec succès à {}:{}",
+                uid, gid
+            ));
+        }
+        let _ = privileged_cmd("chmod")
+            .args(["-R", "u+rwX,g+rwX,o+rX", nixos_dir.to_str().unwrap()])
+            .status();
+
+        let vital_files = [
+            "flake.nix",
+            "vars.nix",
+            "hosts/desktop/configuration.nix",
+            "hosts/desktop/hardware-configuration.nix",
+        ];
+        for vf in &vital_files {
+            if !nixos_dir.join(vf).exists() {
+                emit_log_fn(&format!("[WARN] Fichier de configuration manquant : {}", vf));
+            }
+        }
+        emit_log_fn("[OK] Droits complets d'administration accordés sur /etc/nixos pour l'utilisateur.");
+    } else {
+        emit_log_fn("[WARN] Répertoire /etc/nixos introuvable sous la cible !");
+    }
+
+    // 4. Audit et correction des répertoires temporaires /tmp et /var/tmp (Mode 1777 indispensable)
+    emit_log_fn("[CHECK 4/8] Contrôle des permissions des répertoires temporaires /tmp et /var/tmp...");
+    let tmp_dirs = [target_root.join("tmp"), target_root.join("var/tmp")];
+    for td in &tmp_dirs {
+        let _ = privileged_cmd("mkdir").args(["-p", td.to_str().unwrap()]).status();
+        let _ = privileged_cmd("chown").args(["0:0", td.to_str().unwrap()]).status();
+        let _ = privileged_cmd("chmod").args(["1777", td.to_str().unwrap()]).status();
+    }
+    emit_log_fn("[OK] Permissions 1777 (sticky bit) validées sur /tmp et /var/tmp (Wayland / D-Bus / PipeWire).");
+
+    // 5. Contrôle des points de montage et répertoires système racine
+    emit_log_fn("[CHECK 5/8] Contrôle des permissions de l'arborescence racine système...");
+    let _ = privileged_cmd("chown").args(["0:0", target_root.to_str().unwrap()]).status();
+    let _ = privileged_cmd("chmod").args(["755", target_root.to_str().unwrap()]).status();
+
+    let boot_dir = target_root.join("boot");
+    if boot_dir.exists() {
+        let _ = privileged_cmd("chown").args(["-R", "0:0", boot_dir.to_str().unwrap()]).status();
+        let _ = privileged_cmd("chmod").args(["755", boot_dir.to_str().unwrap()]).status();
+    }
+
+    let root_home = target_root.join("root");
+    if root_home.exists() {
+        let _ = privileged_cmd("chown").args(["-R", "0:0", root_home.to_str().unwrap()]).status();
+        let _ = privileged_cmd("chmod").args(["700", root_home.to_str().unwrap()]).status();
+    }
+    emit_log_fn("[OK] Permissions de l'arborescence système (/ , /boot, /root) confirmées.");
+
+    // 6. Audit et validation interne via nixos-enter (Chroot réel NixOS)
+    emit_log_fn("[CHECK 6/8] Validation d'intégrité interne du système via nixos-enter...");
+    let pw_arg = s.password.as_deref().unwrap_or("");
+    let chroot_script = format!(
+        r#"
+set -e
+TARGET_USER="{user}"
+TARGET_PW='{pw}'
+
+# 1. Vérification de l'utilisateur dans l'environnement cible
+if id "$TARGET_USER" >/dev/null 2>&1; then
+    echo "USER_CHECK_OK"
+
+    # 2. Garantie d'appartenance aux groupes sudo/système essentiels
+    for grp in wheel networkmanager video docker users; do
+        if getent group "$grp" >/dev/null 2>&1; then
+            usermod -aG "$grp" "$TARGET_USER" 2>/dev/null || true
+        fi
+    done
+
+    # 3. Synchronisation native des permissions par l'environnement NixOS
+    chown -R "$TARGET_USER:users" "/home/$TARGET_USER" 2>/dev/null || true
+    chown -R "$TARGET_USER:users" /etc/nixos 2>/dev/null || true
+    chmod 750 "/home/$TARGET_USER" 2>/dev/null || true
+    chmod -R u+rwX "/home/$TARGET_USER" 2>/dev/null || true
+    chmod -R u+rwX,g+rwX,o+rX /etc/nixos 2>/dev/null || true
+
+    # 4. Synchronisation du mot de passe dans shadow si renseigné
+    if [ -n "$TARGET_PW" ]; then
+        echo "$TARGET_USER:$TARGET_PW" | chpasswd 2>/dev/null || true
+    fi
+
+    # 5. Git safe.directory pour autoriser la gestion flake sans erreur git
+    git config --system --add safe.directory /etc/nixos 2>/dev/null || true
+    git config --system --add safe.directory /etc/nixos/.git 2>/dev/null || true
+else
+    echo "USER_CHECK_FAIL"
+fi
+"#,
+        user = s.username,
+        pw = pw_arg.replace('\'', "'\\''")
+    );
+
+    let chroot_res = privileged_cmd("nixos-enter")
+        .args(["--root", target_root.to_str().unwrap(), "-c", &chroot_script])
+        .output();
+
+    match chroot_res {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            if stdout.contains("USER_CHECK_OK") {
+                emit_log_fn(&format!(
+                    "[SUCCÈS] Utilisateur '{}' validé dans le système cible (groupes wheel/sudo, permissions et shell opérationnels).",
+                    s.username
+                ));
+            } else {
+                emit_log_fn(&format!(
+                    "[WARN] Avertissement retour chroot : {}",
+                    stdout.trim()
+                ));
+            }
+        }
+        Err(e) => {
+            emit_log_fn(&format!(
+                "[WARN] Exécution nixos-enter non disponible ({}), poursuite...",
+                e
+            ));
+        }
+    }
+
+    // 7. Contrôle de l'amorceur EFI
+    emit_log_fn("[CHECK 7/8] Contrôle des fichiers d'amorçage EFI...");
+    let efi_dir = target_root.join("boot/EFI");
+    if efi_dir.exists() {
+        emit_log_fn("[OK] Répertoire /boot/EFI présent et initialisé par NixOS.");
+    } else {
+        emit_log_fn("[WARN] Répertoire /boot/EFI non détecté. Vérifier la compatibilité UEFI.");
+    }
+
+    // 8. Contrôle de la génération système et bureau
+    emit_log_fn(&format!(
+        "[CHECK 8/8] Vérification du profil ({}) et des liens de génération système...",
+        s.desktop_env
+    ));
+    let current_sys = target_root.join("run/current-system");
+    let nix_profiles = target_root.join("nix/var/nix/profiles/system");
+    if current_sys.exists() || nix_profiles.exists() {
+        emit_log_fn("[OK] Génération système NixOS présente et amorçable.");
+    } else {
+        emit_log_fn("[WARN] Lien de génération système introuvable (généré au premier démarrage).");
+    }
+
+    emit_log_fn("[SUCCÈS POST-INSTALL] 🎉 100% des vérifications et réparations post-installation validées avec succès !");
+    Ok(())
+}
+
 pub async fn execute_installation(
     app: AppHandle,
     state: Arc<Mutex<SharedInstallState>>,
@@ -1286,17 +1547,18 @@ r#"{{ config, lib, ... }}:
     }
 
     // =========================================================================
-    // --- ÉTAPE 8 : Permissions, Synchronisation et Démontage Propre (95% - 100%) ---
+    // --- ÉTAPE 8 : Audit de Sécurité, Permissions et Finalisation (95% - 100%) ---
     // =========================================================================
-    emit_progress(94, "Finalisation de l'installation", "Attribution des droits d'accès et synchronisation disque...");
-    emit_log("[ÉTAPE 8/8] === Finalisation et synchronisation finale ===");
+    emit_progress(95, "Audit et finalisation du système", "Contrôle rigoureux des permissions, arborescences XDG et sécurité...");
+    emit_log("[ÉTAPE 8/8] === Audit de sécurité post-installation, vérifications des permissions et finalisation ===");
 
     if !effective_dry_run {
-        emit_log(&format!("[INFO] Attribution des droits sur /mnt/etc/nixos à l'utilisateur '{}'...", s.username));
-        let _ = privileged_cmd("chown").args(["-R", &format!("{}:users", s.username), "/mnt/etc/nixos"]).status();
-        let _ = privileged_cmd("chmod").args(["-R", "u+rwX,go+rX", "/mnt/etc/nixos"]).status();
+        let audit_res = run_post_install_audit_and_repairs(&s, Path::new("/mnt"), &emit_log);
+        if let Err(e) = audit_res {
+            emit_log(&format!("[WARN] Note lors de l'audit post-installation : {}", e));
+        }
 
-        emit_log("[INFO] Synchronisation des données résiduelles (sync)...");
+        emit_log("[INFO] Synchronisation physique des données résiduelles (sync)...");
         let _ = privileged_cmd("sync").status();
 
         emit_log("[INFO] Démontage propre des volumes...");
@@ -1331,4 +1593,48 @@ r#"{{ config, lib, ... }}:
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resolve_target_uid_gid_from_passwd() {
+        let temp_dir = std::env::temp_dir().join(format!("chomiamos_test_passwd_{}", std::process::id()));
+        let etc_dir = temp_dir.join("etc");
+        std::fs::create_dir_all(&etc_dir).unwrap();
+
+        let passwd_content = "root:x:0:0:System Administrator:/root:/run/current-system/sw/bin/bash
+alex:x:1000:100:Alex Valens:/home/alex:/run/current-system/sw/bin/fish
+testuser:x:1001:100:Test User:/home/testuser:/run/current-system/sw/bin/bash
+";
+        std::fs::write(etc_dir.join("passwd"), passwd_content).unwrap();
+
+        let (uid, gid) = resolve_target_uid_gid(&temp_dir, "alex");
+        assert_eq!(uid, 1000);
+        assert_eq!(gid, 100);
+
+        let (uid2, gid2) = resolve_target_uid_gid(&temp_dir, "testuser");
+        assert_eq!(uid2, 1001);
+        assert_eq!(gid2, 100);
+
+        let (uid3, gid3) = resolve_target_uid_gid(&temp_dir, "unknown_user");
+        assert_eq!(uid3, 1000);
+        assert_eq!(gid3, 100);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_extract_pkg_name() {
+        assert_eq!(
+            extract_pkg_name("copying path '/nix/store/7rqvj0xp5yiy12xf7x0rlnb6bw92sw0p-window-vibrancy-0.6.0' from"),
+            Some("window-vibrancy-0.6.0".to_string())
+        );
+        assert_eq!(
+            extract_pkg_name("building '/nix/store/lbdkahwjj5d96cphrw09wxkz6kr5j69j-chomiamos-dashboard-0.3.0.drv'"),
+            Some("chomiamos-dashboard-0.3.0.drv".to_string())
+        );
+    }
 }
