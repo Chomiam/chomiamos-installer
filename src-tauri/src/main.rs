@@ -107,6 +107,7 @@ fn run_in_user_session(cmd: &[&str]) {
             full.arg(format!("{}={}", k, v));
         }
         full.args(cmd);
+        full.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
         let _ = full.status();
     } else {
         let mut c = Command::new(cmd[0]);
@@ -114,44 +115,50 @@ fn run_in_user_session(cmd: &[&str]) {
             c.env(k, v);
         }
         c.args(&cmd[1..]);
+        c.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
         let _ = c.status();
     }
 }
 
 #[tauri::command]
-fn apply_keyboard_live(layout: String, variant: String) -> Result<(), String> {
-    // 1. localectl global system keymap
-    let mut localectl_cmd = Command::new("localectl");
-    localectl_cmd.arg("set-x11-keymap").arg(&layout).arg("pc105");
-    if !variant.is_empty() {
-        localectl_cmd.arg(&variant);
-    } else {
-        localectl_cmd.arg("");
-    }
-    let _ = localectl_cmd.status();
+async fn apply_keyboard_live(layout: String, variant: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        // 1. localectl global system keymap
+        let mut localectl_cmd = Command::new("localectl");
+        localectl_cmd.arg("set-x11-keymap").arg(&layout).arg("pc105");
+        if !variant.is_empty() {
+            localectl_cmd.arg(&variant);
+        } else {
+            localectl_cmd.arg("");
+        }
+        localectl_cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+        let _ = localectl_cmd.status();
 
-    // 2. setxkbmap
-    let mut xkb_args = vec!["setxkbmap", layout.as_str()];
-    if !variant.is_empty() {
-        xkb_args.push("-variant");
-        xkb_args.push(variant.as_str());
-    }
-    run_in_user_session(&xkb_args);
+        // 2. setxkbmap (silencieux pour éviter warning Xwayland)
+        let mut xkb_args = vec!["setxkbmap", layout.as_str()];
+        if !variant.is_empty() {
+            xkb_args.push("-variant");
+            xkb_args.push(variant.as_str());
+        }
+        run_in_user_session(&xkb_args);
 
-    // 3. GNOME input-sources
-    let gsettings_val = if variant.is_empty() {
-        format!("[('xkb', '{}')]", layout)
-    } else {
-        format!("[('xkb', '{}+{}')]", layout, variant)
-    };
-    run_in_user_session(&["gsettings", "set", "org.gnome.desktop.input-sources", "sources", &gsettings_val]);
-    run_in_user_session(&["gsettings", "set", "org.gnome.desktop.input-sources", "current", "0"]);
+        // 3. GNOME input-sources
+        let gsettings_val = if variant.is_empty() {
+            format!("[('xkb', '{}')]", layout)
+        } else {
+            format!("[('xkb', '{}+{}')]", layout, variant)
+        };
+        run_in_user_session(&["gsettings", "set", "org.gnome.desktop.input-sources", "sources", &gsettings_val]);
+        run_in_user_session(&["gsettings", "set", "org.gnome.desktop.input-sources", "current", "0"]);
 
-    // 4. Cinnamon input-sources
-    run_in_user_session(&["gsettings", "set", "org.cinnamon.desktop.input-sources", "sources", &gsettings_val]);
-    run_in_user_session(&["gsettings", "set", "org.cinnamon.desktop.input-sources", "current", "0"]);
+        // 4. Cinnamon input-sources (silencieux si non présent sur GNOME)
+        run_in_user_session(&["gsettings", "set", "org.cinnamon.desktop.input-sources", "sources", &gsettings_val]);
+        run_in_user_session(&["gsettings", "set", "org.cinnamon.desktop.input-sources", "current", "0"]);
 
-    Ok(())
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

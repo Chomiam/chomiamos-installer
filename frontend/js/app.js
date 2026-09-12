@@ -928,17 +928,17 @@ function collectSelections() {
     ardour: document.getElementById('chk-ardour')?.checked ?? false,
 
     // Productivité & Création
-    obs_studio: document.getElementById('chk-obs')?.checked ?? true,
-    kdenlive: document.getElementById('chk-kdenlive')?.checked ?? true,
-    blender: document.getElementById('chk-blender')?.checked ?? true,
-    godot: document.getElementById('chk-godot')?.checked ?? true,
-    antigravity: document.getElementById('chk-antigravity')?.checked ?? true,
+    obs_studio: document.getElementById('chk-obs')?.checked ?? false,
+    kdenlive: document.getElementById('chk-kdenlive')?.checked ?? false,
+    blender: document.getElementById('chk-blender')?.checked ?? false,
+    godot: document.getElementById('chk-godot')?.checked ?? false,
+    antigravity: document.getElementById('chk-antigravity')?.checked ?? false,
     pear_desktop: document.getElementById('chk-peardesktop')?.checked ?? true,
     goverlay: document.getElementById('chk-goverlay')?.checked ?? true,
     flatseal: document.getElementById('chk-goverlay')?.checked ?? true,
-    tailscale: document.getElementById('chk-tailscale')?.checked ?? true,
+    tailscale: document.getElementById('chk-tailscale')?.checked ?? false,
     localsend: document.getElementById('chk-localsend')?.checked ?? true,
-    motrix: document.getElementById('chk-motrix')?.checked ?? true,
+    motrix: document.getElementById('chk-motrix')?.checked ?? false,
 
     // Impression 3D
     slicer_orcaslicer: document.getElementById('chk-slicer-orca')?.checked ?? false,
