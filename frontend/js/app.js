@@ -1951,6 +1951,21 @@ function diagnoseInstallationLogs(fatalError, logs = []) {
     ];
     recommendedStep = 1;
   }
+  // 2.5 Détection Erreur Montage Disque / Subvolumes Btrfs
+  else if (/montage temporaire|subvolume Btrfs|Device or resource busy|EBUSY|failed to mount/i.test(allText)) {
+    type = "MOUNT_ERROR";
+    title = "Conflit ou Verrouillage Disque / Montage Btrfs";
+    icon = "💽";
+    badge = "Erreur Montage (EBUSY)";
+    culprit = "Périphérique NVMe / SSD occupé";
+    rawCulprit = "Périphérique verrouillé temporairement par le système";
+    explanation = "Le noyau Linux ou le gestionnaire udev maintenait un accès exclusif sur la partition fraîchement formatée lors de la tentative de montage.";
+    recommendations = [
+      "Cliquez ci-dessous sur <strong>« Modifier mes choix & Réessayer »</strong> et relancez l'installation : la temporisation automatique et udev settle résoudront le verrouillage.",
+      "Assurez-vous qu'aucun explorateur de fichiers ou terminal n'est ouvert sur le disque en session live."
+    ];
+    recommendedStep = 3;
+  }
   // 3. Détection Espace Disque Saturé
   else if (/No space left on device|ENOSPC|disk full|write error: No space/i.test(allText)) {
     type = "DISK_FULL";
