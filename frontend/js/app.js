@@ -2310,4 +2310,127 @@ function initDiagnosticHandlers() {
       alert("Impossible de copier automatiquement dans le presse-papier.");
     }
   });
+
+  // 6. Envoi du rapport d'incident vers Pastebin
+  const handlePastebinUpload = async (btnId) => {
+    const btn = document.getElementById(btnId);
+    const originalText = btn ? btn.innerHTML : "☁️ Envoyer sur Pastebin";
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = "<span>⏳</span><span>Envoi vers Pastebin...</span>";
+    }
+
+    try {
+      const reportText = generateFullErrorReport();
+      const rawBadge = lastDiagnosticData ? lastDiagnosticData.badge : 'error';
+      const cleanBadge = rawBadge.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const title = `chomiamos-install-${cleanBadge}.log`;
+
+      const pasteUrl = await invoke('upload_error_report_to_pastebin', {
+        title: title,
+        content: reportText
+      });
+
+      // Copie automatique dans le presse-papier
+      try {
+        await navigator.clipboard.writeText(pasteUrl);
+      } catch (_) {}
+
+      // Mettre à jour et afficher la modale de succès
+      const urlInput = document.getElementById('pastebin-result-url');
+      if (urlInput) urlInput.value = pasteUrl;
+
+      document.getElementById('modal-pastebin-success')?.classList.remove('hidden');
+
+    } catch (err) {
+      alert(`Échec du téléversement sur Pastebin :\n${err}\n\nAstuce : Vous pouvez utiliser le bouton 'Enregistrer les logs' pour exporter le fichier localement.`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+  };
+
+  document.getElementById('btn-diag-pastebin')?.addEventListener('click', () => handlePastebinUpload('btn-diag-pastebin'));
+  document.getElementById('btn-diag-banner-pastebin')?.addEventListener('click', () => handlePastebinUpload('btn-diag-banner-pastebin'));
+
+  // 7. Modale de succès Pastebin : Bouton Copier
+  document.getElementById('btn-pastebin-copy-url')?.addEventListener('click', async () => {
+    const urlInput = document.getElementById('pastebin-result-url');
+    if (!urlInput || !urlInput.value) return;
+    try {
+      await navigator.clipboard.writeText(urlInput.value);
+      const copyBtn = document.getElementById('btn-pastebin-copy-url');
+      if (copyBtn) {
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = "✓ Copié !";
+        setTimeout(() => { copyBtn.textContent = orig; }, 2500);
+      }
+    } catch (_) {
+      urlInput.select();
+      document.execCommand('copy');
+    }
+  });
+
+  // 8. Modale de succès Pastebin : Ouvrir dans le navigateur
+  document.getElementById('btn-pastebin-open-browser')?.addEventListener('click', async () => {
+    const urlInput = document.getElementById('pastebin-result-url');
+    if (!urlInput || !urlInput.value) return;
+    try {
+      await invoke('open_url_in_browser', { url: urlInput.value });
+    } catch (e) {
+      window.open(urlInput.value, '_blank');
+    }
+  });
+
+  // 9. Modale de succès Pastebin : Fermer
+  document.getElementById('btn-pastebin-close')?.addEventListener('click', () => {
+    document.getElementById('modal-pastebin-success')?.classList.add('hidden');
+  });
+}
+
+function generateFullErrorReport() {
+  const dateStr = new Date().toLocaleString();
+  const title = lastDiagnosticData ? `${lastDiagnosticData.title} (${lastDiagnosticData.badge})` : "Incident d'installation";
+  const culprit = lastDiagnosticData ? `${lastDiagnosticData.culprit} (${lastDiagnosticData.rawCulprit})` : "Inconnu";
+  const expl = lastDiagnosticData ? lastDiagnosticData.explanation.replace(/<[^>]*>/g, '') : "Aucun détail disponible.";
+  const recs = lastDiagnosticData ? lastDiagnosticData.recommendations.map((r, i) => `${i + 1}. ${r.replace(/<[^>]*>/g, '')}`).join('\n') : "Aucune recommandation.";
+  const snippet = lastDiagnosticData ? lastDiagnosticData.rawSnippet : "";
+
+  // 100 dernières lignes de logs
+  const recentLogs = rawInstallationLogs.slice(-100).join('\n');
+
+  // Sélections utilisateur
+  const sysConfig = [
+    `- Bureau sélectionné : ${installerSelections.desktop_env || 'non spécifié'}`,
+    `- Système de fichiers : ${installerSelections.filesystem || 'ext4'} (compression: ${installerSelections.btrfs_compression || 'zstd'})`,
+    `- Disque cible : ${installerSelections.target_disk || 'auto'}`,
+    `- Swap : ${installerSelections.swap_size_mb || 0} Mo`,
+    `- Pilote GPU : ${installerSelections.gpu_driver || 'auto'}`,
+  ].join('\n');
+
+  return [
+    "================================================================================",
+    "🚨 CHOMIAMOS GAMING EDITION - RAPPORT D'INCIDENT D'INSTALLATION (v1.2.27)",
+    "================================================================================",
+    `Date & Heure : ${dateStr}`,
+    `Type de panne : ${title}`,
+    `Composant concerné : ${culprit}`,
+    "",
+    "--- CONFIGURATION DU SYSTÈME CHOISIE ---",
+    sysConfig,
+    "",
+    "--- ANALYSE ET EXPLICATION ---",
+    expl,
+    "",
+    "--- RECOMMANDATIONS ET SOLUTIONS SUGGÉRÉES ---",
+    recs,
+    "",
+    "--- EXTRAIT TECHNIQUE DES ERREURS CAPTURÉES ---",
+    snippet,
+    "",
+    "--- DERNIÈRES LIGNES DU JOURNAL D'INSTALLATION (100 lignes) ---",
+    recentLogs || "(Aucun log enregistré)"
+  ].join('\n');
 }

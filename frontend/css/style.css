@@ -3503,3 +3503,108 @@ select option:checked, .form-select option:checked {
   line-height: 1.4;
   color: var(--mocha-subtext0);
 }
+
+/* ==========================================================================
+   Catppuccin Mocha - Pastebin Incident Sharing & Success Modal
+   ========================================================================== */
+
+.btn-diag-pastebin {
+  background: rgba(137, 220, 235, 0.15);
+  border: 1px solid rgba(137, 220, 235, 0.4);
+  color: var(--mocha-sky);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-diag-pastebin:hover {
+  background: rgba(137, 220, 235, 0.25);
+  color: var(--mocha-text);
+  border-color: var(--mocha-sky);
+}
+
+.btn-diag-banner-pastebin {
+  background: rgba(137, 220, 235, 0.15);
+  border: 1px solid rgba(137, 220, 235, 0.4);
+  color: var(--mocha-sky);
+  font-weight: 600;
+}
+
+.btn-diag-banner-pastebin:hover {
+  background: rgba(137, 220, 235, 0.25);
+  color: var(--mocha-text);
+}
+
+.modal-card.pastebin-success-modal {
+  max-width: 540px;
+  border-color: rgba(166, 227, 161, 0.4);
+  animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-icon-badge.pastebin-badge-icon {
+  background: rgba(166, 227, 161, 0.15);
+  border-color: rgba(166, 227, 161, 0.4);
+  color: var(--mocha-green);
+  font-size: 1.6rem;
+}
+
+.pastebin-url-card {
+  background: var(--mocha-surface0);
+  border: 1px solid var(--mocha-surface1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pastebin-url-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mocha-subtext0);
+}
+
+.pastebin-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pastebin-url-input {
+  flex: 1;
+  background: #11111b;
+  border: 1px solid var(--mocha-surface1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--mocha-sapphire);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.86rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.pastebin-url-input:focus {
+  border-color: var(--mocha-sapphire);
+}
+
+.pastebin-help-text {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--mocha-subtext1);
+  background: rgba(137, 180, 250, 0.08);
+  border-left: 3px solid var(--mocha-sapphire);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.pastebin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

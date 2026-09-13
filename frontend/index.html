@@ -17,7 +17,7 @@
       <div class="header-branding">
         <div class="header-logo-badge">🚀</div>
         <div>
-          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.24 (Rust)</span></h1>
+          <h1 class="header-title">ChomiamOS <span class="header-badge">Installer v1.2.27 (Rust)</span></h1>
           <p class="header-sub">Distribution Linux Gaming Optimisée • Architecture Déclarative NixOS</p>
         </div>
       </div>
@@ -1597,6 +1597,7 @@
               </div>
             </div>
             <div class="diag-banner-actions">
+              <button type="button" class="btn btn-secondary btn-diag-banner-pastebin" id="btn-diag-banner-pastebin">☁️ Partager sur Pastebin</button>
               <button type="button" class="btn btn-secondary" id="btn-diag-banner-open">🔍 Voir l'Analyse Détaillée</button>
               <button type="button" class="btn btn-primary btn-diag-retry" id="btn-diag-banner-retry">🔄 Modifier mes choix & Réessayer</button>
             </div>
@@ -1844,9 +1845,41 @@
       </div>
       <div class="diag-modal-footer">
         <button type="button" class="btn btn-secondary" id="btn-diag-close">Consulter le Terminal</button>
-        <button type="button" class="btn btn-secondary btn-diag-copy" id="btn-diag-copy">📋 Copier le rapport d'incident</button>
+        <button type="button" class="btn btn-secondary btn-diag-copy" id="btn-diag-copy">📋 Copier le rapport</button>
+        <button type="button" class="btn btn-secondary btn-diag-pastebin" id="btn-diag-pastebin">☁️ Envoyer sur Pastebin</button>
         <button type="button" class="btn btn-secondary" id="btn-diag-export-logs">💾 Enregistrer les logs</button>
         <button type="button" class="btn btn-primary btn-diag-retry" id="btn-diag-retry">🔄 Modifier mes choix & Réessayer</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal Succès Envoi Pastebin (Catppuccin Mocha) -->
+  <div class="modal-backdrop hidden" id="modal-pastebin-success">
+    <div class="modal-card pastebin-success-modal">
+      <div class="modal-header">
+        <div class="modal-icon-badge pastebin-badge-icon">☁️</div>
+        <div class="modal-title-wrap">
+          <h3 id="pastebin-modal-title">Rapport d'Incident Téléversé !</h3>
+          <p class="modal-subtitle">Votre journal a été publié de manière sécurisée (paste non-listé).</p>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="pastebin-url-card">
+          <span class="pastebin-url-label">Lien direct de votre rapport d'incident :</span>
+          <div class="pastebin-url-row">
+            <input type="text" readonly id="pastebin-result-url" class="pastebin-url-input" value="" />
+            <button type="button" class="btn btn-secondary" id="btn-pastebin-copy-url">📋 Copier</button>
+          </div>
+        </div>
+        <p class="pastebin-help-text">
+          💡 <strong>Ce lien a été automatiquement copié dans votre presse-papier.</strong><br/>
+          Partagez ce lien dans le salon d'entraide sur le <strong>Discord officiel</strong> ou sur <strong>GitHub</strong> pour obtenir une assistance immédiate.
+        </p>
+      </div>
+      <div class="modal-footer pastebin-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-pastebin-open-browser">🌐 Ouvrir dans le navigateur</button>
+        <button type="button" class="btn btn-primary" id="btn-pastebin-close">Fermer</button>
       </div>
     </div>
   </div>

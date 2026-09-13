@@ -7,6 +7,7 @@ mod config;
 mod install;
 mod updater;
 mod network_mirror;
+mod pastebin;
 
 use system::{check_prerequisites, detect_gpu, list_disks, get_keyboard_layouts, get_desktop_environments, get_timezones, get_current_timezone, SystemPrerequisites, GpuInfo, DiskInfo, KeyboardLayoutInfo, KeyboardLocks, DesktopEnvInfo, TimezoneInfo};
 use config::{InstallerSelections, generate_vars_nix};
@@ -264,6 +265,20 @@ async fn apply_installer_update(app: tauri::AppHandle, download_url: String) -> 
 }
 
 #[tauri::command]
+fn open_url_in_browser(url: String) -> Result<(), String> {
+    if !url.starts_with("https://pastebin.com/") {
+        return Err("Seules les URLs Pastebin sont autorisées".into());
+    }
+    let _ = Command::new("xdg-open").arg(&url).spawn();
+    Ok(())
+}
+
+#[tauri::command]
+async fn upload_error_report_to_pastebin(title: String, content: String) -> Result<String, String> {
+    pastebin::upload_to_pastebin(&title, &content).await
+}
+
+#[tauri::command]
 async fn save_installation_logs(content: String) -> Result<String, String> {
     let (user, _uid, env) = get_session_context();
     let is_root = Command::new("id")
@@ -412,6 +427,8 @@ fn main() {
             apply_installer_update,
             save_installation_logs,
             get_desktop_versions,
+            upload_error_report_to_pastebin,
+            open_url_in_browser,
         ])
         .run(tauri::generate_context!())
         .expect("Erreur lors de l'exécution de l'installateur ChomiamOS");
