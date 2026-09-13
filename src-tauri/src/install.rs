@@ -253,9 +253,16 @@ pub fn run_post_install_audit_and_repairs(
     let xdg_subdirs = [
         ".config",
         ".config/dconf",
+        ".config/cinnamon",
+        ".config/cinnamon/backgrounds",
+        ".config/chomiamos",
         ".local",
         ".local/share",
         ".local/share/applications",
+        ".local/share/flatpak",
+        ".local/share/flatpak/exports",
+        ".local/share/flatpak/exports/share",
+        ".local/share/flatpak/exports/share/applications",
         ".local/state",
         ".cache",
         "Bureau",
@@ -272,6 +279,16 @@ pub fn run_post_install_audit_and_repairs(
         let p = user_home.join(sub);
         let _ = privileged_cmd("mkdir").args(["-p", p.to_str().unwrap()]).status();
     }
+
+    // 2.3-bis S'assurer que le dossier d'exportation Flatpak système existe
+    let sys_flatpak_apps = target_root.join("var/lib/flatpak/exports/share/applications");
+    let _ = privileged_cmd("mkdir").args(["-p", sys_flatpak_apps.to_str().unwrap()]).status();
+    let _ = privileged_cmd("chmod").args(["755", sys_flatpak_apps.to_str().unwrap()]).status();
+
+    // 2.3-ter Pré-configuration des fonds d'écran Cinnamon
+    let cinnamon_bg_file = user_home.join(".config/cinnamon/backgrounds/user-folders.lst");
+    let cinnamon_bg_content = "/run/current-system/sw/share/backgrounds/chomiamos\n/etc/backgrounds/chomiamos\n";
+    let _ = std::fs::write(&cinnamon_bg_file, cinnamon_bg_content);
 
     // 2.4 Application rigoureuse de la propriété numérique UID:GID sur l'ensemble de /home/<user>
     let chown_home = privileged_cmd("chown")

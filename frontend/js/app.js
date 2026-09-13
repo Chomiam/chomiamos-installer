@@ -2412,7 +2412,7 @@ function generateFullErrorReport() {
 
   return [
     "================================================================================",
-    "🚨 CHOMIAMOS GAMING EDITION - RAPPORT D'INCIDENT D'INSTALLATION (v1.2.26-testing)",
+    "🚨 CHOMIAMOS GAMING EDITION - RAPPORT D'INCIDENT D'INSTALLATION (v1.2.27)",
     "================================================================================",
     `Date & Heure : ${dateStr}`,
     `Type de panne : ${title}`,
