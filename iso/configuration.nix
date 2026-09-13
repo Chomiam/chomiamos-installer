@@ -243,6 +243,7 @@ in
   # Optimisation invité pour Machines Virtuelles (QEMU, KVM, Virt-Manager, VMware, VirtualBox, Hyper-V)
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
+  systemd.services.spice-vdagentd.unitConfig.ConditionVirtualization = "vm";
   virtualisation.vmware.guest.enable = true;
   virtualisation.virtualbox.guest = {
     enable = lib.mkForce true;
