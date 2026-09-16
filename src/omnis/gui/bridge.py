@@ -1406,6 +1406,7 @@ class EngineBridge(QObject):
             "azahar": True,
             "mgba": True,
             "rpcs3": False,
+            "xemu": False,
 # Granular Multimedia & Network
             "stremio": True,
             "vlc": True,
@@ -3489,6 +3490,17 @@ class EngineBridge(QObject):
         if self._selections.get("rpcs3") != enabled:
             self._selections["rpcs3"] = enabled
             self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def xemu(self) -> bool:
+        return bool(self._selections.get("xemu", False))
+
+    @Slot(bool)
+    def setXemu(self, enabled: bool) -> None:
+        if self._selections.get("xemu") != enabled:
+            self._selections["xemu"] = enabled
+            self.selectionsChanged.emit()
+
 
     # Multimedia & Network
     @Property(bool, notify=selectionsChanged)

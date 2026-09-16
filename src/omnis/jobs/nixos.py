@@ -249,6 +249,7 @@ class NixosJob(BaseJob):
         azahar = "true" if s.get("azahar", True) else "false"
         mgba = "true" if s.get("mgba", True) else "false"
         rpcs3 = "true" if s.get("rpcs3", False) else "false"
+        xemu = "true" if s.get("xemu", False) else "false"
 
         # User Shell
         user_shell = str(s.get("shell") or s.get("userShell") or "fish").strip().lower()
@@ -364,6 +365,7 @@ class NixosJob(BaseJob):
       azahar = {azahar};
       mgba = {mgba};
       rpcs3 = {rpcs3};
+      xemu = {xemu};
     }};
   }};
 

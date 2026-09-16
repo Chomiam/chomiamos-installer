@@ -28,6 +28,7 @@ pub struct InstallerSelections {
     pub emu_duckstation: bool,
     pub emu_pcsx2: bool,
     pub emu_rpcs3: bool,
+    pub emu_xemu: bool,
     pub emu_dolphin: bool,
     pub emu_ppsspp: bool,
     pub emu_eden: bool,
@@ -104,6 +105,7 @@ impl Default for InstallerSelections {
             emu_duckstation: false,
             emu_pcsx2: false,
             emu_rpcs3: false,
+            emu_xemu: false,
             emu_dolphin: false,
             emu_ppsspp: false,
             emu_eden: false,
@@ -166,6 +168,7 @@ pub fn generate_vars_nix(s: &InstallerSelections, hashed_password: Option<&str>,
         || s.emu_duckstation
         || s.emu_pcsx2
         || s.emu_rpcs3
+        || s.emu_xemu
         || s.emu_dolphin
         || s.emu_ppsspp
         || s.emu_eden
@@ -310,6 +313,7 @@ r#"{{
       mgba = {emu_mgba};
       azahar = {emu_azahar};
       rpcs3 = {emu_rpcs3};
+      xemu = {emu_xemu};
     }};
   }};
 
@@ -396,6 +400,7 @@ r#"{{
         emu_mgba = s.emu_mgba,
         emu_azahar = s.emu_azahar,
         emu_rpcs3 = s.emu_rpcs3,
+        emu_xemu = s.emu_xemu,
         steam = s.steam,
         lutris = s.lutris,
         heroic = s.heroic,
@@ -453,6 +458,7 @@ mod tests {
         selections.emu_duckstation = true;
         selections.emu_pcsx2 = true;
         selections.emu_rpcs3 = false;
+        selections.emu_xemu = false;
         let out = generate_vars_nix(&selections, None, "amd");
         assert!(out.contains("frontend = \"es-de\";"));
         assert!(out.contains("browserPackageType = \"system\";"));
@@ -467,6 +473,7 @@ mod tests {
         selections.emu_duckstation = false;
         selections.emu_pcsx2 = false;
         selections.emu_rpcs3 = false;
+        selections.emu_xemu = false;
         selections.emu_dolphin = false;
         selections.emu_ppsspp = false;
         selections.emu_eden = false;

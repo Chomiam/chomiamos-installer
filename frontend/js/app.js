@@ -959,6 +959,7 @@ function collectSelections() {
     emu_duckstation: document.getElementById('chk-emu-duckstation')?.checked ?? true,
     emu_pcsx2: document.getElementById('chk-emu-pcsx2')?.checked ?? true,
     emu_rpcs3: document.getElementById('chk-emu-rpcs3')?.checked ?? false,
+    emu_xemu: document.getElementById('chk-emu-xemu')?.checked ?? false,
     emu_dolphin: document.getElementById('chk-emu-dolphin')?.checked ?? true,
     emu_ppsspp: document.getElementById('chk-emu-ppsspp')?.checked ?? true,
     emu_eden: document.getElementById('chk-emu-eden')?.checked ?? true,
@@ -1037,6 +1038,7 @@ function updateSummary() {
       s.emu_melonds ? 'melonDS (DS)' : null,
       s.emu_mgba ? 'mGBA (GBA)' : null,
       s.emu_rpcs3 ? 'RPCS3 (PS3)' : null,
+      s.emu_xemu ? 'xemu (Xbox)' : null,
     ].filter(Boolean).join(', ') || 'Désactivé'}</span></div>
     <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Création & Vidéo</label><span>${[s.davinci_resolve !== 'none' ? 'DaVinci Resolve (' + (s.davinci_resolve === 'studio' ? 'Studio' : 'Gratuit') + ')' : null, s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
