@@ -333,7 +333,7 @@ Item {
                     }
 
                     CheckCard {
-                        title: "Suite IA Locale (Ollama + Open-WebUI + SearXNG)"
+                        title: "Suite IA locale (Open WebUI + Ollama + Agent Hermes)"
                         subtitle: qsTr("Exécutez des modèles de langage locaux en VRAM sur votre GPU sans envoyer vos données dans le cloud.")
                         iconText: "🧠"
                         checked: engine.aiSuite

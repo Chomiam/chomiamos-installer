@@ -400,12 +400,9 @@ class NixosJob(BaseJob):
     bambustudio = false;
   }};
 
-  aiSuite = {{
+  # Suite IA locale (Open WebUI, Ollama & Agent IA Hermes)
+  iaSuite = {{
     enable = {ai_suite};
-    rocmOverrideGfx = "12.0.1";
-    keepAlive = "0s";
-    openWebUiPort = 8080;
-    searxPort = 8888;
     openFirewall = false;
   }};
 }}

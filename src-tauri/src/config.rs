@@ -360,14 +360,10 @@ r#"{{
   }};
 
   # =========================================================================
-  # 🤖 SUITE IA LOCALE (OLLAMA + OPEN-WEBUI + SEARXNG)
+  # 🤖 SUITE IA LOCALE (OPEN WEBUI + OLLAMA + AGENT IA HERMES)
   # =========================================================================
-  aiSuite = {{
+  iaSuite = {{
     enable = {ai_suite_enable};
-    rocmOverrideGfx = "12.0.1";
-    keepAlive = "0s";
-    openWebUiPort = 8080;
-    searxPort = 8888;
     openFirewall = false;
   }};
 }}

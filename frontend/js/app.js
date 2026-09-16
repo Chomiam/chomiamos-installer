@@ -1041,7 +1041,7 @@ function updateSummary() {
     <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Création & Vidéo</label><span>${[s.davinci_resolve !== 'none' ? 'DaVinci Resolve (' + (s.davinci_resolve === 'studio' ? 'Studio' : 'Gratuit') + ')' : null, s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Impression 3D</label><span>${[s.slicer_orcaslicer?'OrcaSlicer':null, s.slicer_prusaslicer?'Prusa':null, s.slicer_bambustudio?'Bambu':null, s.slicer_cura?'Cura':null].filter(Boolean).join(', ') || 'Aucun'}</span></div>
-    <div class="summary-item"><label>Suite IA Locale</label><span>${s.ai_suite_enable ? 'Ollama + Open-WebUI (Activé)' : 'Désactivé'}</span></div>
+    <div class="summary-item"><label>Suite IA locale</label><span>${s.ai_suite_enable ? 'Activée (Ollama + Open-WebUI + Hermes)' : 'Désactivée'}</span></div>
     <div class="summary-item"><label>Options Gaming</label><span>Mode Console: ${(s.gpu_driver === 'nvidia' || s.gpu_driver === 'nvidia-legacy') ? 'Bloqué (NVIDIA)' : s.gamescope_session ? 'Activé' : 'Désactivé'} | Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'}</span></div>
   `;
 }
