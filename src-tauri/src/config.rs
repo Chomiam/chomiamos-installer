@@ -61,6 +61,8 @@ pub struct InstallerSelections {
     pub blender: bool,
     pub godot: bool,
     pub antigravity: bool,
+    pub ide_zed: bool,
+    pub ide_vscode: bool,
     pub pear_desktop: bool,
     pub goverlay: bool,
     pub flatseal: bool,
@@ -132,7 +134,9 @@ impl Default for InstallerSelections {
             kdenlive: false,
             blender: false,
             godot: false,
-            antigravity: false,
+            antigravity: true,
+            ide_zed: true,
+            ide_vscode: false,
             pear_desktop: true,
             goverlay: true,
             flatseal: true,
@@ -344,9 +348,16 @@ r#"{{
   mpv = {mpv};
 
   # =========================================================================
-  # 💻 PRODUCTIVITÉ & OUTILS
+  # 💻 ENVIRONNEMENTS DE DÉVELOPPEMENT & IDES (CHOIX MULTIPLE)
   # =========================================================================
+  ide = {{
+    zed = {ide_zed};
+    antigravity = {antigravity};
+    vscode = {ide_vscode};
+  }};
   antigravity = {antigravity};
+  zed = {ide_zed};
+  vscode = {ide_vscode};
   pearDesktop = {pear_desktop};
   kdenlive = {kdenlive};
   obsStudio = {obs_studio};
@@ -420,6 +431,8 @@ r#"{{
         vlc = s.vlc,
         mpv = s.mpv,
         antigravity = s.antigravity,
+        ide_zed = s.ide_zed,
+        ide_vscode = s.ide_vscode,
         pear_desktop = s.pear_desktop,
         kdenlive = s.kdenlive,
         obs_studio = s.obs_studio,

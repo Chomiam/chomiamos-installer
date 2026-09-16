@@ -1389,6 +1389,8 @@ class EngineBridge(QObject):
             "virtualisation": True,
             "aiSuite": False,
             "antigravity": True,
+            "zed": True,
+            "vscode": False,
             "pearDesktop": True,
             "kdenlive": True,
             "obsStudio": True,
@@ -3334,6 +3336,26 @@ class EngineBridge(QObject):
     def setAntigravity(self, enabled: bool) -> None:
         if self._selections.get("antigravity") != enabled:
             self._selections["antigravity"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def zed(self) -> bool:
+        return bool(self._selections.get("zed", True))
+
+    @Slot(bool)
+    def setZed(self, enabled: bool) -> None:
+        if self._selections.get("zed") != enabled:
+            self._selections["zed"] = enabled
+            self.selectionsChanged.emit()
+
+    @Property(bool, notify=selectionsChanged)
+    def vscode(self) -> bool:
+        return bool(self._selections.get("vscode", False))
+
+    @Slot(bool)
+    def setVscode(self, enabled: bool) -> None:
+        if self._selections.get("vscode") != enabled:
+            self._selections["vscode"] = enabled
             self.selectionsChanged.emit()
 
     @Property(bool, notify=selectionsChanged)

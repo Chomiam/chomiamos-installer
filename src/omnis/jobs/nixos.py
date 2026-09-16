@@ -263,6 +263,8 @@ class NixosJob(BaseJob):
         virtualisation = "true" if s.get("virtualisation", True) else "false"
         ai_suite = "true" if s.get("ai_suite", s.get("aiSuite", False)) else "false"
         antigravity = "true" if s.get("antigravity", True) else "false"
+        zed = "true" if s.get("zed", s.get("ide_zed", True)) else "false"
+        vscode = "true" if s.get("vscode", s.get("ide_vscode", False)) else "false"
         pear_desktop = "true" if s.get("pear_desktop", s.get("pearDesktop", True)) else "false"
         kdenlive = "true" if s.get("kdenlive", True) else "false"
         obs_studio = "true" if s.get("obs_studio", s.get("obsStudio", True)) else "false"
@@ -384,8 +386,15 @@ class NixosJob(BaseJob):
   blender = {blender};
   godot = {godot};
 
-  # Productivité & Outils
+  # Environnements de Développement & IDEs (Choix multiple)
+  ide = {{
+    zed = {zed};
+    antigravity = {antigravity};
+    vscode = {vscode};
+  }};
   antigravity = {antigravity};
+  zed = {zed};
+  vscode = {vscode};
   pearDesktop = {pear_desktop};
   kdenlive = {kdenlive};
   obsStudio = {obs_studio};

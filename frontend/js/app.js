@@ -993,6 +993,8 @@ function collectSelections() {
     blender: document.getElementById('chk-blender')?.checked ?? false,
     godot: document.getElementById('chk-godot')?.checked ?? false,
     antigravity: document.getElementById('chk-antigravity')?.checked ?? false,
+    ide_zed: document.getElementById('chk-ide-zed')?.checked ?? false,
+    ide_vscode: document.getElementById('chk-ide-vscode')?.checked ?? false,
     pear_desktop: document.getElementById('chk-peardesktop')?.checked ?? true,
     goverlay: document.getElementById('chk-goverlay')?.checked ?? true,
     flatseal: document.getElementById('chk-goverlay')?.checked ?? true,
@@ -1041,7 +1043,7 @@ function updateSummary() {
       s.emu_xemu ? 'xemu (Xbox)' : null,
     ].filter(Boolean).join(', ') || 'Désactivé'}</span></div>
     <div class="summary-item"><label>Multimédia</label><span>${[s.stremio?'Stremio':null, s.vlc?'VLC':null, s.mpv?'MPV':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
-    <div class="summary-item"><label>Création & Vidéo</label><span>${[s.davinci_resolve !== 'none' ? 'DaVinci Resolve (' + (s.davinci_resolve === 'studio' ? 'Studio' : 'Gratuit') + ')' : null, s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
+    <div class="summary-item"><label>Création & Vidéo</label><span>${[s.davinci_resolve !== 'none' ? 'DaVinci Resolve (' + (s.davinci_resolve === 'studio' ? 'Studio' : 'Gratuit') + ')' : null, s.obs_studio?'OBS':null, s.blender?'Blender':null, s.godot?'Godot':null, s.kdenlive?'Kdenlive':null, s.antigravity?'Antigravity':null, s.ide_zed?'Zed':null, s.ide_vscode?'VSCode':null].filter(Boolean).join(', ') || 'Standard'}</span></div>
     <div class="summary-item"><label>Impression 3D</label><span>${[s.slicer_orcaslicer?'OrcaSlicer':null, s.slicer_prusaslicer?'Prusa':null, s.slicer_bambustudio?'Bambu':null, s.slicer_cura?'Cura':null].filter(Boolean).join(', ') || 'Aucun'}</span></div>
     <div class="summary-item"><label>Suite IA locale</label><span>${s.ai_suite_enable ? 'Activée (Ollama + Open-WebUI + Hermes)' : 'Désactivée'}</span></div>
     <div class="summary-item"><label>Options Gaming</label><span>Mode Console: ${(s.gpu_driver === 'nvidia' || s.gpu_driver === 'nvidia-legacy') ? 'Bloqué (NVIDIA)' : s.gamescope_session ? 'Activé' : 'Désactivé'} | Sunshine: ${s.sunshine ? 'Oui' : 'Non'} | Sober: ${s.sober ? 'Oui' : 'Non'}</span></div>
