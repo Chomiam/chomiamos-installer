@@ -194,7 +194,7 @@ async fn start_installation(
 ) -> Result<(), String> {
     let is_dry = dry_run.unwrap_or(false);
     let state_clone = state.inner().clone();
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         let _ = execute_installation(app, state_clone, selections, is_dry).await;
     });
     Ok(())

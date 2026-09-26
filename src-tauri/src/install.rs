@@ -479,42 +479,40 @@ fi
 /// - Pré-évaluation Flake (`nix flake metadata`) pour décompresser les 9 inputs en RAM
 /// - Pré-connexion keep-alive HTTP/2 vers les serveurs Cachix et NixOS
 pub fn start_background_prewarm() {
-    tokio::spawn(async {
-        let live_etc = Path::new("/etc/nixos");
-        let prewarm_dir = Path::new("/tmp/chomiamos-prewarm");
+    let _ = std::thread::Builder::new()
+        .name("chomiamos-prewarm".into())
+        .spawn(move || {
+            let live_etc = Path::new("/etc/nixos");
+            let prewarm_dir = Path::new("/tmp/chomiamos-prewarm");
 
-        // 1. Si /etc/nixos/flake.nix n'existe pas localement, pré-cloner silencieusement vers /tmp/chomiamos-prewarm
-        let target_dir = if live_etc.join("flake.nix").exists() {
-            live_etc
-        } else {
-            if !prewarm_dir.join("flake.nix").exists() {
-                let _ = std::fs::create_dir_all(prewarm_dir);
-                let _ = AsyncCommand::new("git")
-                    .args(["clone", "--depth", "1", "https://github.com/Chomiam/nix_config_gaming.git", prewarm_dir.to_str().unwrap()])
-                    .output()
-                    .await;
+            // 1. Si /etc/nixos/flake.nix n'existe pas localement, pré-cloner silencieusement vers /tmp/chomiamos-prewarm
+            let target_dir = if live_etc.join("flake.nix").exists() {
+                live_etc
+            } else {
+                if !prewarm_dir.join("flake.nix").exists() {
+                    let _ = std::fs::create_dir_all(prewarm_dir);
+                    let _ = Command::new("git")
+                        .args(["clone", "--depth", "1", "https://github.com/Chomiam/nix_config_gaming.git", prewarm_dir.to_str().unwrap()])
+                        .output();
+                }
+                prewarm_dir
+            };
+
+            // 2. Pré-résolution et décompression des inputs Flake (nixpkgs, home-manager, catppuccin...)
+            if target_dir.join("flake.nix").exists() {
+                let _ = Command::new("nix")
+                    .args(["flake", "metadata", "--tarball-ttl", "604800", target_dir.to_str().unwrap()])
+                    .output();
             }
-            prewarm_dir
-        };
 
-        // 2. Pré-résolution et décompression des inputs Flake (nixpkgs, home-manager, catppuccin...)
-        if target_dir.join("flake.nix").exists() {
-            let _ = AsyncCommand::new("nix")
-                .args(["flake", "metadata", "--tarball-ttl", "604800", target_dir.to_str().unwrap()])
-                .output()
-                .await;
-        }
-
-        // 3. Pré-connexion keep-alive / handshake SSL vers les caches
-        let _ = AsyncCommand::new("curl")
-            .args(["-s", "-I", "--connect-timeout", "3", "https://chomiamos.cachix.org"])
-            .output()
-            .await;
-        let _ = AsyncCommand::new("curl")
-            .args(["-s", "-I", "--connect-timeout", "3", "https://cache.nixos.org"])
-            .output()
-            .await;
-    });
+            // 3. Pré-connexion keep-alive / handshake SSL vers les caches
+            let _ = Command::new("curl")
+                .args(["-s", "-I", "--connect-timeout", "3", "https://chomiamos.cachix.org"])
+                .output();
+            let _ = Command::new("curl")
+                .args(["-s", "-I", "--connect-timeout", "3", "https://cache.nixos.org"])
+                .output();
+        });
 }
 
 pub async fn execute_installation(
