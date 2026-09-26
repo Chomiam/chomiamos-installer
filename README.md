@@ -1,4 +1,4 @@
-# 💿 ChomiamOS Installer & Générateur d'Image ISO (v1.1.0 - Rust & Tauri v2)
+# 💿 ChomiamOS Installer & Générateur d'Image ISO (v1.2.x - Rust & Tauri v2)
 
 <p align="center">
   <img src="https://img.shields.io/badge/NixOS-26.05-5277C3?style=for-the-badge&logo=nixos&logoColor=white" alt="NixOS Version" />
@@ -11,81 +11,110 @@
 
 Ce dépôt héberge le code source officiel de l'**installateur système de ChomiamOS Gaming Edition** ainsi que la recette Flake pour générer l'**image ISO Live d'installation bootable**.
 
-Depuis la **version 1.1.0**, l'installateur a été **entièrement réécrit en Rust natif avec Tauri v2**, remplaçant l'ancienne pile Python/Qt6 pour offrir une vitesse d'exécution fulgurante, une empreinte mémoire minimale et une cohérence visuelle parfaite avec le **Dashboard ChomiamOS** grâce au thème **Catppuccin Mocha**.
+L'installateur est propulsé par une architecture **100% Rust natif et Tauri v2**, offrant une vitesse d'exécution fulgurante, une empreinte mémoire minimale (~50 Mo) et une cohérence visuelle parfaite avec le **Dashboard ChomiamOS** grâce au thème officiel **Catppuccin Mocha**.
 
 ---
 
-## ⚡ La Révolution Rust + Tauri v2 (v1.0.0)
+## ⚡ Performance & Avantages Techniques
 
-| Fonctionnalité | Ancienne version (v0.x) | Nouvelle version (v1.1.0) |
-| :--- | :--- | :--- |
-| **Backend & Logique Système** | Python 3.11 + Processus IPC lourd | **Rust natif** multithreadé, sans runtime |
-| **Interface Graphique** | PySide6 / Qt6 QML | **Tauri v2** + Webview moderne ultra-fluide |
-| **Création du Fichier Swap** | `dd` synchrone (long et bloquant) | **`posix_fallocate` Rust** instantané (~0.4 ms) |
-| **Consommation Mémoire RAM** | ~350 - 500 Mo | **~45 - 75 Mo** |
-| **Thème & Design** | Qt Quick personnalisé | **Catppuccin Mocha** officiel (identique au Dashboard) |
-| **Compatibilité ISO Existantes** | Manuelle | **Pont de mise à jour automatique** transparent |
+| Caractéristique | Spécification ChomiamOS Installer (v1.2.x) |
+| :--- | :--- |
+| **Moteur Système** | **Rust natif** multithreadé, sans runtime externe |
+| **Interface Graphique** | **Tauri v2** + Webview moderne ultra-fluide & réactive |
+| **Allocation du Fichier Swap** | **`posix_fallocate` Rust** instantané (~0.4 ms pour 16 Go) |
+| **Consommation Mémoire RAM** | **~45 - 65 Mo** en cours d'exécution |
+| **Thème & Design** | **Catppuccin Mocha** officiel (harmonie totale avec l'écosystème ChomiamOS) |
+| **Déploiement NixOS** | Génération déclarative de `vars.nix`, `hardware-configuration.nix` et `disks.nix` |
+| **Mise à Jour à Chaud** | Détection automatique des releases GitHub (Canaux **Stable** et **Testing**) |
 
 ---
 
-## 🌟 Fonctionnalités & Points Forts
+## 🌟 Fonctionnalités Complètes
 
 ### 1. 🎨 Interface Moderne Catppuccin Mocha
-- **Design soigné & moderne** : Intégration complète de la palette *Catppuccin Mocha* (accents Mauve, Lavender, Peach, Teal et fond Crust/Base).
-- **Composants fluides** : Menus déroulants personnalisés, indicateur d'étapes interactif, modales d'avertissement stylisées et animations CSS réactives.
-- **Affichage fiable des versions des DEs** : Détection dynamique et rigoureuse des versions réelles des environnements de bureau (sans valeurs codées en dur).
+- **Design soigné & accessible** : Palette officielle *Catppuccin Mocha* (accents Mauve, Lavender, Peach, Teal et fond Crust/Base).
+- **Parcours utilisateur guidé** : Indicateur d'étapes interactif, résumés dynamiques, alertes contextuelles et animations fluides.
+- **Sélecteur de version dynamique** : Prise en charge des canaux de mise à jour **Stable** et **Testing** avec prévisualisation des commits et versions disponibles.
 
-### 2. ⚡ Performance & Swap Ultra-Rapide
-- **Allocation POSIX en Rust** : Utilisation de l'appel système `posix_fallocate` pour créer des fichiers Swap de toute taille (1 Go à 16 Go+) en une fraction de milliseconde, éliminant les lenteurs d'installation.
-- **Mode Sans Swap** : Possibilité de désactiver totalement le swap pour optimiser l'espace disque sur les configurations compactes ou machines virtuelles (60-80 Go).
-
-### 3. 🖥️ Environnements de Bureau & Clavier Multi-DE
+### 2. 🖥️ Environnements de Bureau & Clavier Multi-DE
 - **Bureaux pris en charge** :
-  - **GNOME Shell**
+  - **GNOME Shell** (extensions Blur-my-Shell, Dash-to-Dock préconfigurées)
   - **KDE Plasma 6**
-  - **COSMIC Desktop**
-  - **Cinnamon** (avec intégration spécifique et exclusion de `gnome-terminal`)
-- **Synchronisation du clavier universelle** : La disposition de clavier choisie pendant l'installation (AZERTY, QWERTY, etc.) est appliquée immédiatement et enregistrée pour tous les bureaux (`xkb`, GSettings GNOME/Cinnamon, KDE `kxkbrc`, COSMIC).
-- **Fonds d'écran ChomiamOS universels** : Déploiement automatique des wallpapers officiels, détectés et actifs pour tous les environnements (y compris Cinnamon).
+  - **COSMIC Desktop** (versions récentes avec applets communautaires)
+  - **Cinnamon** (intégré et optimisé)
+- **Synchronisation du clavier universelle** : La disposition de clavier choisie pendant l'installation (AZERTY, QWERTY, etc.) est appliquée immédiatement en session live et transmise à tous les environnements de bureau (`xkb`, GSettings GNOME/Cinnamon, KDE `kxkbrc`, COSMIC).
+- **Fonds d'écran officiels ChomiamOS** : Intégration et sélection automatique des fonds d'écran officiels selon l'environnement de bureau choisi.
 
-### 4. 🎮 Gaming & Logiciels à la Carte
-- **Gaming Suites** : Steam, Lutris, Heroic Games Launcher, Decky Loader, émulateurs rétro.
-- **Options modulaires** :
-  - Toggles optionnels pour **Sunshine** (streaming de jeux) et **Sober** (Roblox Flatpak).
-  - Profils **Nvidia GeForce NOW** et **SimRacing** (décochés par défaut, activables d'un clic).
-- **Navigateurs Web** : Choix libre (Brave, Firefox, Zen Browser, Google Chrome, etc.) sans présélection imposée.
+### 3. 💾 Stockage, Systèmes de Fichiers & Swap
+- **Auto-détection matérielle des disques** : Prise en charge des disques NVMe, SSD, SATA et disques virtuels avec protection stricte empêchant l'écrasement accidentel du média d'installation USB live.
+- **Systèmes de fichiers modernes** :
+  - **Btrfs** : Architecture optimisée avec sous-volumes déclaratifs (`@`, `@home`, `@nix`, `@snapshots`) et compression zstd.
+  - **Ext4** : Robustesse éprouvée pour un partitionnement classique.
+  - **ZFS** : Support des pools ZFS pour les configurations avancées.
+  - **Chiffrement LUKS2** : Protection cryptographique intégrale de la partition racine avec confirmation du mot de passe.
+- **Gestion du Swap haute performance** :
+  - Création instantanée via `posix_fallocate` (aucun blocage `dd`).
+  - Mode sans swap disponible pour les environnements virtualisés ou les disques compacts (60-80 Go).
 
-### 5. 🔒 Partitionnement & Sécurité
-- **Auto-détection intelligente** : Prise en charge des disques NVMe, SSD, SATA et virtuels avec filtrage strict pour protéger la clé USB d'installation.
-- **Chiffrement intégral LUKS2** : Sécurisation de la partition racine avec confirmation du mot de passe.
-- **Déploiement NixOS déclaratif** : Génération des configurations `vars.nix`, `mount.nix` et `hardware-configuration.nix`, puis exécution suivie de `nixos-install`.
+### 4. 🎮 Gaming, Émulation & Outils Multimédia
+- **Gaming Suites** : Steam avec intégration Decky Loader, Lutris, Heroic Games Launcher, GameScope session.
+- **Émulateurs Rétro & Consoles** :
+  - **xemu (Xbox Originale)** : Intégré avec détection automatique du PATH par ES-DE.
+  - **DuckStation** (PlayStation 1)
+  - **PCSX2** (PlayStation 2)
+  - **RPCS3** (PlayStation 3)
+  - **Ryujinx** (Nintendo Switch)
+  - **Cemu** (Wii U)
+- **Options Streaming & Gaming Avancées** : Toggles pour **Sunshine** (serveur de streaming) et **Sober** (Roblox Flatpak), profils **GeForce NOW** et **SimRacing**.
 
-### 6. 🔄 Système de Mise à Jour Automatique (Hot-Update)
-- **Détection des nouvelles versions** : L'installateur vérifie automatiquement sur GitHub si une nouvelle version est disponible dès le démarrage de la session Live.
-- **Compatibilité ascendante** : Les anciennes clés USB Live (ISO v0.x) téléchargent et exécutent automatiquement le nouveau binaire Rust sans nécessiter de réécrire l'image ISO.
+### 5. 💻 Environnements de Développement & IDEs (Choix Multiple)
+Sélection granulaire et combinée des environnements de développement dès l'installation :
+- ⚡ **Zed Editor** : Éditeur de code nouvelle génération ultra-rapide écrit en Rust.
+- 🪐 **Google Antigravity** : Environnement de développement et assistant agentique officiel.
+- 💻 **Visual Studio Code** : L'éditeur polyvalent et extensible de Microsoft.
+
+### 6. 🧠 Intelligence Artificielle Locale (Suite IA)
+- Intégration modulaire de la **Suite IA Locale** comprenant :
+  - **Ollama** (moteur d'inférence LLM local)
+  - **Open-WebUI** (interface web conversationnelle intuitive)
+  - **Agent IA Hermes**
+- **Accélération matérielle conditionnelle** : Détection et configuration automatique selon le GPU détecté (CUDA pour NVIDIA, ROCm pour AMD, ou mode CPU standard).
+
+### 7. 🌐 Réseau, Miroirs & Diagnostic Intégré
+- **Sélection des Miroirs & Datacenters** : Choix des meilleurs miroirs de distribution mondiaux pour accélérer le téléchargement des paquets NixOS.
+- **Outil de Diagnostic & Pastebin sécurisé** : En cas de difficulté, génération d'un rapport de diagnostic complet avec possibilité de téléversement chiffré vers un service pastebin pour une assistance rapide.
 
 ---
 
-## 🛠️ Architecture du Projet
+## 🛠️ Architecture du Dépôt
 
 ```text
 chomiamos-installer/
-├── src-tauri/                 # Backend Rust (Tauri v2)
+├── src-tauri/                 # Backend natif Rust (Tauri v2)
 │   ├── src/
-│   │   └── main.rs            # Logique système, commandes Tauri, API headless CLI
-│   ├── Cargo.toml             # Dépendances Rust (tauri, nix, sysinfo, reqwest, serde)
-│   └── tauri.conf.json        # Configuration de la fenêtre et sécurité Tauri
-├── src/                       # Frontend Web Moderne
-│   ├── index.html             # Structure HTML5 sous Catppuccin Mocha
-│   ├── js/
-│   │   └── app.js             # Logique d'interface, navigation et appels Tauri
-│   └── omnis/                 # Pont de compatibilité pour les anciennes ISOs Python
-├── data/
-│   └── bin/
-│       └── chomiamos-installer # Binaire Rust autonome précompilé
-├── flake.nix                  # Déclaration Nix Flake (paquets & image ISO)
+│   │   ├── main.rs            # Point d'entrée, commandes Tauri, API headless CLI
+│   │   ├── config.rs          # Modèle de sélection & génération de vars.nix
+│   │   ├── install.rs         # Moteur de partitionnement, formatage et déploiement NixOS
+│   │   ├── system.rs          # Sondage matériel (CPU, GPU, RAM, DEs, claviers)
+│   │   ├── network_mirror.rs  # Gestion des miroirs réseau mondiaux
+│   │   ├── swap.rs            # Création instantanée du swap (posix_fallocate)
+│   │   ├── updater.rs         # Détection des mises à jour (Stable & Testing)
+│   │   └── pastebin.rs        # Envoi sécurisé des journaux de diagnostic
+│   ├── Cargo.toml             # Métadonnées et dépendances Rust
+│   └── tauri.conf.json        # Configuration Tauri v2 (fenêtre, sécurité, webview)
+├── frontend/                  # Interface Utilisateur Web (Catppuccin Mocha)
+│   ├── index.html             # Structure HTML5 moderne et accessible
+│   ├── css/
+│   │   └── style.css          # Feuilles de style Catppuccin Mocha, composants et responsive
+│   └── js/
+│       └── app.js             # Logique d'interface et communication avec Tauri
+├── config/                    # Thèmes et identité visuelle
+│   └── themes/                # Wallpapers officiels et logos vectoriels/PNG
+├── iso/                       # Configuration de l'image ISO bootable
+│   └── configuration.nix      # Recette du média Live GNOME avec lancement automatique
+├── flake.nix                  # Déclaration Nix Flake officielle
 ├── package.nix                # Dérivation Nix de compilation du binaire
-└── .github/workflows/         # Intégration continue (CI/CD) et publication des releases
+└── .github/workflows/         # Intégration continue (CI/CD) et publication automatique des releases
 ```
 
 ---
@@ -93,7 +122,7 @@ chomiamos-installer/
 ## 🚀 Compilation & Utilisation
 
 ### Prérequis
-- Un système Linux avec [Nix](https://nixos.org/download.html) activé avec les Flakes :
+- Un système Linux avec [Nix](https://nixos.org/download.html) configuré avec les Flakes :
   ```bash
   mkdir -p ~/.config/nix
   echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
@@ -101,15 +130,13 @@ chomiamos-installer/
 
 ### 1. Compiler et tester l'installateur localement
 ```bash
-# Via Nix Flakes
-nix build .#omnis
-./result/bin/omnis --help
-./result/bin/omnis
+# Compilation et vérification des tests unitaires Rust
+cargo test --manifest-path src-tauri/Cargo.toml
 
-# Ou directement avec Cargo (développement Rust)
-cd src-tauri
-cargo build --release
-./target/release/chomiamos-installer
+# Compilation du paquet complet via Nix Flakes
+nix build .#omnis
+./result/bin/chomiamos-installer --help
+./result/bin/chomiamos-installer
 ```
 
 ### 2. Générer l'image ISO Live bootable
@@ -122,7 +149,7 @@ L'image ISO bootable sera générée dans `result/iso/nixos-*.iso`.
 ```bash
 sudo dd if=result/iso/nixos-*.iso of=/dev/sdX bs=4M status=progress conv=fsync
 ```
-*(Remplacez `/dev/sdX` par le nœud de périphérique de votre clé USB, ex: `/dev/sdb`)*
+*(Remplacez `/dev/sdX` par le périphérique correspondant à votre clé USB, par exemple `/dev/sdb`)*
 
 ---
 
@@ -133,10 +160,10 @@ Le texte intégral est disponible dans le fichier [LICENSE](LICENSE).
 
 ### 💖 Remerciements & Attribution Open Source
 
-* **Projet d'origine & architecture initiale** : [Omnis Installer](https://github.com/N3oTraX/Omnis) créé par **[N3oTraX](https://github.com/N3oTraX)** et l'équipe **GLF Team**.
+* **Projet d'origine & architecture initiale** : [Omnis Installer](https://github.com/N3oTraX/Omnis) créé par **[N3oTraX](https://github.com/N3oTraX)** et l'équipe **GLF Team**.  
   *Base conceptuelle du système de jobs modulaire et détection initiale des disques.*
-* **ChomiamOS Installer (v1.1.0+)** : Réécrit, repensé et développé par **Chomiam** pour **ChomiamOS Gaming Edition**.
-  *Réécriture complète en Rust natif + Tauri v2, allocation instantanée de swap POSIX, support multi-DE étendu (Cinnamon, GNOME, Plasma 6, COSMIC), synchronisation du clavier cross-desktop, refonte UI Catppuccin Mocha, intégration des suites de jeux et écosystème déclaratif NixOS.*
+* **ChomiamOS Installer (v1.2.x)** : Réécrit, modernisé et maintenu par **Chomiam** pour **ChomiamOS Gaming Edition**.  
+  *Réécriture complète en Rust natif + Tauri v2, suppression du code historique Python/QML, swap instantané POSIX, support multi-DE étendu (GNOME, Plasma 6, COSMIC, Cinnamon), synchronisation clavier multi-environnements, sélection multiple d'IDEs, intégration xemu et suites de jeux, Suite IA locale, système de fichiers Btrfs/ZFS et déploiement déclaratif NixOS.*
 
 ---
 

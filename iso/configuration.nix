@@ -164,7 +164,7 @@ let
     set -euo pipefail
 
     # Éviter les lancements concurrents
-    if ${pkgs.procps}/bin/pgrep -x omnis >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -x chomiamos-installer >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -f "python.*omnis" >/dev/null 2>&1; then
+    if ${pkgs.procps}/bin/pgrep -x omnis >/dev/null 2>&1 || ${pkgs.procps}/bin/pgrep -x chomiamos-installer >/dev/null 2>&1; then
       exit 0
     fi
 
@@ -333,7 +333,7 @@ in
 
   # Paquets d'outils requis pour le partitionnement et l'installation
   environment.systemPackages = with pkgs; [
-    # Installateur moderne Omnis (Qt6/QML/Python 3) & Lanceur sécurisé Live
+    # Installateur moderne ChomiamOS (Rust / Tauri v2) & Lanceur sécurisé Live
     omnis
     omnis-launcher
     omnisDesktop
