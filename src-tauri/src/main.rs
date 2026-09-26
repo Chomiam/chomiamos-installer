@@ -405,6 +405,10 @@ fn main() {
     let install_state = Arc::new(Mutex::new(SharedInstallState::default()));
 
     tauri::Builder::default()
+        .setup(|_app| {
+            crate::install::start_background_prewarm();
+            Ok(())
+        })
         .manage(install_state)
         .invoke_handler(tauri::generate_handler![
             get_prerequisites,

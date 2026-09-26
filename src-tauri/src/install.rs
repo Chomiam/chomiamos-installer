@@ -474,6 +474,49 @@ fi
     Ok(())
 }
 
+/// Pré-chauffe discrète en tâche de fond dès le lancement d'Omnis :
+/// - Vérification/pré-clonage silencieux du dépôt si absent
+/// - Pré-évaluation Flake (`nix flake metadata`) pour décompresser les 9 inputs en RAM
+/// - Pré-connexion keep-alive HTTP/2 vers les serveurs Cachix et NixOS
+pub fn start_background_prewarm() {
+    tokio::spawn(async {
+        let live_etc = Path::new("/etc/nixos");
+        let prewarm_dir = Path::new("/tmp/chomiamos-prewarm");
+
+        // 1. Si /etc/nixos/flake.nix n'existe pas localement, pré-cloner silencieusement vers /tmp/chomiamos-prewarm
+        let target_dir = if live_etc.join("flake.nix").exists() {
+            live_etc
+        } else {
+            if !prewarm_dir.join("flake.nix").exists() {
+                let _ = std::fs::create_dir_all(prewarm_dir);
+                let _ = AsyncCommand::new("git")
+                    .args(["clone", "--depth", "1", "https://github.com/Chomiam/nix_config_gaming.git", prewarm_dir.to_str().unwrap()])
+                    .output()
+                    .await;
+            }
+            prewarm_dir
+        };
+
+        // 2. Pré-résolution et décompression des inputs Flake (nixpkgs, home-manager, catppuccin...)
+        if target_dir.join("flake.nix").exists() {
+            let _ = AsyncCommand::new("nix")
+                .args(["flake", "metadata", "--tarball-ttl", "604800", target_dir.to_str().unwrap()])
+                .output()
+                .await;
+        }
+
+        // 3. Pré-connexion keep-alive / handshake SSL vers les caches
+        let _ = AsyncCommand::new("curl")
+            .args(["-s", "-I", "--connect-timeout", "3", "https://chomiamos.cachix.org"])
+            .output()
+            .await;
+        let _ = AsyncCommand::new("curl")
+            .args(["-s", "-I", "--connect-timeout", "3", "https://cache.nixos.org"])
+            .output()
+            .await;
+    });
+}
+
 pub async fn execute_installation(
     app: AppHandle,
     state: Arc<Mutex<SharedInstallState>>,
@@ -1138,7 +1181,7 @@ pub async fn execute_installation(
             emit_log(&format!("[SIMULATION] Swapfile de {} Mo alloué.", s.swap_size_mb));
         }
     } else {
-        emit_log("[INFO] Swap désactivé conformément aux préférences utilisateur.");
+        emit_log("[INFO] ⚡ Aucun Swap configuré (0 Mo sélectionné). Poursuite immédiate sans swapfile ni swapon.");
     }
 
     // =========================================================================
@@ -1167,8 +1210,18 @@ pub async fn execute_installation(
 
         // 1. Déploiement intégral de l'arborescence ChomiamOS
         let live_etc = Path::new("/etc/nixos");
-        if live_etc.join("flake.nix").exists() {
-            emit_log("[INFO] Copie intégrale du framework système depuis l'environnement Live (/etc/nixos)...");
+        let prewarm_dir = Path::new("/tmp/chomiamos-prewarm");
+
+        let source_etc = if live_etc.join("flake.nix").exists() {
+            Some(live_etc)
+        } else if prewarm_dir.join("flake.nix").exists() {
+            Some(prewarm_dir)
+        } else {
+            None
+        };
+
+        if let Some(src_dir) = source_etc {
+            emit_log(&format!("[INFO] Copie intégrale du framework système depuis {}...", src_dir.display()));
             let components = [
                 "modules",
                 "hosts",
@@ -1184,26 +1237,32 @@ pub async fn execute_installation(
                 "firewall-user.nix",
             ];
 
-            for comp in &components {
-                let src = live_etc.join(comp);
+            let mut tasks = Vec::new();
+            for comp in components {
+                let src = src_dir.join(comp);
                 let dest = target_nixos.join(comp);
                 if src.exists() {
-                    if src.is_dir() {
-                        let _ = Command::new("cp")
-                            .args(["-r", "--no-clobber", src.to_str().unwrap(), dest.to_str().unwrap()])
-                            .status();
-                    } else {
-                        let _ = Command::new("cp")
-                            .args(["-n", src.to_str().unwrap(), dest.to_str().unwrap()])
-                            .status();
-                    }
+                    tasks.push(tokio::task::spawn_blocking(move || {
+                        if src.is_dir() {
+                            let _ = Command::new("cp")
+                                .args(["-r", "--no-clobber", src.to_str().unwrap(), dest.to_str().unwrap()])
+                                .status();
+                        } else {
+                            let _ = Command::new("cp")
+                                .args(["-n", src.to_str().unwrap(), dest.to_str().unwrap()])
+                                .status();
+                        }
+                    }));
                 }
             }
-            emit_log("[OK] Tous les composants système, paquets et modules ont été copiés.");
+            for task in tasks {
+                let _ = task.await;
+            }
+            emit_log("[OK] Tous les composants système, paquets et modules ont été copiés en parallèle.");
         } else {
-            emit_log("[INFO] Dépôt Live local introuvable. Clone du framework officiel ChomiamOS depuis GitHub...");
+            emit_log("[INFO] Dépôt local introuvable. Clone du framework officiel ChomiamOS depuis GitHub...");
             let clone_status = Command::new("git")
-                .args(["clone", "https://github.com/Chomiam/nix_config_gaming.git", target_nixos.to_str().unwrap()])
+                .args(["clone", "--depth", "1", "https://github.com/Chomiam/nix_config_gaming.git", target_nixos.to_str().unwrap()])
                 .status();
             if clone_status.map_or(false, |st| st.success()) {
                 emit_log("[OK] Dépôt ChomiamOS cloné avec succès.");
@@ -1411,6 +1470,8 @@ r#"{{ config, lib, ... }}:
             "--option", "trusted-public-keys", all_keys,
             "--option", "extra-trusted-public-keys", all_keys,
             "--option", "http-connections", "128",
+            "--option", "max-substitution-jobs", "64",
+            "--option", "download-buffer-size", "67108864",
             "--option", "connect-timeout", "5",
             "--option", "stalled-download-timeout", "15",
             "--option", "download-speed", "0",

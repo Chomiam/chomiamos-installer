@@ -221,9 +221,10 @@ in
   # Thème GRUB Catppuccin Mocha pour le boot UEFI de l'ISO Live
   isoImage.grubTheme = pkgs.catppuccin-grub;
 
-  # Compression Squashfs maximale (XZ 100% dictionnaire) :
-  # Minimise la taille de l'ISO malgré l'inclusion des paquets de base pour la copie locale ultra-rapide.
-  isoImage.squashfsCompression = "xz -Xdict-size 100%";
+  # Compression Squashfs Zstandard ultra-rapide (niveau 19) :
+  # Vitesse de décompression maximale dans le noyau Linux (~1,5 à 2,5 Go/s)
+  # permettant une copie locale ultra-rapide depuis la clé USB sans freeze CPU.
+  isoImage.squashfsCompression = "zstd -Xcompression-level 19";
 
   # Thème Plymouth Catppuccin Mocha identique à la configuration système installée
   boot.plymouth = {
