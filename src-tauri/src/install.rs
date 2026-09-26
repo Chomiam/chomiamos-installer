@@ -277,12 +277,12 @@ pub fn run_post_install_audit_and_repairs(
     ];
     for sub in &xdg_subdirs {
         let p = user_home.join(sub);
-        let _ = privileged_cmd("mkdir").args(["-p", p.to_str().unwrap()]).status();
+        let _ = std::fs::create_dir_all(&p);
     }
 
     // 2.3-bis S'assurer que le dossier d'exportation Flatpak système existe
     let sys_flatpak_apps = target_root.join("var/lib/flatpak/exports/share/applications");
-    let _ = privileged_cmd("mkdir").args(["-p", sys_flatpak_apps.to_str().unwrap()]).status();
+    let _ = std::fs::create_dir_all(&sys_flatpak_apps);
     let _ = privileged_cmd("chmod").args(["755", sys_flatpak_apps.to_str().unwrap()]).status();
 
     // 2.3-ter Pré-configuration des fonds d'écran Cinnamon
@@ -354,7 +354,7 @@ pub fn run_post_install_audit_and_repairs(
     emit_log_fn("[CHECK 4/8] Contrôle des permissions des répertoires temporaires /tmp et /var/tmp...");
     let tmp_dirs = [target_root.join("tmp"), target_root.join("var/tmp")];
     for td in &tmp_dirs {
-        let _ = privileged_cmd("mkdir").args(["-p", td.to_str().unwrap()]).status();
+        let _ = std::fs::create_dir_all(td);
         let _ = privileged_cmd("chown").args(["0:0", td.to_str().unwrap()]).status();
         let _ = privileged_cmd("chmod").args(["1777", td.to_str().unwrap()]).status();
     }
@@ -573,10 +573,10 @@ pub async fn execute_installation(
 
     if !effective_dry_run {
         unmount_and_clean_target_disk(&s.target_disk, &|m| emit_log(m));
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
         emit_log("[OK] Environnement nettoyé et prêt pour le partitionnement.");
     } else {
-        tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         emit_log("[SIMULATION] Nettoyage préalable des montages effectué.");
     }
 
@@ -602,7 +602,7 @@ pub async fn execute_installation(
         let _ = privileged_cmd("sync").status();
         let _ = privileged_cmd("partprobe").arg(&s.target_disk).status();
         let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
         emit_log(&format!("[INFO] Création d'une table de partitions GPT vierge sur {}...", s.target_disk));
         let mut gpt_ok = false;
@@ -630,7 +630,7 @@ pub async fn execute_installation(
 
             if attempt < 3 {
                 unmount_and_clean_target_disk(&s.target_disk, &|m| emit_log(m));
-                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
             }
         }
 
@@ -696,17 +696,18 @@ pub async fn execute_installation(
                 partitions_ready = true;
                 break;
             }
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
         }
 
         if !partitions_ready {
             let _ = privileged_cmd("partprobe").arg(&s.target_disk).status();
-            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
+            tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
         }
 
         emit_log(&format!("[OK] Partitions créées et validées par le noyau : {} (EFI) et {} (Root)", efi_part, root_part));
     } else {
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         emit_log(&format!("[SIMULATION] Partitionnement GPT simulé : {} et {}", efi_part, root_part));
     }
 
@@ -766,7 +767,7 @@ pub async fn execute_installation(
             let _ = privileged_cmd("udevadm").args(["settle", "--timeout=10"]).status();
             let _ = privileged_cmd("btrfs").args(["device", "scan", &root_part]).status();
             let _ = privileged_cmd("btrfs").args(["device", "scan"]).status();
-            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
 
             // Création ordonnée des subvolumes Btrfs (@, @home, @nix, @swap)
             // Utilisation d'un point de montage dédié isolé dans /run pour éviter tout conflit avec /mnt
@@ -779,7 +780,7 @@ pub async fn execute_installation(
             let mut last_temp_err = String::new();
             for attempt in 1..=5 {
                 let out = privileged_cmd("mount")
-                    .args(["-t", "btrfs", &root_part, temp_mount_dir])
+                    .args(["-t", "btrfs", "-o", "noatime", &root_part, temp_mount_dir])
                     .output();
                 match out {
                     Ok(o) if o.status.success() => {
@@ -798,7 +799,7 @@ pub async fn execute_installation(
                 let _ = privileged_cmd("sync").status();
                 let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
                 let _ = privileged_cmd("btrfs").args(["device", "scan", &root_part]).status();
-                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
             }
 
             if !temp_mounted {
@@ -829,7 +830,7 @@ pub async fn execute_installation(
                     temp_unmounted = true;
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
             }
             if !temp_unmounted {
                 let _ = privileged_cmd("umount").args(["-l", temp_mount_dir]).status();
@@ -860,7 +861,7 @@ pub async fn execute_installation(
         emit_log("[INFO] Synchronisation udev post-formatage (udevadm settle + sync)...");
         let _ = privileged_cmd("udevadm").args(["settle", "--timeout=10"]).status();
         let _ = privileged_cmd("sync").status();
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         emit_log("[OK] Synchronisation noyau/udev terminée, partitions prêtes pour le montage.");
     } else {
         tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
@@ -888,11 +889,11 @@ pub async fn execute_installation(
 
             let make_opts = |sub: &str, is_swap: bool| -> String {
                 if is_swap {
-                    format!("subvol={},nodatacow", sub)
+                    format!("subvol={},noatime,nodatacow", sub)
                 } else if compress_opt.is_empty() {
-                    format!("subvol={}", sub)
+                    format!("subvol={},noatime", sub)
                 } else {
-                    format!("subvol={},{}", sub, compress_opt)
+                    format!("subvol={},noatime,{}", sub, compress_opt)
                 }
             };
 
@@ -919,7 +920,7 @@ pub async fn execute_installation(
                     }
                 }
                 let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
-                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
             }
             if !root_mounted {
                 let err = format!("Échec du montage du subvolume Btrfs @ sur /mnt ({})", last_mount_err);
@@ -944,7 +945,7 @@ pub async fn execute_installation(
                     home_mounted = true;
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
             }
             if !home_mounted {
                 let err = "Échec du montage de @home sur /mnt/home".to_string();
@@ -963,7 +964,7 @@ pub async fn execute_installation(
                     nix_mounted = true;
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
             }
             if !nix_mounted {
                 let err = "Échec du montage de @nix sur /mnt/nix".to_string();
@@ -982,7 +983,7 @@ pub async fn execute_installation(
                     swap_mounted = true;
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
             }
             if !swap_mounted {
                 let err = "Échec du montage de @swap sur /mnt/swap".to_string();
@@ -994,12 +995,12 @@ pub async fn execute_installation(
             emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
             let mut boot_mounted = false;
             for _attempt in 1..=3 {
-                let out = privileged_cmd("mount").args([&efi_part, "/mnt/boot"]).output();
+                let out = privileged_cmd("mount").args(["-o", "noatime", &efi_part, "/mnt/boot"]).output();
                 if out.map_or(false, |o| o.status.success()) {
                     boot_mounted = true;
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
             }
             if !boot_mounted {
                 let err = format!("Échec du montage de l'EFI sur /mnt/boot");
@@ -1024,10 +1025,10 @@ pub async fn execute_installation(
             emit_log("[OK] Subvolumes Btrfs (@, @home, @nix, @swap) et EFI (/mnt/boot) vérifiés et montés avec succès.");
         } else {
             // ── Montage de la partition racine ext4 avec mécanisme de retry ──
-            emit_log(&format!("[INFO] Montage de la partition racine ext4 {} sur /mnt...", root_part));
+            emit_log(&format!("[INFO] Montage de la partition racine ext4 {} sur /mnt (noatime)...", root_part));
             let mut root_mounted = false;
             for attempt in 1..=3 {
-                match privileged_cmd("mount").args([&root_part, "/mnt"]).status() {
+                match privileged_cmd("mount").args(["-o", "noatime", &root_part, "/mnt"]).status() {
                     Ok(st) if st.success() => {
                         root_mounted = true;
                         break;
@@ -1039,9 +1040,9 @@ pub async fn execute_installation(
                         };
                         emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, root_part, detail));
                         if attempt < 3 {
-                            emit_log("[INFO] Attente de 2s avant la prochaine tentative de montage...");
+                            emit_log("[INFO] Attente de brève libération avant la prochaine tentative de montage...");
                             let _ = privileged_cmd("udevadm").args(["settle", "--timeout=5"]).status();
-                            tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                         }
                     }
                 }
@@ -1055,10 +1056,10 @@ pub async fn execute_installation(
 
             // ── Montage de la partition EFI avec retry ──
             let _ = std::fs::create_dir_all("/mnt/boot");
-            emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot...", efi_part));
+            emit_log(&format!("[INFO] Montage de la partition EFI {} sur /mnt/boot (noatime)...", efi_part));
             let mut boot_mounted = false;
             for attempt in 1..=3 {
-                match privileged_cmd("mount").args([&efi_part, "/mnt/boot"]).status() {
+                match privileged_cmd("mount").args(["-o", "noatime", &efi_part, "/mnt/boot"]).status() {
                     Ok(st) if st.success() => {
                         boot_mounted = true;
                         break;
@@ -1070,7 +1071,7 @@ pub async fn execute_installation(
                         };
                         emit_log(&format!("[WARN] Tentative {}/3 de montage de {} échouée ({})", attempt, efi_part, detail));
                         if attempt < 3 {
-                            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
                         }
                     }
                 }
@@ -1381,21 +1382,21 @@ r#"{{ config, lib, ... }}:
 
         let mut substituters_list = vec![
             "https://chomiamos.cachix.org".to_string(),
-            "https://cache.nixos.org".to_string(),
             "https://chomiamos-dashboard.cachix.org".to_string(),
             "https://duckstation.cachix.org".to_string(),
             "https://cosmic.cachix.org".to_string(),
+            "https://cache.nixos.org".to_string(),
         ];
 
         // 1. Optimisation Store Local : réutilisation directe des paquets du live ISO (/nix/store)
         let local_store = Path::new("/nix/store");
         if local_store.exists() {
-            emit_log("[OPTIMISATION] Détection du store local Live ISO (/nix/store) : copie directe ultra-rapide activée (NVMe/SATA bus).");
-            substituters_list.insert(0, "file:///nix/store?trusted=1".to_string());
+            emit_log("[OPTIMISATION] Détection du store local Live ISO (/nix/store) : mode 'auto?trusted=1' actif pour copie directe ultra-rapide (bus NVMe/SATA).");
+            substituters_list.insert(0, "auto?trusted=1".to_string());
         }
 
         let all_substituters = substituters_list.join(" ");
-        let all_keys = "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= chomiamos.cachix.org-1:YB3RyqWQZagZxsfBwdVXcJ2219/yAsMFOGoh0pfSbjk= chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w= duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4= cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE=";
+        let all_keys = "chomiamos.cachix.org-1:YB3RyqWQZagZxsfBwdVXcJ2219/yAsMFOGoh0pfSbjk= chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w= duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4= cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=";
 
         emit_log(&format!("[CACHE] Substituteurs configurés : {}", all_substituters));
         emit_log("[RÉSEAU] Optimisation des flux : 128 connexions HTTP/2 simultanées configurées.");
@@ -1403,6 +1404,7 @@ r#"{{ config, lib, ... }}:
         let mut cmd = privileged_async_cmd("nixos-install");
         cmd.args([
             "--no-root-passwd",
+            "--no-channel-copy",
             "--option", "substituters", &all_substituters,
             "--option", "extra-substituters", &all_substituters,
             "--option", "trusted-substituters", &all_substituters,
@@ -1418,6 +1420,12 @@ r#"{{ config, lib, ... }}:
             "--option", "warn-dirty", "false",
             "--option", "sandbox", "false",
             "--option", "build-users-group", "",
+            "--option", "eval-cache", "true",
+            "--option", "tarball-ttl", "604800",
+            "--option", "narinfo-cache-negative-ttl", "3600",
+            "--option", "builders-use-substitutes", "true",
+            "--option", "fallback", "true",
+            "--option", "auto-optimise-store", "false",
             "--flake", "/mnt/etc/nixos#default",
             "--root", "/mnt",
         ]);

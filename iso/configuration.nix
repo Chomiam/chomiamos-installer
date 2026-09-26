@@ -270,21 +270,24 @@ in
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     substituters = [
+      "https://chomiamos.cachix.org"
       "https://cache.nixos.org"
-      "https://cosmic.cachix.org"
       "https://chomiamos-dashboard.cachix.org"
+      "https://cosmic.cachix.org"
       "https://duckstation.cachix.org"
     ];
     trusted-public-keys = [
+      "chomiamos.cachix.org-1:YB3RyqWQZagZxsfBwdVXcJ2219/yAsMFOGoh0pfSbjk="
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE="
       "chomiamos-dashboard.cachix.org-1:DrjJpGp7tzIMJo6s4dQdwWDopszgo1EFkm34PEN+D+w="
+      "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmACbuUuRJDTOMs8ayE="
       "duckstation.cachix.org-1:tNC6UMoM5ZojxBRDdPNHC3xBlk7hnClCtsGsho3YiY4="
     ];
     trusted-substituters = [
+      "https://chomiamos.cachix.org"
       "https://cache.nixos.org"
-      "https://cosmic.cachix.org"
       "https://chomiamos-dashboard.cachix.org"
+      "https://cosmic.cachix.org"
       "https://duckstation.cachix.org"
     ];
     trusted-users = [ "root" "@wheel" ];
