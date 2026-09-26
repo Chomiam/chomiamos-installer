@@ -221,6 +221,10 @@ in
   # Thème GRUB Catppuccin Mocha pour le boot UEFI de l'ISO Live
   isoImage.grubTheme = pkgs.catppuccin-grub;
 
+  # Compression Squashfs maximale (XZ 100% dictionnaire) :
+  # Minimise la taille de l'ISO malgré l'inclusion des paquets de base pour la copie locale ultra-rapide.
+  isoImage.squashfsCompression = "xz -Xdict-size 100%";
+
   # Thème Plymouth Catppuccin Mocha identique à la configuration système installée
   boot.plymouth = {
     enable = true;
@@ -312,9 +316,11 @@ in
     gnome-console
   ];
 
-  # Polices Nerd Fonts pour le rendu propre des icônes dans le terminal & Fastfetch
+  # Polices d'écriture indispensables (Nerd Fonts, Font-Awesome, Noto Fonts)
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
+    font-awesome
+    noto-fonts
   ];
 
   # Autologin sur l'utilisateur Live par défaut 'nixos'
@@ -334,15 +340,29 @@ in
   environment.etc."omnis/omnis.yaml".source = "${omnis}/share/omnis/omnis.yaml";
   environment.etc."omnis/config".source = "${omnis}/share/omnis/config";
 
-  # Paquets d'outils requis pour le partitionnement et l'installation
+  # Activation du shell Fish (shell par défaut de ChomiamOS, pré-embarqué pour éliminer la net install du shell)
+  programs.fish = {
+    enable = true;
+  };
+
+  # Feral GameMode (optimisation CPU/GPU pré-embarquée dans le store)
+  programs.gamemode = {
+    enable = true;
+  };
+
+  # Paquets d'outils requis pour le partitionnement, l'installation et socle minimal ChomiamOS (copie locale ultra-rapide)
   environment.systemPackages = with pkgs; [
-    # Installateur moderne ChomiamOS (Rust / Tauri v2) & Lanceur sécurisé Live
+    # -------------------------------------------------------------------------
+    # 💽 Installateur ChomiamOS (Rust / Tauri v2) & Lanceur graphique
+    # -------------------------------------------------------------------------
     omnis
     omnis-launcher
     omnisDesktop
     xhost
 
-    # Outils de disque & partitionnement
+    # -------------------------------------------------------------------------
+    # 🛠️ Outils de disque & partitionnement
+    # -------------------------------------------------------------------------
     parted
     gparted
     gptfdisk
@@ -352,37 +372,104 @@ in
     cryptsetup
     util-linux
 
-    # Détection matérielle & réseau
+    # -------------------------------------------------------------------------
+    # 🌐 Détection matérielle, réseau & connectivité
+    # -------------------------------------------------------------------------
     pciutils
     usbutils
     git
+    gh
     zenity
     curl
     wget
     whois # Fournit mkpasswd
     spice-vdagent
     xrandr
+    wireguard-tools
 
-    # Navigateur Web
+    # -------------------------------------------------------------------------
+    # 🌍 Navigateur Web Live
+    # -------------------------------------------------------------------------
     firefox
 
-    # Extensions GNOME & Thème Catppuccin Mocha
+    # -------------------------------------------------------------------------
+    # 🖥️ Environnement GNOME & Extensions officielles ChomiamOS
+    # -------------------------------------------------------------------------
     gnomeExtensions.dash-to-dock
     gnomeExtensions.vitals
     gnomeExtensions.blur-my-shell
     gnomeExtensions.arcmenu
     gnomeExtensions.user-themes
     gnomeExtensions.no-overview
+    gnomeExtensions.appindicator
+    gnomeExtensions.clipboard-indicator
+    gnome-tweaks
+    gnome-extension-manager
+    networkmanagerapplet
     catppuccinTheme
     (catppuccin-papirus-folders.override { flavor = "mocha"; accent = "lavender"; })
     catppuccin-cursors.mochaLavender
 
-    # Terminal, Rendu & Fastfetch
+    # -------------------------------------------------------------------------
+    # 🎨 Socle GTK & Libadwaita
+    # -------------------------------------------------------------------------
+    adw-gtk3
+    libadwaita
+    libappindicator-gtk3
+    glib-networking
+
+    # -------------------------------------------------------------------------
+    # 💻 Terminaux, Rendu & Fastfetch
+    # -------------------------------------------------------------------------
     kitty
     kitty-themes
+    alacritty
     fastfetch
     chafa
     imagemagick
+
+    # -------------------------------------------------------------------------
+    # 🐚 Shell Fish & Plugins officiels (socle utilisateur par défaut)
+    # -------------------------------------------------------------------------
+    fish
+    fishPlugins.fzf-fish
+    fishPlugins.done
+    fishPlugins.forgit
+    fishPlugins.hydro
+    fishPlugins.grc
+    grc
+    fzf
+
+    # -------------------------------------------------------------------------
+    # ⚙️ Utilitaires CLI ChomiamOS essentiels (évite tout téléchargement réseau)
+    # -------------------------------------------------------------------------
+    btop
+    nh
+    ripgrep
+    fuse3
+
+    # -------------------------------------------------------------------------
+    # 📦 Compression & Archives système
+    # -------------------------------------------------------------------------
+    cabextract
+    innoextract
+    libarchive
+    p7zip
+    unzip
+
+    # -------------------------------------------------------------------------
+    # 🎮 Outils graphiques légers & Diagnostic
+    # -------------------------------------------------------------------------
+    mangohud
+    vulkan-tools
+    libva-utils
+    easyeffects
+
+    # -------------------------------------------------------------------------
+    # 🐍 Environnement d'exécution de base
+    # -------------------------------------------------------------------------
+    python3
+    uv
   ];
 
   # Lancement automatique de Fastfetch dans le terminal interactif
