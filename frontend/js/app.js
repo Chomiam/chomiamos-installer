@@ -1195,7 +1195,7 @@ function initTerminalActions() {
         "==================================================================",
         "  ChomiamOS Gaming Edition — Journal d'installation",
         `  Date : ${new Date().toLocaleString()}`,
-        "  Version Installateur : v1.2.18-testing (Rust + Tauri v2)",
+        "  Version Installateur : v1.2.31 (Rust + Tauri v2)",
         "==================================================================",
         "",
       ].join("\n");
@@ -2416,7 +2416,7 @@ function generateFullErrorReport() {
 
   return [
     "================================================================================",
-    "🚨 CHOMIAMOS GAMING EDITION - RAPPORT D'INCIDENT D'INSTALLATION (v1.2.27)",
+    "🚨 CHOMIAMOS GAMING EDITION - RAPPORT D'INCIDENT D'INSTALLATION (v1.2.31)",
     "================================================================================",
     `Date & Heure : ${dateStr}`,
     `Type de panne : ${title}`,
